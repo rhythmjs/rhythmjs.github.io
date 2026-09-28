@@ -174,8 +174,7 @@ import { toFetchHandler } from &quot;@rhythmjs/router/adapters/bun&quot;;
 import type { RhythmHttpContext } from &quot;@rhythmjs/router/adapters/context&quot;;
 
 const router = new RhythmRouter().get(&quot;/users/:id&quot;, (ctx) =&gt; {
-  ctx.response.headers.set(&quot;content-type&quot;, &quot;application/json&quot;);
-  ctx.response.body = JSON.stringify({ id: ctx.params.id });
+  ctx.json({ id: ctx.params.id });
 });
 
 const app = new Rhythm&lt;RhythmHttpContext&gt;().use(router.routes());
@@ -265,8 +264,51 @@ const app = new Rhythm&lt;RhythmHttpContext&gt;()
               <code>headers</code>, and <code>body</code> on
               <code>ctx.response</code>. Bodies support strings, ArrayBuffer,
               Uint8Array, Blob, FormData, URLSearchParams, byte streams, and
-              null. Serialize JSON yourself and set the content type.
+              null.
             </p>
+            <p>
+              For the common shapes, the context carries response helpers that
+              set the content type, body, and status in one call. They are
+              sugar over <code>ctx.response</code>, so mixing both styles is
+              fine, and later writes win.
+            </p>
+            <figure class="code-block">
+              <pre><code>router
+  .get(&quot;/users/:id&quot;, (ctx) =&gt; {
+    ctx.json({ id: ctx.params.id }, 200);
+  })
+  .get(&quot;/hello&quot;, (ctx) =&gt; {
+    ctx.html(&quot;&lt;h1&gt;hello&lt;/h1&gt;&quot;);
+  })
+  .get(&quot;/gone&quot;, (ctx) =&gt; {
+    ctx.error(410);
+  })
+  .get(&quot;/old&quot;, (ctx) =&gt; {
+    ctx.redirect(&quot;/users/1&quot;, 301);
+  });</code></pre>
+            </figure>
+            <ul>
+              <li>
+                <code>ctx.json(data, status?)</code> — serializes
+                <code>data</code> and sets
+                <code>application/json; charset=utf-8</code>.
+              </li>
+              <li>
+                <code>ctx.text(body, status?)</code> /
+                <code>ctx.html(body, status?)</code> — plain-text and HTML
+                bodies with their content types.
+              </li>
+              <li>
+                <code>ctx.error(status, message?)</code> — sets the status and
+                a plain-text message, defaulting the message from the status
+                code (<code>ctx.error(404)</code> →
+                <code>&quot;Not Found&quot;</code>).
+              </li>
+              <li>
+                <code>ctx.redirect(url, status = 302)</code> — sets the
+                <code>location</code> header and clears the body.
+              </li>
+            </ul>
             <p>
               See <a href="adapters.html">runtime adapters</a> for Bun, Node,
               and Deno entry points.

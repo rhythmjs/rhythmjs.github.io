@@ -192,11 +192,31 @@
                 app.
               </dd>
             </dl>
+            <dl>
+              <dt>ctx.json(data, status?)</dt>
+              <dd>
+                Serialize data as the body with an application/json content
+                type; status is optional.
+              </dd>
+              <dt>ctx.text(body, status?) / ctx.html(body, status?)</dt>
+              <dd>
+                Set a plain-text or HTML body with the matching content type.
+              </dd>
+              <dt>ctx.error(status, message?)</dt>
+              <dd>
+                Set the status and a plain-text message, defaulting the message
+                from the status code.
+              </dd>
+              <dt>ctx.redirect(url, status?)</dt>
+              <dd>Set the location header with a 302 default and no body.</dd>
+            </dl>
             <p>
+              The helpers are sugar over <code>ctx.response</code>, built into
+              the context by the adapters via <code>createHttpContext</code>.
               Context exports: <code>RhythmHttpContext</code>,
-              <code>RhythmResponse</code>, <code>RhythmResponseBody</code>, and
-              <code>toResponse</code> are available from
-              <code>@rhythmjs/router/adapters/context</code>.
+              <code>RhythmResponse</code>, <code>RhythmResponseBody</code>,
+              <code>createHttpContext</code>, and <code>toResponse</code> are
+              available from <code>@rhythmjs/router/adapters/context</code>.
             </p>
           </section>
           <section aria-labelledby="adapter-exports">
