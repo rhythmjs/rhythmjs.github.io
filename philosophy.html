@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="The ideas behind Rhythm: onion composition, typed contexts, small honest packages, and web standards."
+    />
+    <meta name="color-scheme" content="light dark" />
+    <title>Philosophy · RhythmJS</title>
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="RhythmJS documentation" />
+    <meta property="og:title" content="Philosophy · RhythmJS" />
+    <meta
+      property="og:description"
+      content="The ideas behind Rhythm: onion composition, typed contexts, small honest packages, and web standards."
+    />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Philosophy · RhythmJS" />
+    <meta
+      name="twitter:description"
+      content="The ideas behind Rhythm: onion composition, typed contexts, small honest packages, and web standards."
+    />
+    <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="assets/style.css" />
+    <script defer src="assets/highlight.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="header">
+      <a
+        class="brand"
+        href="index.html"
+        aria-label="RhythmJS documentation home"
+        ><svg viewBox="0 0 28 28" aria-hidden="true">
+          <path d="M2 15h5l3-9 5 17 4-13 3 5h4" /></svg
+        ><span>rhythm<span class="brand-js">js</span></span></a
+      >
+      <span class="version">v0.0.1</span>
+      <nav class="header-tabs" aria-label="Site">
+        <a href="index.html" aria-current="true">Guide</a
+        ><a href="rhythm/index.html">Packages</a>
+      </nav>
+      <nav class="header-links" aria-label="External">
+        <a href="https://github.com/rhythmjs">GitHub</a>
+      </nav>
+    </header>
+    <details class="mobile-navigation">
+      <summary>Browse documentation</summary>
+      <nav aria-label="Documentation">
+        <div class="nav-group">
+          <p>Guide</p>
+          <a href="index.html">Introduction</a>
+          <a href="getting-started.html">Quick start</a>
+          <a href="philosophy.html" aria-current="page">Philosophy</a>
+          <a href="template.html">Starter template</a>
+        </div>
+      </nav>
+    </details>
+    <div class="layout">
+      <aside class="sidebar" id="sidebar">
+        <nav aria-label="Documentation">
+          <div class="nav-group">
+            <p>Guide</p>
+            <a href="index.html">Introduction</a>
+            <a href="getting-started.html">Quick start</a>
+            <a href="philosophy.html" aria-current="page">Philosophy</a>
+            <a href="template.html">Starter template</a>
+          </div>
+        </nav>
+      </aside>
+      <main id="main" tabindex="-1">
+        <div class="breadcrumb">
+          <a href="index.html">Docs</a> <span>/</span> Getting started
+          <span>/</span> Philosophy
+        </div>
+        <h1>Philosophy</h1>
+        <p class="lead">
+          A framework should be something you compose, not something you
+          inherit.
+        </p>
+        <div class="article">
+          <section aria-labelledby="the-onion-is-the-framework">
+            <h2 id="the-onion-is-the-framework">
+              <a href="#the-onion-is-the-framework"
+                >The onion is the framework<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              Everything in Rhythm is a middleware: a function that does some
+              work, hands control down the chain, and optionally does more work
+              on the way back up. Request validation, response transformation,
+              error handling, logging, and sessions are not special framework
+              concepts. They are all the same shape, which means they all
+              compose, and anything you write yourself is a first-class citizen
+              from the start.
+            </p>
+          </section>
+          <section aria-labelledby="types-flow-with-the-request">
+            <h2 id="types-flow-with-the-request">
+              <a href="#types-flow-with-the-request"
+                >Types flow with the request<span aria-hidden="true">
+                  #</span
+                ></a
+              >
+            </h2>
+            <p>
+              When a middleware contributes something to the request context,
+              such as a validated body, a session, or a request id, that
+              contribution is visible in the types of every handler that runs
+              after it. You never cast, you never guess what a context holds,
+              and removing a middleware tells you at compile time exactly which
+              handlers depended on it.
+            </p>
+          </section>
+          <section aria-labelledby="small-pieces-honestly-separated">
+            <h2 id="small-pieces-honestly-separated">
+              <a href="#small-pieces-honestly-separated"
+                >Small pieces, honestly separated<span aria-hidden="true">
+                  #</span
+                ></a
+              >
+            </h2>
+            <p>
+              The ecosystem is deliberately split into small packages, and each
+              package exports every module by its own subpath rather than
+              through a barrel. You install what you need, you import what you
+              use, and nothing else ships with your application. A feature you
+              do not use should cost you nothing: no bytes, no startup time, no
+              reading effort.
+            </p>
+          </section>
+          <section aria-labelledby="web-standards-no-lock-in">
+            <h2 id="web-standards-no-lock-in">
+              <a href="#web-standards-no-lock-in"
+                >Web standards, no lock-in<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              Rhythm speaks the platform's own language: standard
+              <code>Request</code> and <code>Response</code> objects, standard
+              headers, standard streams. The same application runs on Node.js,
+              Bun, and Deno through thin adapters, and validation accepts any
+              schema library that implements the
+              <a href="https://standardschema.dev">Standard Schema</a>
+              specification. The framework never asks you to marry a vendor.
+            </p>
+          </section>
+          <section aria-labelledby="explicit-beats-magical">
+            <h2 id="explicit-beats-magical">
+              <a href="#explicit-beats-magical"
+                >Explicit beats magical<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              There are no decorators, no dependency-injection containers, no
+              file-system conventions, and no hidden execution order. An
+              application is an ordinary value built by ordinary function calls,
+              so the answer to "what runs, and when?" is always readable in the
+              code that built it.
+            </p>
+          </section>
+          <section aria-labelledby="boring-on-purpose">
+            <h2 id="boring-on-purpose">
+              <a href="#boring-on-purpose"
+                >Boring on purpose<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              Failures answer with plain, predictable JSON. Internals never leak
+              to clients. Behavior is covered by tests against the real router
+              rather than promised by documentation. The goal is software you
+              can trust without having to think about it.
+            </p>
+          </section>
+        </div>
+        <nav class="pagination" aria-label="Previous and next pages">
+          <a href="getting-started.html"
+            ><span>← Previous</span><strong>Quick start</strong></a
+          ><a href="template.html"
+            ><span>Next →</span><strong>Starter template</strong></a
+          >
+        </nav>
+        <footer class="page-footer">
+          <span>RhythmJS documentation · v0.0.1</span
+          ><a href="https://github.com/rhythmjs">github.com/rhythmjs</a>
+        </footer>
+      </main>
+      <aside class="toc">
+        <nav aria-label="On this page">
+          <p>ON THIS PAGE</p>
+          <a href="#the-onion-is-the-framework">The onion is the framework</a>
+          <a href="#types-flow-with-the-request">Types flow with the request</a>
+          <a href="#small-pieces-honestly-separated"
+            >Small pieces, honestly separated</a
+          >
+          <a href="#web-standards-no-lock-in">Web standards, no lock-in</a>
+          <a href="#explicit-beats-magical">Explicit beats magical</a>
+          <a href="#boring-on-purpose">Boring on purpose</a>
+        </nav>
+      </aside>
+    </div>
+  </body>
+</html>

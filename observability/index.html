@@ -5,22 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="Route requests with named parameters and composable prefixes."
+      content="Request logging, request ids, and server timing for Rhythm routers."
     />
     <meta name="color-scheme" content="light dark" />
-    <title>HTTP router · @rhythmjs/router</title>
+    <title>Overview · RhythmJS</title>
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="RhythmJS documentation" />
-    <meta property="og:title" content="HTTP router · @rhythmjs/router" />
+    <meta property="og:title" content="Overview · RhythmJS" />
     <meta
       property="og:description"
-      content="Route requests with named parameters and composable prefixes."
+      content="Request logging, request ids, and server timing for Rhythm routers."
     />
     <meta name="twitter:card" content="summary" />
-    <meta name="twitter:title" content="HTTP router · @rhythmjs/router" />
+    <meta name="twitter:title" content="Overview · RhythmJS" />
     <meta
       name="twitter:description"
-      content="Route requests with named parameters and composable prefixes."
+      content="Request logging, request ids, and server timing for Rhythm routers."
     />
     <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -63,11 +63,11 @@
           <a href="../rhythm/modules.html">Encapsulated modules</a>
           <a href="../rhythm/api.html">API reference</a>
         </details>
-        <details class="nav-group package-group" open>
+        <details class="nav-group package-group">
           <summary>Router</summary>
-          <a href="index.html" aria-current="page">Overview</a>
-          <a href="adapters.html">Runtime adapters</a>
-          <a href="api.html">API reference</a>
+          <a href="../router/index.html">Overview</a>
+          <a href="../router/adapters.html">Runtime adapters</a>
+          <a href="../router/api.html">API reference</a>
         </details>
         <details class="nav-group package-group">
           <summary>CLI</summary>
@@ -91,10 +91,10 @@
           <a href="../security/index.html">Overview</a>
           <a href="../security/api.html">API reference</a>
         </details>
-        <details class="nav-group package-group">
+        <details class="nav-group package-group" open>
           <summary>Observability</summary>
-          <a href="../observability/index.html">Overview</a>
-          <a href="../observability/api.html">API reference</a>
+          <a href="index.html" aria-current="page">Overview</a>
+          <a href="api.html">API reference</a>
         </details>
       </nav>
     </details>
@@ -109,11 +109,11 @@
             <a href="../rhythm/modules.html">Encapsulated modules</a>
             <a href="../rhythm/api.html">API reference</a>
           </details>
-          <details class="nav-group package-group" open>
+          <details class="nav-group package-group">
             <summary>Router</summary>
-            <a href="index.html" aria-current="page">Overview</a>
-            <a href="adapters.html">Runtime adapters</a>
-            <a href="api.html">API reference</a>
+            <a href="../router/index.html">Overview</a>
+            <a href="../router/adapters.html">Runtime adapters</a>
+            <a href="../router/api.html">API reference</a>
           </details>
           <details class="nav-group package-group">
             <summary>CLI</summary>
@@ -137,146 +137,151 @@
             <a href="../security/index.html">Overview</a>
             <a href="../security/api.html">API reference</a>
           </details>
-          <details class="nav-group package-group">
+          <details class="nav-group package-group" open>
             <summary>Observability</summary>
-            <a href="../observability/index.html">Overview</a>
-            <a href="../observability/api.html">API reference</a>
+            <a href="index.html" aria-current="page">Overview</a>
+            <a href="api.html">API reference</a>
           </details>
         </nav>
       </aside>
       <main id="main" tabindex="-1">
         <div class="breadcrumb">
-          <a href="../index.html">Docs</a> <span>/</span> Router
-          <span>/</span> HTTP router
+          <a href="../index.html">Docs</a> <span>/</span> Observability
+          <span>/</span> Overview
         </div>
-        <h1>HTTP router</h1>
+        <h1>Observability middleware</h1>
         <p class="lead">
-          Route requests with named parameters and composable prefixes.
+          Request logging, request ids, and server timing for Rhythm routers.
         </p>
         <div class="article">
-          <section aria-labelledby="serve-your-first-route">
-            <h2 id="serve-your-first-route">
-              <a href="#serve-your-first-route"
-                >Serve your first route<span aria-hidden="true"> #</span></a
+          <section aria-labelledby="install">
+            <h2 id="install">
+              <a href="#install">Install<span aria-hidden="true"> #</span></a>
+            </h2>
+            <p>
+              The package ships three small middlewares for Rhythm routers and
+              handlers. Each module is its own subpath export; there is no root
+              barrel export.
+            </p>
+            <figure class="code-block">
+              <pre><code>pnpm add @rhythmjs/observability @rhythmjs/rhythm @rhythmjs/router</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="log-requests">
+            <h2 id="log-requests">
+              <a href="#log-requests"
+                >Log requests<span aria-hidden="true"> #</span></a
               >
             </h2>
             <p>
-              The router uses Web-standard requests and a mutable response
-              object. The adapter creates the final <code>Response</code>.
+              <code>log()</code> wraps the chain and reports a structured
+              <code>LogEntry</code> per request with the method, path, status,
+              and duration in milliseconds. The default sink prints
+              <code>METHOD /path status Nms</code> to the console; pass your own
+              sync or async sink to route entries anywhere.
+            </p>
+            <p>
+              When downstream throws, the entry is logged with
+              <code>status: 500</code> and the <code>error</code>, then the
+              error is rethrown, so an exception filter registered outside
+              <code>log</code> still sees it.
             </p>
             <figure class="code-block">
               <pre><code>import { RhythmRouter } from &quot;@rhythmjs/router&quot;;
-import { toFetchHandler } from &quot;@rhythmjs/router/adapters/bun&quot;;
+import { log } from &quot;@rhythmjs/observability/log&quot;;
 
-const router = new RhythmRouter().get(&quot;/users/:id&quot;, (ctx) =&gt; {
-  ctx.response.headers.set(&quot;content-type&quot;, &quot;application/json&quot;);
-  ctx.response.body = JSON.stringify({ id: ctx.params.id });
+new RhythmRouter().use(log()).get(&quot;/users/:id&quot;, (ctx) =&gt; {
+  ctx.response.body = &quot;ok&quot;;
 });
-
-Bun.serve({ port: 3000, fetch: toFetchHandler(router) });</code></pre>
+// =&gt; GET /users/7 200 2ms</code></pre>
             </figure>
           </section>
-          <section aria-labelledby="match-paths">
-            <h2 id="match-paths">
-              <a href="#match-paths"
-                >Match paths<span aria-hidden="true"> #</span></a
+          <section aria-labelledby="correlate-with-request-ids">
+            <h2 id="correlate-with-request-ids">
+              <a href="#correlate-with-request-ids"
+                >Correlate with request ids<span aria-hidden="true"> #</span></a
               >
             </h2>
             <p>
-              Register routes with <code>get</code>, <code>post</code>,
-              <code>put</code>, <code>patch</code>, and <code>delete</code>.
-              Each accepts a path and one or more handlers. Named
-              <code>:param</code> segments populate <code>ctx.params</code>.
-            </p>
-            <p>
-              A compressed radix tree gives static segments priority over
-              parameter segments, regardless of registration order. Match
-              behavior is method-specific; there are no dedicated HEAD or
-              OPTIONS registration methods.
-            </p>
-          </section>
-          <section aria-labelledby="compose-prefixes">
-            <h2 id="compose-prefixes">
-              <a href="#compose-prefixes"
-                >Compose prefixes<span aria-hidden="true"> #</span></a
-              >
-            </h2>
-            <p>
-              Nested router prefixes join together. The example below serves
-              <code>/api/users/:id</code>.
+              <code>requestId()</code> reuses the incoming
+              <code>x-request-id</code> header or generates a
+              <code>crypto.randomUUID()</code>, sets it on the response header,
+              and extends the context with <code>ctx.requestId</code> via
+              <code>RequestIdContext</code>.
             </p>
             <figure class="code-block">
-              <pre><code>const users = new RhythmRouter({ prefix: &quot;/users&quot; })
-  .get(&quot;/:id&quot;, (ctx) =&gt; { ctx.response.body = ctx.params.id; });
+              <pre><code>import { requestId, type RequestIdContext } from &quot;@rhythmjs/observability/request-id&quot;;
 
-const api = new RhythmRouter({ prefix: &quot;/api&quot; })
-  .use(users.routes());</code></pre>
+new RhythmRouter().use&lt;RequestIdContext&gt;(requestId()).get(&quot;/ping&quot;, (ctx) =&gt; {
+  ctx.response.body = ctx.requestId; // also sent as the x-request-id response header
+});</code></pre>
             </figure>
           </section>
-          <section aria-labelledby="provide-a-fallback">
-            <h2 id="provide-a-fallback">
-              <a href="#provide-a-fallback"
-                >Provide a fallback<span aria-hidden="true"> #</span></a
+          <section aria-labelledby="measure-with-server-timing">
+            <h2 id="measure-with-server-timing">
+              <a href="#measure-with-server-timing"
+                >Measure with server timing<span aria-hidden="true"> #</span></a
               >
             </h2>
             <p>
-              An unmatched request calls the next middleware. Add an explicit
-              404 fallback; the default response is status 200 with an empty
-              body. A matched handler that calls <code>next()</code> also
-              continues downstream.
+              <code>timing()</code> appends a <code>Server-Timing</code> header
+              after <code>next()</code> with the duration of everything
+              downstream, visible in browser devtools. Pass a custom metric name
+              instead of the default <code>app</code>. Multiple layers append
+              their metrics instead of replacing each other.
             </p>
             <figure class="code-block">
-              <pre><code>import { Rhythm } from &quot;@rhythmjs/rhythm&quot;;
-import type { RhythmHttpContext } from &quot;@rhythmjs/router/adapters/context&quot;;
+              <pre><code>import { timing } from &quot;@rhythmjs/observability/timing&quot;;
 
-const app = new Rhythm&lt;RhythmHttpContext&gt;()
-  .use(api.routes())
-  .use((ctx) =&gt; {
-    ctx.response.status = 404;
-    ctx.response.body = &quot;Not Found&quot;;
+new RhythmRouter().use(timing()).get(&quot;/ping&quot;, (ctx) =&gt; {
+  ctx.response.body = &quot;pong&quot;;
+});
+// =&gt; server-timing: app;dur=1.2</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="compose-them">
+            <h2 id="compose-them">
+              <a href="#compose-them"
+                >Compose them<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              Register <code>log</code> outermost so it measures and reports
+              everything, then <code>timing</code>, then
+              <code>request-id</code>.
+            </p>
+            <figure class="code-block">
+              <pre><code>new RhythmRouter()
+  .use(log())
+  .use(timing())
+  .use&lt;RequestIdContext&gt;(requestId())
+  .get(&quot;/users/:id&quot;, (ctx) =&gt; {
+    ctx.response.body = ctx.requestId;
   });</code></pre>
             </figure>
-          </section>
-          <section aria-labelledby="write-a-response">
-            <h2 id="write-a-response">
-              <a href="#write-a-response"
-                >Write a response<span aria-hidden="true"> #</span></a
-              >
-            </h2>
-            <p>
-              Set <code>status</code>, <code>statusText</code>,
-              <code>headers</code>, and <code>body</code> on
-              <code>ctx.response</code>. Bodies support strings, ArrayBuffer,
-              Uint8Array, Blob, FormData, URLSearchParams, byte streams, and
-              null. Serialize JSON yourself and set the content type.
-            </p>
-            <p>
-              See <a href="adapters.html">runtime adapters</a> for Bun, Node,
-              and Deno entry points.
-            </p>
           </section>
         </div>
         <nav class="pagination" aria-label="Previous and next pages">
           <span></span
-          ><a href="adapters.html"
-            ><span>Next →</span><strong>HTTP runtime adapters</strong></a
+          ><a href="api.html"
+            ><span>Next →</span><strong>API reference</strong></a
           >
         </nav>
         <footer class="page-footer">
           <span>RhythmJS documentation · v0.0.1</span
-          ><a href="https://github.com/rhythmjs/rhythm"
-            >github.com/rhythmjs/rhythm</a
+          ><a href="https://github.com/rhythmjs/observability"
+            >github.com/rhythmjs/observability</a
           >
         </footer>
       </main>
       <aside class="toc">
         <nav aria-label="On this page">
           <p>ON THIS PAGE</p>
-          <a href="#serve-your-first-route">Serve your first route</a>
-          <a href="#match-paths">Match paths</a>
-          <a href="#compose-prefixes">Compose prefixes</a>
-          <a href="#provide-a-fallback">Provide a fallback</a>
-          <a href="#write-a-response">Write a response</a>
+          <a href="#install">Install</a>
+          <a href="#log-requests">Log requests</a>
+          <a href="#correlate-with-request-ids">Correlate with request ids</a>
+          <a href="#measure-with-server-timing">Measure with server timing</a>
+          <a href="#compose-them">Compose them</a>
         </nav>
       </aside>
     </div>

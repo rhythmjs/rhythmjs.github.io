@@ -5,22 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="Command routing, argv parsing, prompts, and response types for @rhythmjs/cli."
+      content="Exports and signatures for the log, request-id, and timing subpaths of @rhythmjs/observability."
     />
     <meta name="color-scheme" content="light dark" />
-    <title>CLI API reference · @rhythmjs/cli</title>
+    <title>API reference · RhythmJS</title>
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="RhythmJS documentation" />
-    <meta property="og:title" content="CLI API reference · @rhythmjs/cli" />
+    <meta property="og:title" content="API reference · RhythmJS" />
     <meta
       property="og:description"
-      content="Command routing, argv parsing, prompts, and response types for @rhythmjs/cli."
+      content="Exports and signatures for the log, request-id, and timing subpaths of @rhythmjs/observability."
     />
     <meta name="twitter:card" content="summary" />
-    <meta name="twitter:title" content="CLI API reference · @rhythmjs/cli" />
+    <meta name="twitter:title" content="API reference · RhythmJS" />
     <meta
       name="twitter:description"
-      content="Command routing, argv parsing, prompts, and response types for @rhythmjs/cli."
+      content="Exports and signatures for the log, request-id, and timing subpaths of @rhythmjs/observability."
     />
     <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -69,12 +69,12 @@
           <a href="../router/adapters.html">Runtime adapters</a>
           <a href="../router/api.html">API reference</a>
         </details>
-        <details class="nav-group package-group" open>
+        <details class="nav-group package-group">
           <summary>CLI</summary>
-          <a href="index.html">Overview</a>
-          <a href="prompts.html">Interactive prompts</a>
-          <a href="adapters.html">Runtime adapters</a>
-          <a href="api.html" aria-current="page">API reference</a>
+          <a href="../cli/index.html">Overview</a>
+          <a href="../cli/prompts.html">Interactive prompts</a>
+          <a href="../cli/adapters.html">Runtime adapters</a>
+          <a href="../cli/api.html">API reference</a>
         </details>
         <details class="nav-group package-group">
           <summary>Middleware</summary>
@@ -91,10 +91,10 @@
           <a href="../security/index.html">Overview</a>
           <a href="../security/api.html">API reference</a>
         </details>
-        <details class="nav-group package-group">
+        <details class="nav-group package-group" open>
           <summary>Observability</summary>
-          <a href="../observability/index.html">Overview</a>
-          <a href="../observability/api.html">API reference</a>
+          <a href="index.html">Overview</a>
+          <a href="api.html" aria-current="page">API reference</a>
         </details>
       </nav>
     </details>
@@ -115,12 +115,12 @@
             <a href="../router/adapters.html">Runtime adapters</a>
             <a href="../router/api.html">API reference</a>
           </details>
-          <details class="nav-group package-group" open>
+          <details class="nav-group package-group">
             <summary>CLI</summary>
-            <a href="index.html">Overview</a>
-            <a href="prompts.html">Interactive prompts</a>
-            <a href="adapters.html">Runtime adapters</a>
-            <a href="api.html" aria-current="page">API reference</a>
+            <a href="../cli/index.html">Overview</a>
+            <a href="../cli/prompts.html">Interactive prompts</a>
+            <a href="../cli/adapters.html">Runtime adapters</a>
+            <a href="../cli/api.html">API reference</a>
           </details>
           <details class="nav-group package-group">
             <summary>Middleware</summary>
@@ -137,121 +137,129 @@
             <a href="../security/index.html">Overview</a>
             <a href="../security/api.html">API reference</a>
           </details>
-          <details class="nav-group package-group">
+          <details class="nav-group package-group" open>
             <summary>Observability</summary>
-            <a href="../observability/index.html">Overview</a>
-            <a href="../observability/api.html">API reference</a>
+            <a href="index.html">Overview</a>
+            <a href="api.html" aria-current="page">API reference</a>
           </details>
         </nav>
       </aside>
       <main id="main" tabindex="-1">
         <div class="breadcrumb">
-          <a href="../index.html">Docs</a> <span>/</span> Cli <span>/</span> CLI
-          API reference
+          <a href="../index.html">Docs</a> <span>/</span> Observability
+          <span>/</span> API reference
         </div>
-        <h1>CLI API reference</h1>
+        <h1>API reference</h1>
         <p class="lead">
-          Command routing, argv parsing, prompts, and response types for
-          @rhythmjs/cli.
+          Exports and signatures for the log, request-id, and timing subpaths of
+          @rhythmjs/observability.
         </p>
         <div class="article">
-          <section aria-labelledby="rhythmcli">
-            <h2 id="rhythmcli">
-              <a href="#rhythmcli"
-                >RhythmCli<span aria-hidden="true"> #</span></a
-              >
-            </h2>
-            <dl>
-              <dt>new RhythmCli({ name?, prefix? })</dt>
-              <dd>
-                Create a command controller with an optional space-separated
-                prefix.
-              </dd>
-              <dt>command(path, ...handlers)</dt>
-              <dd>
-                Add a command pattern with optional named tokens in ctx.args.
-              </dd>
-              <dt>commands()</dt>
-              <dd>Return mountable command middleware.</dd>
-              <dt>use(fn) / provide(factory, dispose?)</dt>
-              <dd>
-                Compose middleware, nested commands, and providers. register()
-                throws.
-              </dd>
-            </dl>
-            <p>
-              <code>RhythmCliContext</code> and
-              <code>RhythmCliResponse</code> are exported from
-              <code>@rhythmjs/cli/adapters/context</code>.
-              <code>parseArgv</code> and <code>ParsedArgv</code> are available
-              from <code>@rhythmjs/cli/argv</code>.
-            </p>
-          </section>
-          <section aria-labelledby="handlers-parsing-and-prompts">
-            <h2 id="handlers-parsing-and-prompts">
-              <a href="#handlers-parsing-and-prompts"
-                >Handlers, parsing, and prompts<span aria-hidden="true">
+          <section aria-labelledby="log">
+            <h2 id="log">
+              <a href="#log"
+                >@rhythmjs/observability/log<span aria-hidden="true">
                   #</span
                 ></a
               >
             </h2>
+            <figure class="code-block">
+              <pre><code>function log(sink?: LogSink): Middleware&lt;RhythmHttpContext&gt;;</code></pre>
+            </figure>
+            <p>
+              Returns middleware that measures each request and calls the sink
+              once per request. Without an argument, the default sink prints
+              <code>METHOD /path status Nms</code> to the console. When
+              downstream throws, the sink receives an entry with
+              <code>status: 500</code> and the <code>error</code>, then the
+              error is rethrown so an outer exception filter still sees it.
+            </p>
             <dl>
-              <dt>toCliHandler(app)</dt>
+              <dt>LogEntry</dt>
               <dd>
-                Each runtime adapter returns an (argv: string[]) =&gt;
-                Promise&lt;number&gt; handler.
+                The structured entry passed to the sink:
+                <code>method: string</code>, <code>path: string</code>,
+                <code>status: number</code>,
+                <code>duration: number</code> (rounded milliseconds), and
+                <code>error?: unknown</code>, set only when downstream threw.
               </dd>
-              <dt>createPrompt()</dt>
+              <dt>LogSink</dt>
               <dd>
-                Runtime adapters return { prompt, close } using readline-backed
-                I/O.
-              </dd>
-              <dt>createPrompt(io)</dt>
-              <dd>
-                The lower-level @rhythmjs/cli/prompt export takes ask, write,
-                and optional close functions.
-              </dd>
-              <dt>parseArgv(argv)</dt>
-              <dd>
-                The @rhythmjs/cli/argv export returns { positionals, flags }.
-                Flag values are strings or booleans.
-              </dd>
-              <dt>RhythmCliOptions / RhythmCliCommandContext</dt>
-              <dd>
-                Root type exports describing constructor options and matched
-                command arguments.
-              </dd>
-              <dt>RhythmPrompt / RhythmPromptIO</dt>
-              <dd>
-                Prompt method and I/O interfaces exported from
-                @rhythmjs/cli/prompt.
+                <code>(entry: LogEntry) =&gt; void | Promise&lt;void&gt;</code>.
+                Sync or async; an async sink is awaited before the middleware
+                returns.
               </dd>
             </dl>
+          </section>
+          <section aria-labelledby="request-id">
+            <h2 id="request-id">
+              <a href="#request-id"
+                >@rhythmjs/observability/request-id<span aria-hidden="true">
+                  #</span
+                ></a
+              >
+            </h2>
+            <figure class="code-block">
+              <pre><code>function requestId(header?: string): Middleware&lt;RhythmHttpContext&gt;;</code></pre>
+            </figure>
             <p>
-              See <a href="prompts.html">interactive prompts</a> and
-              <a href="adapters.html">CLI adapters</a> for examples and cleanup.
+              Returns middleware that reads the incoming header named by
+              <code>header</code> (default
+              <code>&quot;x-request-id&quot;</code>) and reuses its value, or
+              generates a new id with <code>crypto.randomUUID()</code>. The id
+              is set on the response under the same header name and passed
+              downstream as <code>ctx.requestId</code>.
+            </p>
+            <dl>
+              <dt>RequestIdContext</dt>
+              <dd>
+                <code>{ requestId: string }</code>. The context extension made
+                available to downstream middleware; use it as the type argument
+                of <code>use</code> so handlers see <code>ctx.requestId</code>.
+              </dd>
+            </dl>
+          </section>
+          <section aria-labelledby="timing">
+            <h2 id="timing">
+              <a href="#timing"
+                >@rhythmjs/observability/timing<span aria-hidden="true">
+                  #</span
+                ></a
+              >
+            </h2>
+            <figure class="code-block">
+              <pre><code>function timing(name?: string): Middleware&lt;RhythmHttpContext&gt;;</code></pre>
+            </figure>
+            <p>
+              Returns middleware that appends a
+              <code>Server-Timing</code> header after
+              <code>next()</code> resolves, in the form
+              <code>name;dur=N</code> with the downstream duration in
+              milliseconds to one decimal place. The metric name defaults to
+              <code>&quot;app&quot;</code>. The header is appended, not
+              replaced, so multiple <code>timing()</code> layers each contribute
+              their own metric.
             </p>
           </section>
         </div>
         <nav class="pagination" aria-label="Previous and next pages">
-          <a href="adapters.html"
-            ><span>← Previous</span><strong>CLI runtime adapters</strong></a
+          <a href="index.html"
+            ><span>← Previous</span><strong>Overview</strong></a
           ><span></span>
         </nav>
         <footer class="page-footer">
           <span>RhythmJS documentation · v0.0.1</span
-          ><a href="https://github.com/rhythmjs/rhythm"
-            >github.com/rhythmjs/rhythm</a
+          ><a href="https://github.com/rhythmjs/observability"
+            >github.com/rhythmjs/observability</a
           >
         </footer>
       </main>
       <aside class="toc">
         <nav aria-label="On this page">
           <p>ON THIS PAGE</p>
-          <a href="#rhythmcli">RhythmCli</a>
-          <a href="#handlers-parsing-and-prompts"
-            >Handlers, parsing, and prompts</a
-          >
+          <a href="#log">@rhythmjs/observability/log</a>
+          <a href="#request-id">@rhythmjs/observability/request-id</a>
+          <a href="#timing">@rhythmjs/observability/timing</a>
         </nav>
       </aside>
     </div>

@@ -127,6 +127,15 @@ summary:focus-visible {
   padding: 0 7px;
 }
 
+.header-tabs {
+  display: flex;
+  gap: 18px;
+  font-size: 13.5px;
+  color: var(--muted);
+}
+.header-tabs a:hover { color: var(--ink); }
+.header-tabs a[aria-current] { color: var(--accent); font-weight: 600; }
+
 .header-links {
   margin-left: auto;
   display: flex;
@@ -463,6 +472,7 @@ dd:last-child { border-bottom: 0; }
   .brand { font-size: 19px; }
   .brand svg { width: 23px; height: 23px; }
   .header-links { display: none; }
+  .header-tabs { gap: 14px; font-size: 13px; }
 
   .layout { display: block; }
   .sidebar { display: none; }

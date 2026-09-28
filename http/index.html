@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Cookies, sessions, caching, timeouts, and body limits for Rhythm routers."
+    />
+    <meta name="color-scheme" content="light dark" />
+    <title>Overview · RhythmJS</title>
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="RhythmJS documentation" />
+    <meta property="og:title" content="Overview · RhythmJS" />
+    <meta
+      property="og:description"
+      content="Cookies, sessions, caching, timeouts, and body limits for Rhythm routers."
+    />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Overview · RhythmJS" />
+    <meta
+      name="twitter:description"
+      content="Cookies, sessions, caching, timeouts, and body limits for Rhythm routers."
+    />
+    <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../assets/style.css" />
+    <script defer src="../assets/highlight.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="header">
+      <a
+        class="brand"
+        href="../index.html"
+        aria-label="RhythmJS documentation home"
+        ><svg viewBox="0 0 28 28" aria-hidden="true">
+          <path d="M2 15h5l3-9 5 17 4-13 3 5h4" /></svg
+        ><span>rhythm<span class="brand-js">js</span></span></a
+      >
+      <span class="version">v0.0.1</span>
+      <nav class="header-tabs" aria-label="Site">
+        <a href="../index.html">Guide</a
+        ><a href="../rhythm/index.html" aria-current="true">Packages</a>
+      </nav>
+      <nav class="header-links" aria-label="External">
+        <a href="https://github.com/rhythmjs">GitHub</a>
+      </nav>
+    </header>
+    <details class="mobile-navigation">
+      <summary>Browse documentation</summary>
+      <nav aria-label="Documentation">
+        <details class="nav-group package-group">
+          <summary>Core</summary>
+          <a href="../rhythm/index.html">Overview</a>
+          <a href="../rhythm/middleware.html">Middleware &amp; context</a>
+          <a href="../rhythm/providers.html">Providers &amp; lifecycle</a>
+          <a href="../rhythm/modules.html">Encapsulated modules</a>
+          <a href="../rhythm/api.html">API reference</a>
+        </details>
+        <details class="nav-group package-group">
+          <summary>Router</summary>
+          <a href="../router/index.html">Overview</a>
+          <a href="../router/adapters.html">Runtime adapters</a>
+          <a href="../router/api.html">API reference</a>
+        </details>
+        <details class="nav-group package-group">
+          <summary>CLI</summary>
+          <a href="../cli/index.html">Overview</a>
+          <a href="../cli/prompts.html">Interactive prompts</a>
+          <a href="../cli/adapters.html">Runtime adapters</a>
+          <a href="../cli/api.html">API reference</a>
+        </details>
+        <details class="nav-group package-group">
+          <summary>Middleware</summary>
+          <a href="../middleware/index.html">Overview</a>
+          <a href="../middleware/api.html">API reference</a>
+        </details>
+        <details class="nav-group package-group" open>
+          <summary>HTTP</summary>
+          <a href="index.html" aria-current="page">Overview</a>
+          <a href="api.html">API reference</a>
+        </details>
+        <details class="nav-group package-group">
+          <summary>Security</summary>
+          <a href="../security/index.html">Overview</a>
+          <a href="../security/api.html">API reference</a>
+        </details>
+        <details class="nav-group package-group">
+          <summary>Observability</summary>
+          <a href="../observability/index.html">Overview</a>
+          <a href="../observability/api.html">API reference</a>
+        </details>
+      </nav>
+    </details>
+    <div class="layout">
+      <aside class="sidebar" id="sidebar">
+        <nav aria-label="Documentation">
+          <details class="nav-group package-group">
+            <summary>Core</summary>
+            <a href="../rhythm/index.html">Overview</a>
+            <a href="../rhythm/middleware.html">Middleware &amp; context</a>
+            <a href="../rhythm/providers.html">Providers &amp; lifecycle</a>
+            <a href="../rhythm/modules.html">Encapsulated modules</a>
+            <a href="../rhythm/api.html">API reference</a>
+          </details>
+          <details class="nav-group package-group">
+            <summary>Router</summary>
+            <a href="../router/index.html">Overview</a>
+            <a href="../router/adapters.html">Runtime adapters</a>
+            <a href="../router/api.html">API reference</a>
+          </details>
+          <details class="nav-group package-group">
+            <summary>CLI</summary>
+            <a href="../cli/index.html">Overview</a>
+            <a href="../cli/prompts.html">Interactive prompts</a>
+            <a href="../cli/adapters.html">Runtime adapters</a>
+            <a href="../cli/api.html">API reference</a>
+          </details>
+          <details class="nav-group package-group">
+            <summary>Middleware</summary>
+            <a href="../middleware/index.html">Overview</a>
+            <a href="../middleware/api.html">API reference</a>
+          </details>
+          <details class="nav-group package-group" open>
+            <summary>HTTP</summary>
+            <a href="index.html" aria-current="page">Overview</a>
+            <a href="api.html">API reference</a>
+          </details>
+          <details class="nav-group package-group">
+            <summary>Security</summary>
+            <a href="../security/index.html">Overview</a>
+            <a href="../security/api.html">API reference</a>
+          </details>
+          <details class="nav-group package-group">
+            <summary>Observability</summary>
+            <a href="../observability/index.html">Overview</a>
+            <a href="../observability/api.html">API reference</a>
+          </details>
+        </nav>
+      </aside>
+      <main id="main" tabindex="-1">
+        <div class="breadcrumb">
+          <a href="../index.html">Docs</a> <span>/</span> HTTP
+          <span>/</span> HTTP utilities
+        </div>
+        <h1>HTTP utilities</h1>
+        <p class="lead">
+          Cookies, sessions, caching, timeouts, and body limits for Rhythm
+          routers.
+        </p>
+        <div class="article">
+          <section aria-labelledby="install-the-package">
+            <h2 id="install-the-package">
+              <a href="#install-the-package"
+                >Install the package<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              <code>@rhythmjs/http</code> ships utility middleware for Rhythm
+              routers and handlers. Each module is exported by its own subpath;
+              there is no root barrel export. Import only the pieces you use.
+            </p>
+            <figure class="code-block">
+              <pre><code>pnpm add @rhythmjs/http @rhythmjs/rhythm @rhythmjs/router</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="read-and-write-cookies">
+            <h2 id="read-and-write-cookies">
+              <a href="#read-and-write-cookies"
+                >Read and write cookies<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              <code>cookies()</code> parses the request
+              <code>Cookie</code> header and exposes a <code>Cookies</code> jar
+              on the context, typed by <code>CookiesContext</code>. Read with
+              <code>get(name)</code> and <code>getAll()</code>; write with
+              <code>set(name, value, options?)</code>, which defaults to
+              <code>Path=/</code>, and <code>delete(name)</code>, which sets
+              <code>Max-Age=0</code>. Each <code>set()</code> call emits its own
+              <code>Set-Cookie</code> header.
+            </p>
+            <figure class="code-block">
+              <pre><code>import { RhythmRouter } from &quot;@rhythmjs/router&quot;;
+import { cookies, type CookiesContext } from &quot;@rhythmjs/http/cookies&quot;;
+
+new RhythmRouter().use&lt;CookiesContext&gt;(cookies()).get(&quot;/&quot;, (ctx) =&gt; {
+  const theme = ctx.cookies.get(&quot;theme&quot;) ?? &quot;light&quot;;
+  ctx.cookies.set(&quot;theme&quot;, theme, { httpOnly: true, sameSite: &quot;lax&quot;, maxAge: 3600 });
+  ctx.cookies.delete(&quot;legacy&quot;);
+  ctx.response.body = theme;
+});</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="keep-a-session">
+            <h2 id="keep-a-session">
+              <a href="#keep-a-session"
+                >Keep a session<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              <code>session()</code> provides cookie-based sessions with a
+              pluggable <code>SessionStore</code>. The bundled
+              <code>MemoryStore</code> is the default and suits a single
+              process. The session cookie (<code>sid</code> by default;
+              <code>HttpOnly</code>, <code>SameSite=Lax</code>,
+              <code>Path=/</code>) is only written when the session is first
+              used.
+            </p>
+            <p>
+              <code>ctx.session.destroy()</code> deletes the stored session and
+              expires the cookie. Unknown or expired session ids get a fresh
+              session, so a forged cookie value is never trusted as-is.
+            </p>
+            <figure class="code-block">
+              <pre><code>import { session, type SessionContext } from &quot;@rhythmjs/http/session&quot;;
+
+new RhythmRouter()
+  .use&lt;SessionContext&gt;(session())
+  .post(&quot;/login&quot;, (ctx) =&gt; {
+    ctx.session.set(&quot;user&quot;, &quot;ada&quot;);
+    ctx.response.body = &quot;logged in&quot;;
+  })
+  .get(&quot;/me&quot;, (ctx) =&gt; {
+    ctx.response.body = String(ctx.session.get(&quot;user&quot;) ?? &quot;anonymous&quot;);
+  })
+  .post(&quot;/logout&quot;, (ctx) =&gt; {
+    ctx.session.destroy();
+    ctx.response.body = &quot;logged out&quot;;
+  });</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="cache-with-etags">
+            <h2 id="cache-with-etags">
+              <a href="#cache-with-etags"
+                >Cache with etags<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              <code>etag()</code> adds an <code>ETag</code> header derived from
+              the response body with SHA-1 and answers
+              <code>304 Not Modified</code> when the request's
+              <code>If-None-Match</code> matches the tag. Only successful (2xx)
+              string bodies are tagged, and a pre-set <code>ETag</code> header
+              is left alone. Pass <code>{ weak: true }</code> to emit
+              <code>W/&quot;...&quot;</code> tags.
+            </p>
+            <figure class="code-block">
+              <pre><code>import { etag } from &quot;@rhythmjs/http/etag&quot;;
+
+new RhythmRouter().use(etag()).get(&quot;/report&quot;, (ctx) =&gt; {
+  ctx.response.body = expensiveReport();
+});</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="enforce-a-deadline">
+            <h2 id="enforce-a-deadline">
+              <a href="#enforce-a-deadline"
+                >Enforce a deadline<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              <code>timeout(ms)</code> fails requests that exceed the deadline
+              with a
+              <code
+                >504 { &quot;success&quot;: false, &quot;status&quot;: 504,
+                &quot;message&quot;: &quot;Gateway Timeout&quot; }</code
+              >
+              JSON body. Downstream errors still propagate as errors; only the
+              deadline produces a 504. The downstream work is not aborted, its
+              result is discarded.
+            </p>
+            <figure class="code-block">
+              <pre><code>import { timeout } from &quot;@rhythmjs/http/timeout&quot;;
+
+new RhythmRouter().use(timeout(5000)).get(&quot;/slow&quot;, async (ctx) =&gt; {
+  ctx.response.body = await slowUpstream();
+});</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="limit-request-bodies">
+            <h2 id="limit-request-bodies">
+              <a href="#limit-request-bodies"
+                >Limit request bodies<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              <code>bodyLimit(maxBytes)</code> rejects request bodies larger
+              than the byte limit with <code>413 Payload Too Large</code>. It
+              checks <code>Content-Length</code> first when the header is
+              present; otherwise it measures a clone of the request body before
+              calling the next middleware.
+            </p>
+            <figure class="code-block">
+              <pre><code>import { bodyLimit } from &quot;@rhythmjs/http/body-limit&quot;;
+
+new RhythmRouter().use(bodyLimit(1024 * 1024)).post(&quot;/upload&quot;, async (ctx) =&gt; {
+  ctx.response.body = &quot;stored&quot;;
+});</code></pre>
+            </figure>
+          </section>
+        </div>
+        <nav class="pagination" aria-label="Previous and next pages">
+          <span></span
+          ><a href="api.html"
+            ><span>Next →</span><strong>API reference</strong></a
+          >
+        </nav>
+        <footer class="page-footer">
+          <span>RhythmJS documentation · v0.0.1</span
+          ><a href="https://github.com/rhythmjs/http"
+            >github.com/rhythmjs/http</a
+          >
+        </footer>
+      </main>
+      <aside class="toc">
+        <nav aria-label="On this page">
+          <p>ON THIS PAGE</p>
+          <a href="#install-the-package">Install the package</a>
+          <a href="#read-and-write-cookies">Read and write cookies</a>
+          <a href="#keep-a-session">Keep a session</a>
+          <a href="#cache-with-etags">Cache with etags</a>
+          <a href="#enforce-a-deadline">Enforce a deadline</a>
+          <a href="#limit-request-bodies">Limit request bodies</a>
+        </nav>
+      </aside>
+    </div>
+  </body>
+</html>

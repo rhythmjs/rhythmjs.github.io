@@ -44,71 +44,36 @@
         ><span>rhythm<span class="brand-js">js</span></span></a
       >
       <span class="version">v0.0.1</span>
-      <nav class="header-links" aria-label="Site">
-        <a href="getting-started.html">Quick start</a
-        ><a href="https://github.com/rhythmjs/rhythm">GitHub</a>
+      <nav class="header-tabs" aria-label="Site">
+        <a href="index.html" aria-current="true">Guide</a
+        ><a href="rhythm/index.html">Packages</a>
+      </nav>
+      <nav class="header-links" aria-label="External">
+        <a href="https://github.com/rhythmjs">GitHub</a>
       </nav>
     </header>
     <details class="mobile-navigation">
       <summary>Browse documentation</summary>
       <nav aria-label="Documentation">
         <div class="nav-group">
-          <p>Getting started</p>
+          <p>Guide</p>
           <a href="index.html" aria-current="page">Introduction</a>
           <a href="getting-started.html">Quick start</a>
+          <a href="philosophy.html">Philosophy</a>
+          <a href="template.html">Starter template</a>
         </div>
-        <details class="nav-group package-group" open>
-          <summary>Core</summary>
-          <a href="rhythm/index.html">Overview</a>
-          <a href="rhythm/middleware.html">Middleware &amp; context</a>
-          <a href="rhythm/providers.html">Providers &amp; lifecycle</a>
-          <a href="rhythm/modules.html">Encapsulated modules</a>
-          <a href="rhythm/api.html">API reference</a>
-        </details>
-        <details class="nav-group package-group" open>
-          <summary>Router</summary>
-          <a href="router/index.html">Overview</a>
-          <a href="router/adapters.html">Runtime adapters</a>
-          <a href="router/api.html">API reference</a>
-        </details>
-        <details class="nav-group package-group" open>
-          <summary>CLI</summary>
-          <a href="cli/index.html">Overview</a>
-          <a href="cli/prompts.html">Interactive prompts</a>
-          <a href="cli/adapters.html">Runtime adapters</a>
-          <a href="cli/api.html">API reference</a>
-        </details>
       </nav>
     </details>
     <div class="layout">
       <aside class="sidebar" id="sidebar">
         <nav aria-label="Documentation">
           <div class="nav-group">
-            <p>Getting started</p>
+            <p>Guide</p>
             <a href="index.html" aria-current="page">Introduction</a>
             <a href="getting-started.html">Quick start</a>
+            <a href="philosophy.html">Philosophy</a>
+            <a href="template.html">Starter template</a>
           </div>
-          <details class="nav-group package-group" open>
-            <summary>Core</summary>
-            <a href="rhythm/index.html">Overview</a>
-            <a href="rhythm/middleware.html">Middleware &amp; context</a>
-            <a href="rhythm/providers.html">Providers &amp; lifecycle</a>
-            <a href="rhythm/modules.html">Encapsulated modules</a>
-            <a href="rhythm/api.html">API reference</a>
-          </details>
-          <details class="nav-group package-group" open>
-            <summary>Router</summary>
-            <a href="router/index.html">Overview</a>
-            <a href="router/adapters.html">Runtime adapters</a>
-            <a href="router/api.html">API reference</a>
-          </details>
-          <details class="nav-group package-group" open>
-            <summary>CLI</summary>
-            <a href="cli/index.html">Overview</a>
-            <a href="cli/prompts.html">Interactive prompts</a>
-            <a href="cli/adapters.html">Runtime adapters</a>
-            <a href="cli/api.html">API reference</a>
-          </details>
         </nav>
       </aside>
       <main id="main" tabindex="-1">
@@ -147,6 +112,26 @@
               <a href="cli/index.html"
                 ><code>@rhythmjs/cli</code><strong>Run a command</strong>
                 <p>Compose commands, flags, and interactive prompts.</p></a
+              >
+              <a href="middleware/index.html"
+                ><code>@rhythmjs/middleware</code
+                ><strong>Validate a request</strong>
+                <p>
+                  Schema validation, interception, and exception filters.
+                </p></a
+              >
+              <a href="http/index.html"
+                ><code>@rhythmjs/http</code><strong>Manage the session</strong>
+                <p>Cookies, sessions, ETags, timeouts, and body limits.</p></a
+              >
+              <a href="security/index.html"
+                ><code>@rhythmjs/security</code><strong>Guard the edges</strong>
+                <p>CORS, CSRF protection, and secure headers.</p></a
+              >
+              <a href="observability/index.html"
+                ><code>@rhythmjs/observability</code
+                ><strong>Watch it run</strong>
+                <p>Request logging, request ids, and server timing.</p></a
               >
             </div>
           </section>
@@ -199,11 +184,15 @@ await app.teardown();</code></pre>
               </li>
             </ul>
             <aside class="note">
-              <strong>Working from source</strong>
+              <strong>Published on npm</strong>
               <p>
-                This repository is version 0.0.1. All three packages are
-                currently private workspace packages. Follow the local setup
-                guide rather than assuming a public npm release.
+                The packages are published under the
+                <a href="https://www.npmjs.com/org/rhythmjs"
+                  >@rhythmjs organization</a
+                >
+                at version 0.0.1. Every module is exported by its own subpath,
+                such as <code>@rhythmjs/middleware/validate</code>; there are no
+                barrel exports.
               </p>
             </aside>
           </section>
@@ -214,10 +203,11 @@ await app.teardown();</code></pre>
               >
             </h2>
             <p>
-              Begin with <a href="getting-started.html">local setup</a>, then
-              explore
-              <a href="rhythm/middleware.html">middleware and context</a>. If
-              you already know the model, jump to the
+              Begin with the <a href="getting-started.html">quick start</a>,
+              read the <a href="philosophy.html">philosophy</a> behind the
+              design, or clone the
+              <a href="template.html">starter template</a> for a Nest-style
+              skeleton. If you already know the model, jump to the
               <a href="rhythm/api.html">API reference</a>.
             </p>
           </section>
