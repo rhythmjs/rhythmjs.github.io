@@ -1,103 +1,149 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Control execution before, during, and after the next step.">
-  <meta name="color-scheme" content="light dark">
-  <title>Middleware &amp; context · @rhythmjs/rhythm</title>
-  <meta property="og:type" content="website">
-  <meta property="og:site_name" content="RhythmJS documentation">
-  <meta property="og:title" content="Middleware &amp; context · @rhythmjs/rhythm">
-  <meta property="og:description" content="Control execution before, during, and after the next step.">
-  <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="Middleware &amp; context · @rhythmjs/rhythm">
-  <meta name="twitter:description" content="Control execution before, during, and after the next step.">
-  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../assets/style.css">
-  <script defer src="../assets/highlight.js"></script>
-</head>
-<body>
-  <a class="skip-link" href="#main">Skip to content</a>
-  <header class="header">
-    <a class="brand" href="../index.html" aria-label="RhythmJS documentation home"><svg viewBox="0 0 28 28" aria-hidden="true"><path d="M2 15h5l3-9 5 17 4-13 3 5h4"/></svg><span>rhythm<span class="brand-js">js</span></span></a>
-    <span class="version">v0.0.1</span>
-    <nav class="header-links" aria-label="Site"><a href="../getting-started.html">Quick start</a><a href="https://github.com/rhythmjs/rhythm">GitHub</a></nav>
-  </header>
-  <details class="mobile-navigation"><summary>Browse documentation</summary>
-<nav aria-label="Documentation">
-<div class="nav-group">
-<p>Getting started</p>
-<a href="../index.html">Introduction</a>
-<a href="../getting-started.html">Quick start</a>
-</div>
-<details class="nav-group package-group" open>
-<summary>Core</summary>
-<a href="index.html">Overview</a>
-<a href="middleware.html" aria-current="page">Middleware &amp; context</a>
-<a href="providers.html">Providers &amp; lifecycle</a>
-<a href="modules.html">Encapsulated modules</a>
-<a href="api.html">API reference</a>
-</details>
-<details class="nav-group package-group" open>
-<summary>Router</summary>
-<a href="../router/index.html">Overview</a>
-<a href="../router/adapters.html">Runtime adapters</a>
-<a href="../router/api.html">API reference</a>
-</details>
-<details class="nav-group package-group" open>
-<summary>CLI</summary>
-<a href="../cli/index.html">Overview</a>
-<a href="../cli/prompts.html">Interactive prompts</a>
-<a href="../cli/adapters.html">Runtime adapters</a>
-<a href="../cli/api.html">API reference</a>
-</details>
-</nav>
-  </details>
-  <div class="layout">
-    <aside class="sidebar" id="sidebar">
-<nav aria-label="Documentation">
-<div class="nav-group">
-<p>Getting started</p>
-<a href="../index.html">Introduction</a>
-<a href="../getting-started.html">Quick start</a>
-</div>
-<details class="nav-group package-group" open>
-<summary>Core</summary>
-<a href="index.html">Overview</a>
-<a href="middleware.html" aria-current="page">Middleware &amp; context</a>
-<a href="providers.html">Providers &amp; lifecycle</a>
-<a href="modules.html">Encapsulated modules</a>
-<a href="api.html">API reference</a>
-</details>
-<details class="nav-group package-group" open>
-<summary>Router</summary>
-<a href="../router/index.html">Overview</a>
-<a href="../router/adapters.html">Runtime adapters</a>
-<a href="../router/api.html">API reference</a>
-</details>
-<details class="nav-group package-group" open>
-<summary>CLI</summary>
-<a href="../cli/index.html">Overview</a>
-<a href="../cli/prompts.html">Interactive prompts</a>
-<a href="../cli/adapters.html">Runtime adapters</a>
-<a href="../cli/api.html">API reference</a>
-</details>
-</nav>
-    </aside>
-    <main id="main" tabindex="-1">
-      <div class="breadcrumb"><a href="../index.html">Docs</a> <span>/</span> Core <span>/</span> Middleware &amp; context</div>
-      <h1>Middleware &amp; context</h1>
-      <p class="lead">Control execution before, during, and after the next step.</p>
-      <div class="article">
-<section aria-labelledby="follow-the-onion">
-<h2 id="follow-the-onion">
-<a href="#follow-the-onion">Follow the onion<span aria-hidden="true"> #</span></a></h2>
-<p>Middleware receives <code>(ctx, next)</code>. Awaiting <code>next()</code> runs the remaining steps, then resumes the current step. Omitting it stops downstream execution.</p>
-<figure class="code-block"><pre><code>const app = new Rhythm()
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Control execution before, during, and after the next step."
+    />
+    <meta name="color-scheme" content="light dark" />
+    <title>Middleware &amp; context · @rhythmjs/rhythm</title>
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="RhythmJS documentation" />
+    <meta
+      property="og:title"
+      content="Middleware &amp; context · @rhythmjs/rhythm"
+    />
+    <meta
+      property="og:description"
+      content="Control execution before, during, and after the next step."
+    />
+    <meta name="twitter:card" content="summary" />
+    <meta
+      name="twitter:title"
+      content="Middleware &amp; context · @rhythmjs/rhythm"
+    />
+    <meta
+      name="twitter:description"
+      content="Control execution before, during, and after the next step."
+    />
+    <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../assets/style.css" />
+    <script defer src="../assets/highlight.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="header">
+      <a
+        class="brand"
+        href="../index.html"
+        aria-label="RhythmJS documentation home"
+        ><svg viewBox="0 0 28 28" aria-hidden="true">
+          <path d="M2 15h5l3-9 5 17 4-13 3 5h4" /></svg
+        ><span>rhythm<span class="brand-js">js</span></span></a
+      >
+      <span class="version">v0.0.1</span>
+      <nav class="header-links" aria-label="Site">
+        <a href="../getting-started.html">Quick start</a
+        ><a href="https://github.com/rhythmjs/rhythm">GitHub</a>
+      </nav>
+    </header>
+    <details class="mobile-navigation">
+      <summary>Browse documentation</summary>
+      <nav aria-label="Documentation">
+        <div class="nav-group">
+          <p>Getting started</p>
+          <a href="../index.html">Introduction</a>
+          <a href="../getting-started.html">Quick start</a>
+        </div>
+        <details class="nav-group package-group" open>
+          <summary>Core</summary>
+          <a href="index.html">Overview</a>
+          <a href="middleware.html" aria-current="page"
+            >Middleware &amp; context</a
+          >
+          <a href="providers.html">Providers &amp; lifecycle</a>
+          <a href="modules.html">Encapsulated modules</a>
+          <a href="api.html">API reference</a>
+        </details>
+        <details class="nav-group package-group" open>
+          <summary>Router</summary>
+          <a href="../router/index.html">Overview</a>
+          <a href="../router/adapters.html">Runtime adapters</a>
+          <a href="../router/api.html">API reference</a>
+        </details>
+        <details class="nav-group package-group" open>
+          <summary>CLI</summary>
+          <a href="../cli/index.html">Overview</a>
+          <a href="../cli/prompts.html">Interactive prompts</a>
+          <a href="../cli/adapters.html">Runtime adapters</a>
+          <a href="../cli/api.html">API reference</a>
+        </details>
+      </nav>
+    </details>
+    <div class="layout">
+      <aside class="sidebar" id="sidebar">
+        <nav aria-label="Documentation">
+          <div class="nav-group">
+            <p>Getting started</p>
+            <a href="../index.html">Introduction</a>
+            <a href="../getting-started.html">Quick start</a>
+          </div>
+          <details class="nav-group package-group" open>
+            <summary>Core</summary>
+            <a href="index.html">Overview</a>
+            <a href="middleware.html" aria-current="page"
+              >Middleware &amp; context</a
+            >
+            <a href="providers.html">Providers &amp; lifecycle</a>
+            <a href="modules.html">Encapsulated modules</a>
+            <a href="api.html">API reference</a>
+          </details>
+          <details class="nav-group package-group" open>
+            <summary>Router</summary>
+            <a href="../router/index.html">Overview</a>
+            <a href="../router/adapters.html">Runtime adapters</a>
+            <a href="../router/api.html">API reference</a>
+          </details>
+          <details class="nav-group package-group" open>
+            <summary>CLI</summary>
+            <a href="../cli/index.html">Overview</a>
+            <a href="../cli/prompts.html">Interactive prompts</a>
+            <a href="../cli/adapters.html">Runtime adapters</a>
+            <a href="../cli/api.html">API reference</a>
+          </details>
+        </nav>
+      </aside>
+      <main id="main" tabindex="-1">
+        <div class="breadcrumb">
+          <a href="../index.html">Docs</a> <span>/</span> Core
+          <span>/</span> Middleware &amp; context
+        </div>
+        <h1>Middleware &amp; context</h1>
+        <p class="lead">
+          Control execution before, during, and after the next step.
+        </p>
+        <div class="article">
+          <section aria-labelledby="follow-the-onion">
+            <h2 id="follow-the-onion">
+              <a href="#follow-the-onion"
+                >Follow the onion<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              Middleware receives <code>(ctx, next)</code>. Awaiting
+              <code>next()</code> runs the remaining steps, then resumes the
+              current step. Omitting it stops downstream execution.
+            </p>
+            <figure class="code-block">
+              <pre><code>const app = new Rhythm()
   .use(async (_ctx, next) =&gt; {
     console.log(&quot;before&quot;);
     await next();
@@ -106,56 +152,115 @@
   .use(() =&gt; console.log(&quot;inside&quot;));
 
 await app.run({});
-// before → inside → after</code></pre></figure></section>
-<section aria-labelledby="extend-the-context">
-<h2 id="extend-the-context">
-<a href="#extend-the-context">Extend the context<span aria-hidden="true"> #</span></a></h2>
-<p>Pass fields to <code>next(extra)</code> to merge them into the context. Supply the <code>use&lt;TExtra&gt;</code> generic to expose those additions to subsequent middleware; the extra type is not inferred from the body of your callback.</p>
-<figure class="code-block"><pre><code>const app = new Rhythm&lt;{ userId: string }&gt;()
+// before → inside → after</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="extend-the-context">
+            <h2 id="extend-the-context">
+              <a href="#extend-the-context"
+                >Extend the context<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              Pass fields to <code>next(extra)</code> to merge them into the
+              context. Supply the <code>use&lt;TExtra&gt;</code> generic to
+              expose those additions to subsequent middleware; the extra type is
+              not inferred from the body of your callback.
+            </p>
+            <figure class="code-block">
+              <pre><code>const app = new Rhythm&lt;{ userId: string }&gt;()
   .use&lt;{ user: { id: string; name: string } }&gt;(async (ctx, next) =&gt; {
     await next({ user: { id: ctx.userId, name: &quot;Ada&quot; } });
   })
   .use((ctx) =&gt; console.log(ctx.user.name));
 
-await app.run({ userId: &quot;u1&quot; });</code></pre></figure></section>
-<section aria-labelledby="handle-errors">
-<h2 id="handle-errors">
-<a href="#handle-errors">Handle errors<span aria-hidden="true"> #</span></a></h2>
-<p>Register an error-handling wrapper before the handlers it should protect. Wrap <code>await next()</code> in a try/catch to handle downstream failures. Use <code>finally</code> for per-run cleanup. Calling <code>next()</code> more than once in the same middleware dispatch rejects with an error.</p>
-<figure class="code-block"><pre><code>const guarded = new Rhythm().use(async (_ctx, next) =&gt; {
+await app.run({ userId: &quot;u1&quot; });</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="handle-errors">
+            <h2 id="handle-errors">
+              <a href="#handle-errors"
+                >Handle errors<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              Register an error-handling wrapper before the handlers it should
+              protect. Wrap <code>await next()</code> in a try/catch to handle
+              downstream failures. Use <code>finally</code> for per-run cleanup.
+              Calling <code>next()</code> more than once in the same middleware
+              dispatch rejects with an error.
+            </p>
+            <figure class="code-block">
+              <pre><code>const guarded = new Rhythm().use(async (_ctx, next) =&gt; {
   try {
     await next();
   } catch (error) {
     console.error(&quot;Pipeline failed&quot;, error);
     throw error;
   }
-});</code></pre></figure></section>
-<section aria-labelledby="readonly-by-default">
-<h2 id="readonly-by-default">
-<a href="#readonly-by-default">Readonly by default<span aria-hidden="true"> #</span></a></h2>
-<p>Context properties are deeply readonly at the type level, including arrays, maps, and sets. Function values remain callable. Objects branded with <code>readonly [RhythmMutable] = true</code> opt out; the router and CLI response classes use this mechanism.</p></section>
-<section aria-labelledby="use-the-dispatcher-directly">
-<h2 id="use-the-dispatcher-directly">
-<a href="#use-the-dispatcher-directly">Use the dispatcher directly<span aria-hidden="true"> #</span></a></h2>
-<p><code>compose(middleware)</code> creates the standalone onion dispatcher. It does not initialize providers or manage lifecycle.</p>
-<figure class="code-block"><pre><code>import { compose } from &quot;@rhythmjs/rhythm&quot;;
+});</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="readonly-by-default">
+            <h2 id="readonly-by-default">
+              <a href="#readonly-by-default"
+                >Readonly by default<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              Context properties are deeply readonly at the type level,
+              including arrays, maps, and sets. Function values remain callable.
+              Objects branded with
+              <code>readonly [RhythmMutable] = true</code> opt out; the router
+              and CLI response classes use this mechanism.
+            </p>
+          </section>
+          <section aria-labelledby="use-the-dispatcher-directly">
+            <h2 id="use-the-dispatcher-directly">
+              <a href="#use-the-dispatcher-directly"
+                >Use the dispatcher directly<span aria-hidden="true">
+                  #</span
+                ></a
+              >
+            </h2>
+            <p>
+              <code>compose(middleware)</code> creates the standalone onion
+              dispatcher. It does not initialize providers or manage lifecycle.
+            </p>
+            <figure class="code-block">
+              <pre><code>import { compose } from &quot;@rhythmjs/rhythm&quot;;
 
 const dispatch = compose&lt;{ message: string }&gt;([
   (ctx) =&gt; console.log(ctx.message),
 ]);
-await dispatch({ message: &quot;Hello&quot; });</code></pre></figure></section>
-      </div>
-      <nav class="pagination" aria-label="Previous and next pages"><a href="index.html"><span>← Previous</span><strong>The core pipeline</strong></a><a href="providers.html"><span>Next →</span><strong>Providers &amp; lifecycle</strong></a></nav>
-      <footer class="page-footer"><span>RhythmJS documentation · v0.0.1</span><a href="https://github.com/rhythmjs/rhythm">github.com/rhythmjs/rhythm</a></footer>
-    </main>
-    <aside class="toc"><nav aria-label="On this page"><p>ON THIS PAGE</p>
-<a href="#follow-the-onion">Follow the onion</a>
-<a href="#extend-the-context">Extend the context</a>
-<a href="#handle-errors">Handle errors</a>
-<a href="#readonly-by-default">Readonly by default</a>
-<a href="#use-the-dispatcher-directly">Use the dispatcher directly</a>
-
-    </nav></aside>
-  </div>
-</body>
+await dispatch({ message: &quot;Hello&quot; });</code></pre>
+            </figure>
+          </section>
+        </div>
+        <nav class="pagination" aria-label="Previous and next pages">
+          <a href="index.html"
+            ><span>← Previous</span><strong>The core pipeline</strong></a
+          ><a href="providers.html"
+            ><span>Next →</span><strong>Providers &amp; lifecycle</strong></a
+          >
+        </nav>
+        <footer class="page-footer">
+          <span>RhythmJS documentation · v0.0.1</span
+          ><a href="https://github.com/rhythmjs/rhythm"
+            >github.com/rhythmjs/rhythm</a
+          >
+        </footer>
+      </main>
+      <aside class="toc">
+        <nav aria-label="On this page">
+          <p>ON THIS PAGE</p>
+          <a href="#follow-the-onion">Follow the onion</a>
+          <a href="#extend-the-context">Extend the context</a>
+          <a href="#handle-errors">Handle errors</a>
+          <a href="#readonly-by-default">Readonly by default</a>
+          <a href="#use-the-dispatcher-directly">Use the dispatcher directly</a>
+        </nav>
+      </aside>
+    </div>
+  </body>
 </html>

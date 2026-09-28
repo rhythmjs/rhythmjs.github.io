@@ -1,103 +1,137 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Route arguments through the same middleware model.">
-  <meta name="color-scheme" content="light dark">
-  <title>CLI commands · @rhythmjs/cli</title>
-  <meta property="og:type" content="website">
-  <meta property="og:site_name" content="RhythmJS documentation">
-  <meta property="og:title" content="CLI commands · @rhythmjs/cli">
-  <meta property="og:description" content="Route arguments through the same middleware model.">
-  <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="CLI commands · @rhythmjs/cli">
-  <meta name="twitter:description" content="Route arguments through the same middleware model.">
-  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../assets/style.css">
-  <script defer src="../assets/highlight.js"></script>
-</head>
-<body>
-  <a class="skip-link" href="#main">Skip to content</a>
-  <header class="header">
-    <a class="brand" href="../index.html" aria-label="RhythmJS documentation home"><svg viewBox="0 0 28 28" aria-hidden="true"><path d="M2 15h5l3-9 5 17 4-13 3 5h4"/></svg><span>rhythm<span class="brand-js">js</span></span></a>
-    <span class="version">v0.0.1</span>
-    <nav class="header-links" aria-label="Site"><a href="../getting-started.html">Quick start</a><a href="https://github.com/rhythmjs/rhythm">GitHub</a></nav>
-  </header>
-  <details class="mobile-navigation"><summary>Browse documentation</summary>
-<nav aria-label="Documentation">
-<div class="nav-group">
-<p>Getting started</p>
-<a href="../index.html">Introduction</a>
-<a href="../getting-started.html">Quick start</a>
-</div>
-<details class="nav-group package-group" open>
-<summary>Core</summary>
-<a href="../rhythm/index.html">Overview</a>
-<a href="../rhythm/middleware.html">Middleware &amp; context</a>
-<a href="../rhythm/providers.html">Providers &amp; lifecycle</a>
-<a href="../rhythm/modules.html">Encapsulated modules</a>
-<a href="../rhythm/api.html">API reference</a>
-</details>
-<details class="nav-group package-group" open>
-<summary>Router</summary>
-<a href="../router/index.html">Overview</a>
-<a href="../router/adapters.html">Runtime adapters</a>
-<a href="../router/api.html">API reference</a>
-</details>
-<details class="nav-group package-group" open>
-<summary>CLI</summary>
-<a href="index.html" aria-current="page">Overview</a>
-<a href="prompts.html">Interactive prompts</a>
-<a href="adapters.html">Runtime adapters</a>
-<a href="api.html">API reference</a>
-</details>
-</nav>
-  </details>
-  <div class="layout">
-    <aside class="sidebar" id="sidebar">
-<nav aria-label="Documentation">
-<div class="nav-group">
-<p>Getting started</p>
-<a href="../index.html">Introduction</a>
-<a href="../getting-started.html">Quick start</a>
-</div>
-<details class="nav-group package-group" open>
-<summary>Core</summary>
-<a href="../rhythm/index.html">Overview</a>
-<a href="../rhythm/middleware.html">Middleware &amp; context</a>
-<a href="../rhythm/providers.html">Providers &amp; lifecycle</a>
-<a href="../rhythm/modules.html">Encapsulated modules</a>
-<a href="../rhythm/api.html">API reference</a>
-</details>
-<details class="nav-group package-group" open>
-<summary>Router</summary>
-<a href="../router/index.html">Overview</a>
-<a href="../router/adapters.html">Runtime adapters</a>
-<a href="../router/api.html">API reference</a>
-</details>
-<details class="nav-group package-group" open>
-<summary>CLI</summary>
-<a href="index.html" aria-current="page">Overview</a>
-<a href="prompts.html">Interactive prompts</a>
-<a href="adapters.html">Runtime adapters</a>
-<a href="api.html">API reference</a>
-</details>
-</nav>
-    </aside>
-    <main id="main" tabindex="-1">
-      <div class="breadcrumb"><a href="../index.html">Docs</a> <span>/</span> Cli <span>/</span> CLI commands</div>
-      <h1>CLI commands</h1>
-      <p class="lead">Route arguments through the same middleware model.</p>
-      <div class="article">
-<section aria-labelledby="define-a-command">
-<h2 id="define-a-command">
-<a href="#define-a-command">Define a command<span aria-hidden="true"> #</span></a></h2>
-<p>Command patterns are space-separated tokens. Named tokens populate <code>ctx.args</code>. The first registered matching command wins, and its token count must match the positional arguments exactly.</p>
-<figure class="code-block"><pre><code>import { RhythmCli } from &quot;@rhythmjs/cli&quot;;
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Route arguments through the same middleware model."
+    />
+    <meta name="color-scheme" content="light dark" />
+    <title>CLI commands · @rhythmjs/cli</title>
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="RhythmJS documentation" />
+    <meta property="og:title" content="CLI commands · @rhythmjs/cli" />
+    <meta
+      property="og:description"
+      content="Route arguments through the same middleware model."
+    />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="CLI commands · @rhythmjs/cli" />
+    <meta
+      name="twitter:description"
+      content="Route arguments through the same middleware model."
+    />
+    <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../assets/style.css" />
+    <script defer src="../assets/highlight.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="header">
+      <a
+        class="brand"
+        href="../index.html"
+        aria-label="RhythmJS documentation home"
+        ><svg viewBox="0 0 28 28" aria-hidden="true">
+          <path d="M2 15h5l3-9 5 17 4-13 3 5h4" /></svg
+        ><span>rhythm<span class="brand-js">js</span></span></a
+      >
+      <span class="version">v0.0.1</span>
+      <nav class="header-links" aria-label="Site">
+        <a href="../getting-started.html">Quick start</a
+        ><a href="https://github.com/rhythmjs/rhythm">GitHub</a>
+      </nav>
+    </header>
+    <details class="mobile-navigation">
+      <summary>Browse documentation</summary>
+      <nav aria-label="Documentation">
+        <div class="nav-group">
+          <p>Getting started</p>
+          <a href="../index.html">Introduction</a>
+          <a href="../getting-started.html">Quick start</a>
+        </div>
+        <details class="nav-group package-group" open>
+          <summary>Core</summary>
+          <a href="../rhythm/index.html">Overview</a>
+          <a href="../rhythm/middleware.html">Middleware &amp; context</a>
+          <a href="../rhythm/providers.html">Providers &amp; lifecycle</a>
+          <a href="../rhythm/modules.html">Encapsulated modules</a>
+          <a href="../rhythm/api.html">API reference</a>
+        </details>
+        <details class="nav-group package-group" open>
+          <summary>Router</summary>
+          <a href="../router/index.html">Overview</a>
+          <a href="../router/adapters.html">Runtime adapters</a>
+          <a href="../router/api.html">API reference</a>
+        </details>
+        <details class="nav-group package-group" open>
+          <summary>CLI</summary>
+          <a href="index.html" aria-current="page">Overview</a>
+          <a href="prompts.html">Interactive prompts</a>
+          <a href="adapters.html">Runtime adapters</a>
+          <a href="api.html">API reference</a>
+        </details>
+      </nav>
+    </details>
+    <div class="layout">
+      <aside class="sidebar" id="sidebar">
+        <nav aria-label="Documentation">
+          <div class="nav-group">
+            <p>Getting started</p>
+            <a href="../index.html">Introduction</a>
+            <a href="../getting-started.html">Quick start</a>
+          </div>
+          <details class="nav-group package-group" open>
+            <summary>Core</summary>
+            <a href="../rhythm/index.html">Overview</a>
+            <a href="../rhythm/middleware.html">Middleware &amp; context</a>
+            <a href="../rhythm/providers.html">Providers &amp; lifecycle</a>
+            <a href="../rhythm/modules.html">Encapsulated modules</a>
+            <a href="../rhythm/api.html">API reference</a>
+          </details>
+          <details class="nav-group package-group" open>
+            <summary>Router</summary>
+            <a href="../router/index.html">Overview</a>
+            <a href="../router/adapters.html">Runtime adapters</a>
+            <a href="../router/api.html">API reference</a>
+          </details>
+          <details class="nav-group package-group" open>
+            <summary>CLI</summary>
+            <a href="index.html" aria-current="page">Overview</a>
+            <a href="prompts.html">Interactive prompts</a>
+            <a href="adapters.html">Runtime adapters</a>
+            <a href="api.html">API reference</a>
+          </details>
+        </nav>
+      </aside>
+      <main id="main" tabindex="-1">
+        <div class="breadcrumb">
+          <a href="../index.html">Docs</a> <span>/</span> Cli <span>/</span> CLI
+          commands
+        </div>
+        <h1>CLI commands</h1>
+        <p class="lead">Route arguments through the same middleware model.</p>
+        <div class="article">
+          <section aria-labelledby="define-a-command">
+            <h2 id="define-a-command">
+              <a href="#define-a-command"
+                >Define a command<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              Command patterns are space-separated tokens. Named tokens populate
+              <code>ctx.args</code>. The first registered matching command wins,
+              and its token count must match the positional arguments exactly.
+            </p>
+            <figure class="code-block">
+              <pre><code>import { RhythmCli } from &quot;@rhythmjs/cli&quot;;
 import { toCliHandler } from &quot;@rhythmjs/cli/adapters/bun&quot;;
 
 const cli = new RhythmCli()
@@ -112,39 +146,93 @@ try {
   process.exitCode = await toCliHandler(cli)(process.argv.slice(2));
 } finally {
   await cli.teardown();
-}</code></pre></figure></section>
-<section aria-labelledby="read-flags-and-stdin">
-<h2 id="read-flags-and-stdin">
-<a href="#read-flags-and-stdin">Read flags and stdin<span aria-hidden="true"> #</span></a></h2>
-<p><code>ctx.flags</code> holds string or boolean values. <code>--verbose</code> is true when no value follows; <code>--target=prod</code> supplies a string. A following non-flag token becomes a value, so <code>--verbose deploy</code> consumes <code>deploy</code>.</p>
-<p><code>-abc</code> is a single flag named <code>abc</code>, not three short flags. <code>--</code> ends flag parsing. No schema validation or numeric coercion is performed.</p>
-<p><code>ctx.stdin</code> is a readable byte stream when input is piped, or null when stdin is a TTY.</p></section>
-<section aria-labelledby="nest-command-groups">
-<h2 id="nest-command-groups">
-<a href="#nest-command-groups">Nest command groups<span aria-hidden="true"> #</span></a></h2>
-<p>Prefixes compose when you mount a child using <code>commands()</code>. Complete the child before mounting it.</p>
-<figure class="code-block"><pre><code>const remote = new RhythmCli({ prefix: &quot;remote&quot; })
+}</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="read-flags-and-stdin">
+            <h2 id="read-flags-and-stdin">
+              <a href="#read-flags-and-stdin"
+                >Read flags and stdin<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              <code>ctx.flags</code> holds string or boolean values.
+              <code>--verbose</code> is true when no value follows;
+              <code>--target=prod</code> supplies a string. A following non-flag
+              token becomes a value, so <code>--verbose deploy</code> consumes
+              <code>deploy</code>.
+            </p>
+            <p>
+              <code>-abc</code> is a single flag named <code>abc</code>, not
+              three short flags. <code>--</code> ends flag parsing. No schema
+              validation or numeric coercion is performed.
+            </p>
+            <p>
+              <code>ctx.stdin</code> is a readable byte stream when input is
+              piped, or null when stdin is a TTY.
+            </p>
+          </section>
+          <section aria-labelledby="nest-command-groups">
+            <h2 id="nest-command-groups">
+              <a href="#nest-command-groups"
+                >Nest command groups<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              Prefixes compose when you mount a child using
+              <code>commands()</code>. Complete the child before mounting it.
+            </p>
+            <figure class="code-block">
+              <pre><code>const remote = new RhythmCli({ prefix: &quot;remote&quot; })
   .command(&quot;add :name :url&quot;, (ctx) =&gt; {
     ctx.response.print(`Added ${ctx.args.name}: ${ctx.args.url}`);
   });
 
-const root = new RhythmCli().use(remote.commands());</code></pre></figure></section>
-<section aria-labelledby="write-output">
-<h2 id="write-output">
-<a href="#write-output">Write output<span aria-hidden="true"> #</span></a></h2>
-<p><code>print(line)</code>, <code>printError(line)</code>, and <code>exit(code)</code> are chainable. They buffer stdout, stderr, and the exit code. The adapter flushes stdout then stderr after the pipeline completes and returns the exit code (zero by default).</p>
-<p><code>exit()</code> sets a value; it does not terminate the process or stop middleware. Return without calling <code>next()</code> to stop downstream execution.</p></section>
-      </div>
-      <nav class="pagination" aria-label="Previous and next pages"><span></span><a href="prompts.html"><span>Next →</span><strong>Interactive prompts</strong></a></nav>
-      <footer class="page-footer"><span>RhythmJS documentation · v0.0.1</span><a href="https://github.com/rhythmjs/rhythm">github.com/rhythmjs/rhythm</a></footer>
-    </main>
-    <aside class="toc"><nav aria-label="On this page"><p>ON THIS PAGE</p>
-<a href="#define-a-command">Define a command</a>
-<a href="#read-flags-and-stdin">Read flags and stdin</a>
-<a href="#nest-command-groups">Nest command groups</a>
-<a href="#write-output">Write output</a>
-
-    </nav></aside>
-  </div>
-</body>
+const root = new RhythmCli().use(remote.commands());</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="write-output">
+            <h2 id="write-output">
+              <a href="#write-output"
+                >Write output<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              <code>print(line)</code>, <code>printError(line)</code>, and
+              <code>exit(code)</code> are chainable. They buffer stdout, stderr,
+              and the exit code. The adapter flushes stdout then stderr after
+              the pipeline completes and returns the exit code (zero by
+              default).
+            </p>
+            <p>
+              <code>exit()</code> sets a value; it does not terminate the
+              process or stop middleware. Return without calling
+              <code>next()</code> to stop downstream execution.
+            </p>
+          </section>
+        </div>
+        <nav class="pagination" aria-label="Previous and next pages">
+          <span></span
+          ><a href="prompts.html"
+            ><span>Next →</span><strong>Interactive prompts</strong></a
+          >
+        </nav>
+        <footer class="page-footer">
+          <span>RhythmJS documentation · v0.0.1</span
+          ><a href="https://github.com/rhythmjs/rhythm"
+            >github.com/rhythmjs/rhythm</a
+          >
+        </footer>
+      </main>
+      <aside class="toc">
+        <nav aria-label="On this page">
+          <p>ON THIS PAGE</p>
+          <a href="#define-a-command">Define a command</a>
+          <a href="#read-flags-and-stdin">Read flags and stdin</a>
+          <a href="#nest-command-groups">Nest command groups</a>
+          <a href="#write-output">Write output</a>
+        </nav>
+      </aside>
+    </div>
+  </body>
 </html>

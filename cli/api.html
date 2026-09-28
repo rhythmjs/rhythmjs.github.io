@@ -1,123 +1,226 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Command routing, argv parsing, prompts, and response types for @rhythmjs/cli.">
-  <meta name="color-scheme" content="light dark">
-  <title>CLI API reference · @rhythmjs/cli</title>
-  <meta property="og:type" content="website">
-  <meta property="og:site_name" content="RhythmJS documentation">
-  <meta property="og:title" content="CLI API reference · @rhythmjs/cli">
-  <meta property="og:description" content="Command routing, argv parsing, prompts, and response types for @rhythmjs/cli.">
-  <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="CLI API reference · @rhythmjs/cli">
-  <meta name="twitter:description" content="Command routing, argv parsing, prompts, and response types for @rhythmjs/cli.">
-  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../assets/style.css">
-  <script defer src="../assets/highlight.js"></script>
-</head>
-<body>
-  <a class="skip-link" href="#main">Skip to content</a>
-  <header class="header">
-    <a class="brand" href="../index.html" aria-label="RhythmJS documentation home"><svg viewBox="0 0 28 28" aria-hidden="true"><path d="M2 15h5l3-9 5 17 4-13 3 5h4"/></svg><span>rhythm<span class="brand-js">js</span></span></a>
-    <span class="version">v0.0.1</span>
-    <nav class="header-links" aria-label="Site"><a href="../getting-started.html">Quick start</a><a href="https://github.com/rhythmjs/rhythm">GitHub</a></nav>
-  </header>
-  <details class="mobile-navigation"><summary>Browse documentation</summary>
-<nav aria-label="Documentation">
-<div class="nav-group">
-<p>Getting started</p>
-<a href="../index.html">Introduction</a>
-<a href="../getting-started.html">Quick start</a>
-</div>
-<details class="nav-group package-group" open>
-<summary>Core</summary>
-<a href="../rhythm/index.html">Overview</a>
-<a href="../rhythm/middleware.html">Middleware &amp; context</a>
-<a href="../rhythm/providers.html">Providers &amp; lifecycle</a>
-<a href="../rhythm/modules.html">Encapsulated modules</a>
-<a href="../rhythm/api.html">API reference</a>
-</details>
-<details class="nav-group package-group" open>
-<summary>Router</summary>
-<a href="../router/index.html">Overview</a>
-<a href="../router/adapters.html">Runtime adapters</a>
-<a href="../router/api.html">API reference</a>
-</details>
-<details class="nav-group package-group" open>
-<summary>CLI</summary>
-<a href="index.html">Overview</a>
-<a href="prompts.html">Interactive prompts</a>
-<a href="adapters.html">Runtime adapters</a>
-<a href="api.html" aria-current="page">API reference</a>
-</details>
-</nav>
-  </details>
-  <div class="layout">
-    <aside class="sidebar" id="sidebar">
-<nav aria-label="Documentation">
-<div class="nav-group">
-<p>Getting started</p>
-<a href="../index.html">Introduction</a>
-<a href="../getting-started.html">Quick start</a>
-</div>
-<details class="nav-group package-group" open>
-<summary>Core</summary>
-<a href="../rhythm/index.html">Overview</a>
-<a href="../rhythm/middleware.html">Middleware &amp; context</a>
-<a href="../rhythm/providers.html">Providers &amp; lifecycle</a>
-<a href="../rhythm/modules.html">Encapsulated modules</a>
-<a href="../rhythm/api.html">API reference</a>
-</details>
-<details class="nav-group package-group" open>
-<summary>Router</summary>
-<a href="../router/index.html">Overview</a>
-<a href="../router/adapters.html">Runtime adapters</a>
-<a href="../router/api.html">API reference</a>
-</details>
-<details class="nav-group package-group" open>
-<summary>CLI</summary>
-<a href="index.html">Overview</a>
-<a href="prompts.html">Interactive prompts</a>
-<a href="adapters.html">Runtime adapters</a>
-<a href="api.html" aria-current="page">API reference</a>
-</details>
-</nav>
-    </aside>
-    <main id="main" tabindex="-1">
-      <div class="breadcrumb"><a href="../index.html">Docs</a> <span>/</span> Cli <span>/</span> CLI API reference</div>
-      <h1>CLI API reference</h1>
-      <p class="lead">Command routing, argv parsing, prompts, and response types for @rhythmjs/cli.</p>
-      <div class="article">
-<section aria-labelledby="rhythmcli">
-<h2 id="rhythmcli">
-<a href="#rhythmcli">RhythmCli<span aria-hidden="true"> #</span></a></h2>
-<dl>
-<dt>new RhythmCli({ name?, prefix? })</dt>
-<dd>Create a command controller with an optional space-separated prefix.</dd>
-<dt>command(path, ...handlers)</dt>
-<dd>Add a command pattern with optional named tokens in ctx.args.</dd>
-<dt>commands()</dt>
-<dd>Return mountable command middleware.</dd>
-<dt>use(fn) / provide(factory, dispose?)</dt>
-<dd>Compose middleware, nested commands, and providers. register() throws.</dd></dl>
-<p><code>RhythmCliContext</code> and <code>RhythmCliResponse</code> are exported from <code>@rhythmjs/cli/adapters/context</code>. <code>parseArgv</code> and <code>ParsedArgv</code> are available from <code>@rhythmjs/cli/argv</code>.</p></section>
-<section aria-labelledby="handlers-parsing-and-prompts">
-<h2 id="handlers-parsing-and-prompts"><a href="#handlers-parsing-and-prompts">Handlers, parsing, and prompts<span aria-hidden="true"> #</span></a></h2>
-<dl><dt>toCliHandler(app)</dt><dd>Each runtime adapter returns an (argv: string[]) =&gt; Promise&lt;number&gt; handler.</dd><dt>createPrompt()</dt><dd>Runtime adapters return { prompt, close } using readline-backed I/O.</dd><dt>createPrompt(io)</dt><dd>The lower-level @rhythmjs/cli/prompt export takes ask, write, and optional close functions.</dd><dt>parseArgv(argv)</dt><dd>The @rhythmjs/cli/argv export returns { positionals, flags }. Flag values are strings or booleans.</dd><dt>RhythmCliOptions / RhythmCliCommandContext</dt><dd>Root type exports describing constructor options and matched command arguments.</dd><dt>RhythmPrompt / RhythmPromptIO</dt><dd>Prompt method and I/O interfaces exported from @rhythmjs/cli/prompt.</dd></dl><p>See <a href="prompts.html">interactive prompts</a> and <a href="adapters.html">CLI adapters</a> for examples and cleanup.</p></section>
-      </div>
-      <nav class="pagination" aria-label="Previous and next pages"><a href="adapters.html"><span>← Previous</span><strong>CLI runtime adapters</strong></a><span></span></nav>
-      <footer class="page-footer"><span>RhythmJS documentation · v0.0.1</span><a href="https://github.com/rhythmjs/rhythm">github.com/rhythmjs/rhythm</a></footer>
-    </main>
-    <aside class="toc"><nav aria-label="On this page"><p>ON THIS PAGE</p>
-<a href="#rhythmcli">RhythmCli</a>
-<a href="#handlers-parsing-and-prompts">Handlers, parsing, and prompts</a>
-
-    </nav></aside>
-  </div>
-</body>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Command routing, argv parsing, prompts, and response types for @rhythmjs/cli."
+    />
+    <meta name="color-scheme" content="light dark" />
+    <title>CLI API reference · @rhythmjs/cli</title>
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="RhythmJS documentation" />
+    <meta property="og:title" content="CLI API reference · @rhythmjs/cli" />
+    <meta
+      property="og:description"
+      content="Command routing, argv parsing, prompts, and response types for @rhythmjs/cli."
+    />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="CLI API reference · @rhythmjs/cli" />
+    <meta
+      name="twitter:description"
+      content="Command routing, argv parsing, prompts, and response types for @rhythmjs/cli."
+    />
+    <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../assets/style.css" />
+    <script defer src="../assets/highlight.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="header">
+      <a
+        class="brand"
+        href="../index.html"
+        aria-label="RhythmJS documentation home"
+        ><svg viewBox="0 0 28 28" aria-hidden="true">
+          <path d="M2 15h5l3-9 5 17 4-13 3 5h4" /></svg
+        ><span>rhythm<span class="brand-js">js</span></span></a
+      >
+      <span class="version">v0.0.1</span>
+      <nav class="header-links" aria-label="Site">
+        <a href="../getting-started.html">Quick start</a
+        ><a href="https://github.com/rhythmjs/rhythm">GitHub</a>
+      </nav>
+    </header>
+    <details class="mobile-navigation">
+      <summary>Browse documentation</summary>
+      <nav aria-label="Documentation">
+        <div class="nav-group">
+          <p>Getting started</p>
+          <a href="../index.html">Introduction</a>
+          <a href="../getting-started.html">Quick start</a>
+        </div>
+        <details class="nav-group package-group" open>
+          <summary>Core</summary>
+          <a href="../rhythm/index.html">Overview</a>
+          <a href="../rhythm/middleware.html">Middleware &amp; context</a>
+          <a href="../rhythm/providers.html">Providers &amp; lifecycle</a>
+          <a href="../rhythm/modules.html">Encapsulated modules</a>
+          <a href="../rhythm/api.html">API reference</a>
+        </details>
+        <details class="nav-group package-group" open>
+          <summary>Router</summary>
+          <a href="../router/index.html">Overview</a>
+          <a href="../router/adapters.html">Runtime adapters</a>
+          <a href="../router/api.html">API reference</a>
+        </details>
+        <details class="nav-group package-group" open>
+          <summary>CLI</summary>
+          <a href="index.html">Overview</a>
+          <a href="prompts.html">Interactive prompts</a>
+          <a href="adapters.html">Runtime adapters</a>
+          <a href="api.html" aria-current="page">API reference</a>
+        </details>
+      </nav>
+    </details>
+    <div class="layout">
+      <aside class="sidebar" id="sidebar">
+        <nav aria-label="Documentation">
+          <div class="nav-group">
+            <p>Getting started</p>
+            <a href="../index.html">Introduction</a>
+            <a href="../getting-started.html">Quick start</a>
+          </div>
+          <details class="nav-group package-group" open>
+            <summary>Core</summary>
+            <a href="../rhythm/index.html">Overview</a>
+            <a href="../rhythm/middleware.html">Middleware &amp; context</a>
+            <a href="../rhythm/providers.html">Providers &amp; lifecycle</a>
+            <a href="../rhythm/modules.html">Encapsulated modules</a>
+            <a href="../rhythm/api.html">API reference</a>
+          </details>
+          <details class="nav-group package-group" open>
+            <summary>Router</summary>
+            <a href="../router/index.html">Overview</a>
+            <a href="../router/adapters.html">Runtime adapters</a>
+            <a href="../router/api.html">API reference</a>
+          </details>
+          <details class="nav-group package-group" open>
+            <summary>CLI</summary>
+            <a href="index.html">Overview</a>
+            <a href="prompts.html">Interactive prompts</a>
+            <a href="adapters.html">Runtime adapters</a>
+            <a href="api.html" aria-current="page">API reference</a>
+          </details>
+        </nav>
+      </aside>
+      <main id="main" tabindex="-1">
+        <div class="breadcrumb">
+          <a href="../index.html">Docs</a> <span>/</span> Cli <span>/</span> CLI
+          API reference
+        </div>
+        <h1>CLI API reference</h1>
+        <p class="lead">
+          Command routing, argv parsing, prompts, and response types for
+          @rhythmjs/cli.
+        </p>
+        <div class="article">
+          <section aria-labelledby="rhythmcli">
+            <h2 id="rhythmcli">
+              <a href="#rhythmcli"
+                >RhythmCli<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <dl>
+              <dt>new RhythmCli({ name?, prefix? })</dt>
+              <dd>
+                Create a command controller with an optional space-separated
+                prefix.
+              </dd>
+              <dt>command(path, ...handlers)</dt>
+              <dd>
+                Add a command pattern with optional named tokens in ctx.args.
+              </dd>
+              <dt>commands()</dt>
+              <dd>Return mountable command middleware.</dd>
+              <dt>use(fn) / provide(factory, dispose?)</dt>
+              <dd>
+                Compose middleware, nested commands, and providers. register()
+                throws.
+              </dd>
+            </dl>
+            <p>
+              <code>RhythmCliContext</code> and
+              <code>RhythmCliResponse</code> are exported from
+              <code>@rhythmjs/cli/adapters/context</code>.
+              <code>parseArgv</code> and <code>ParsedArgv</code> are available
+              from <code>@rhythmjs/cli/argv</code>.
+            </p>
+          </section>
+          <section aria-labelledby="handlers-parsing-and-prompts">
+            <h2 id="handlers-parsing-and-prompts">
+              <a href="#handlers-parsing-and-prompts"
+                >Handlers, parsing, and prompts<span aria-hidden="true">
+                  #</span
+                ></a
+              >
+            </h2>
+            <dl>
+              <dt>toCliHandler(app)</dt>
+              <dd>
+                Each runtime adapter returns an (argv: string[]) =&gt;
+                Promise&lt;number&gt; handler.
+              </dd>
+              <dt>createPrompt()</dt>
+              <dd>
+                Runtime adapters return { prompt, close } using readline-backed
+                I/O.
+              </dd>
+              <dt>createPrompt(io)</dt>
+              <dd>
+                The lower-level @rhythmjs/cli/prompt export takes ask, write,
+                and optional close functions.
+              </dd>
+              <dt>parseArgv(argv)</dt>
+              <dd>
+                The @rhythmjs/cli/argv export returns { positionals, flags }.
+                Flag values are strings or booleans.
+              </dd>
+              <dt>RhythmCliOptions / RhythmCliCommandContext</dt>
+              <dd>
+                Root type exports describing constructor options and matched
+                command arguments.
+              </dd>
+              <dt>RhythmPrompt / RhythmPromptIO</dt>
+              <dd>
+                Prompt method and I/O interfaces exported from
+                @rhythmjs/cli/prompt.
+              </dd>
+            </dl>
+            <p>
+              See <a href="prompts.html">interactive prompts</a> and
+              <a href="adapters.html">CLI adapters</a> for examples and cleanup.
+            </p>
+          </section>
+        </div>
+        <nav class="pagination" aria-label="Previous and next pages">
+          <a href="adapters.html"
+            ><span>← Previous</span><strong>CLI runtime adapters</strong></a
+          ><span></span>
+        </nav>
+        <footer class="page-footer">
+          <span>RhythmJS documentation · v0.0.1</span
+          ><a href="https://github.com/rhythmjs/rhythm"
+            >github.com/rhythmjs/rhythm</a
+          >
+        </footer>
+      </main>
+      <aside class="toc">
+        <nav aria-label="On this page">
+          <p>ON THIS PAGE</p>
+          <a href="#rhythmcli">RhythmCli</a>
+          <a href="#handlers-parsing-and-prompts"
+            >Handlers, parsing, and prompts</a
+          >
+        </nav>
+      </aside>
+    </div>
+  </body>
 </html>
