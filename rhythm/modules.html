@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Make context boundaries explicit with registration and exports.">
+  <meta name="color-scheme" content="light dark">
+  <title>Encapsulated modules · @rhythmjs/rhythm</title>
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="RhythmJS documentation">
+  <meta property="og:title" content="Encapsulated modules · @rhythmjs/rhythm">
+  <meta property="og:description" content="Make context boundaries explicit with registration and exports.">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Encapsulated modules · @rhythmjs/rhythm">
+  <meta name="twitter:description" content="Make context boundaries explicit with registration and exports.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/style.css">
+  <script defer src="../assets/highlight.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="header">
+    <a class="brand" href="../index.html" aria-label="RhythmJS documentation home"><svg viewBox="0 0 28 28" aria-hidden="true"><path d="M2 15h5l3-9 5 17 4-13 3 5h4"/></svg><span>rhythm<span class="brand-js">js</span></span></a>
+    <span class="version">v0.0.1</span>
+    <nav class="header-links" aria-label="Site"><a href="../getting-started.html">Quick start</a><a href="https://github.com/rhythmjs/rhythm">GitHub</a></nav>
+  </header>
+  <details class="mobile-navigation"><summary>Browse documentation</summary>
+<nav aria-label="Documentation">
+<div class="nav-group">
+<p>Getting started</p>
+<a href="../index.html">Introduction</a>
+<a href="../getting-started.html">Quick start</a>
+</div>
+<details class="nav-group package-group" open>
+<summary>Core</summary>
+<a href="index.html">Overview</a>
+<a href="middleware.html">Middleware &amp; context</a>
+<a href="providers.html">Providers &amp; lifecycle</a>
+<a href="modules.html" aria-current="page">Encapsulated modules</a>
+<a href="api.html">API reference</a>
+</details>
+<details class="nav-group package-group" open>
+<summary>Router</summary>
+<a href="../router/index.html">Overview</a>
+<a href="../router/adapters.html">Runtime adapters</a>
+<a href="../router/api.html">API reference</a>
+</details>
+<details class="nav-group package-group" open>
+<summary>CLI</summary>
+<a href="../cli/index.html">Overview</a>
+<a href="../cli/prompts.html">Interactive prompts</a>
+<a href="../cli/adapters.html">Runtime adapters</a>
+<a href="../cli/api.html">API reference</a>
+</details>
+</nav>
+  </details>
+  <div class="layout">
+    <aside class="sidebar" id="sidebar">
+<nav aria-label="Documentation">
+<div class="nav-group">
+<p>Getting started</p>
+<a href="../index.html">Introduction</a>
+<a href="../getting-started.html">Quick start</a>
+</div>
+<details class="nav-group package-group" open>
+<summary>Core</summary>
+<a href="index.html">Overview</a>
+<a href="middleware.html">Middleware &amp; context</a>
+<a href="providers.html">Providers &amp; lifecycle</a>
+<a href="modules.html" aria-current="page">Encapsulated modules</a>
+<a href="api.html">API reference</a>
+</details>
+<details class="nav-group package-group" open>
+<summary>Router</summary>
+<a href="../router/index.html">Overview</a>
+<a href="../router/adapters.html">Runtime adapters</a>
+<a href="../router/api.html">API reference</a>
+</details>
+<details class="nav-group package-group" open>
+<summary>CLI</summary>
+<a href="../cli/index.html">Overview</a>
+<a href="../cli/prompts.html">Interactive prompts</a>
+<a href="../cli/adapters.html">Runtime adapters</a>
+<a href="../cli/api.html">API reference</a>
+</details>
+</nav>
+    </aside>
+    <main id="main" tabindex="-1">
+      <div class="breadcrumb"><a href="../index.html">Docs</a> <span>/</span> Core <span>/</span> Encapsulated modules</div>
+      <h1>Encapsulated modules</h1>
+      <p class="lead">Make context boundaries explicit with registration and exports.</p>
+      <div class="article">
+<section aria-labelledby="register-a-child">
+<h2 id="register-a-child">
+<a href="#register-a-child">Register a child<span aria-hidden="true"> #</span></a></h2>
+<p>A child receives the parent context as its input. Its added top-level fields stay inside the child unless an export function returns them. The parent context must satisfy the child’s input type.</p>
+<figure class="code-block"><pre><code>import { Rhythm } from &quot;@rhythmjs/rhythm&quot;;
+
+const identity = new Rhythm&lt;{ userId: string }&gt;({ name: &quot;identity&quot; })
+  .provide(() =&gt; ({ source: &quot;local&quot; }))
+  .use&lt;{ user: { name: string } }&gt;(async (_ctx, next) =&gt; {
+    await next({ user: { name: &quot;Ada&quot; } });
+  });
+
+const app = new Rhythm&lt;{ userId: string }&gt;()
+  .register(identity, (result) =&gt; ({ user: result.user }))
+  .use((ctx) =&gt; console.log(ctx.user.name));
+
+await app.run({ userId: &quot;u1&quot; });
+await app.teardown();</code></pre></figure></section>
+<section aria-labelledby="export-deliberately">
+<h2 id="export-deliberately">
+<a href="#export-deliberately">Export deliberately<span aria-hidden="true"> #</span></a></h2>
+<p>Without an export function, no child-added fields are merged back into the parent. Exported fields become part of the parent’s inferred context. The boundary is shallow: nested input objects remain shared references, so registration is not a deep clone.</p></section>
+<section aria-labelledby="own-the-lifecycle">
+<h2 id="own-the-lifecycle">
+<a href="#own-the-lifecycle">Own the lifecycle<span aria-hidden="true"> #</span></a></h2>
+<p>Registration includes child setup and teardown in the parent provider sequence. Errors thrown by a registered child during dispatch are wrapped with its type and name; the original error is available as <code>cause</code>.</p></section>
+<section aria-labelledby="mount-controllers-flat">
+<h2 id="mount-controllers-flat">
+<a href="#mount-controllers-flat">Mount controllers flat<span aria-hidden="true"> #</span></a></h2>
+<p><code>RhythmRouter</code> and <code>RhythmCli</code> disable <code>register()</code>. Mount their middleware into a core module with <code>use(router.routes())</code> or <code>use(cli.commands())</code>. Complete nested controllers before mounting them; their existing entries are copied when nested.</p></section>
+      </div>
+      <nav class="pagination" aria-label="Previous and next pages"><a href="providers.html"><span>← Previous</span><strong>Providers &amp; lifecycle</strong></a><a href="api.html"><span>Next →</span><strong>Core API reference</strong></a></nav>
+      <footer class="page-footer"><span>RhythmJS documentation · v0.0.1</span><a href="https://github.com/rhythmjs/rhythm">github.com/rhythmjs/rhythm</a></footer>
+    </main>
+    <aside class="toc"><nav aria-label="On this page"><p>ON THIS PAGE</p>
+<a href="#register-a-child">Register a child</a>
+<a href="#export-deliberately">Export deliberately</a>
+<a href="#own-the-lifecycle">Own the lifecycle</a>
+<a href="#mount-controllers-flat">Mount controllers flat</a>
+
+    </nav></aside>
+  </div>
+</body>
+</html>

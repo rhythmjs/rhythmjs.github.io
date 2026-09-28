@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Route methods, response types, and adapter exports for @rhythmjs/router.">
+  <meta name="color-scheme" content="light dark">
+  <title>Router API reference · @rhythmjs/router</title>
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="RhythmJS documentation">
+  <meta property="og:title" content="Router API reference · @rhythmjs/router">
+  <meta property="og:description" content="Route methods, response types, and adapter exports for @rhythmjs/router.">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Router API reference · @rhythmjs/router">
+  <meta name="twitter:description" content="Route methods, response types, and adapter exports for @rhythmjs/router.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/style.css">
+  <script defer src="../assets/highlight.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="header">
+    <a class="brand" href="../index.html" aria-label="RhythmJS documentation home"><svg viewBox="0 0 28 28" aria-hidden="true"><path d="M2 15h5l3-9 5 17 4-13 3 5h4"/></svg><span>rhythm<span class="brand-js">js</span></span></a>
+    <span class="version">v0.0.1</span>
+    <nav class="header-links" aria-label="Site"><a href="../getting-started.html">Quick start</a><a href="https://github.com/rhythmjs/rhythm">GitHub</a></nav>
+  </header>
+  <details class="mobile-navigation"><summary>Browse documentation</summary>
+<nav aria-label="Documentation">
+<div class="nav-group">
+<p>Getting started</p>
+<a href="../index.html">Introduction</a>
+<a href="../getting-started.html">Quick start</a>
+</div>
+<details class="nav-group package-group" open>
+<summary>Core</summary>
+<a href="../rhythm/index.html">Overview</a>
+<a href="../rhythm/middleware.html">Middleware &amp; context</a>
+<a href="../rhythm/providers.html">Providers &amp; lifecycle</a>
+<a href="../rhythm/modules.html">Encapsulated modules</a>
+<a href="../rhythm/api.html">API reference</a>
+</details>
+<details class="nav-group package-group" open>
+<summary>Router</summary>
+<a href="index.html">Overview</a>
+<a href="adapters.html">Runtime adapters</a>
+<a href="api.html" aria-current="page">API reference</a>
+</details>
+<details class="nav-group package-group" open>
+<summary>CLI</summary>
+<a href="../cli/index.html">Overview</a>
+<a href="../cli/prompts.html">Interactive prompts</a>
+<a href="../cli/adapters.html">Runtime adapters</a>
+<a href="../cli/api.html">API reference</a>
+</details>
+</nav>
+  </details>
+  <div class="layout">
+    <aside class="sidebar" id="sidebar">
+<nav aria-label="Documentation">
+<div class="nav-group">
+<p>Getting started</p>
+<a href="../index.html">Introduction</a>
+<a href="../getting-started.html">Quick start</a>
+</div>
+<details class="nav-group package-group" open>
+<summary>Core</summary>
+<a href="../rhythm/index.html">Overview</a>
+<a href="../rhythm/middleware.html">Middleware &amp; context</a>
+<a href="../rhythm/providers.html">Providers &amp; lifecycle</a>
+<a href="../rhythm/modules.html">Encapsulated modules</a>
+<a href="../rhythm/api.html">API reference</a>
+</details>
+<details class="nav-group package-group" open>
+<summary>Router</summary>
+<a href="index.html">Overview</a>
+<a href="adapters.html">Runtime adapters</a>
+<a href="api.html" aria-current="page">API reference</a>
+</details>
+<details class="nav-group package-group" open>
+<summary>CLI</summary>
+<a href="../cli/index.html">Overview</a>
+<a href="../cli/prompts.html">Interactive prompts</a>
+<a href="../cli/adapters.html">Runtime adapters</a>
+<a href="../cli/api.html">API reference</a>
+</details>
+</nav>
+    </aside>
+    <main id="main" tabindex="-1">
+      <div class="breadcrumb"><a href="../index.html">Docs</a> <span>/</span> Router <span>/</span> Router API reference</div>
+      <h1>Router API reference</h1>
+      <p class="lead">Route methods, response types, and adapter exports for @rhythmjs/router.</p>
+      <div class="article">
+<section aria-labelledby="rhythmrouter">
+<h2 id="rhythmrouter">
+<a href="#rhythmrouter">RhythmRouter<span aria-hidden="true"> #</span></a></h2>
+<dl>
+<dt>new RhythmRouter({ name?, prefix? })</dt>
+<dd>Create an HTTP controller.</dd>
+<dt>get / post / put / patch / delete(path, ...handlers)</dt>
+<dd>Add handlers for a method and path. Matched parameters are in ctx.params.</dd>
+<dt>routes()</dt>
+<dd>Return mountable router middleware.</dd>
+<dt>use(fn) / provide(factory, dispose?)</dt>
+<dd>Compose middleware, nested routes, and providers. register() throws.</dd></dl>
+<p>Context exports: <code>RhythmHttpContext</code>, <code>RhythmResponse</code>, <code>RhythmResponseBody</code>, and <code>toResponse</code> are available from <code>@rhythmjs/router/adapters/context</code>.</p></section>
+<section aria-labelledby="adapter-exports">
+<h2 id="adapter-exports"><a href="#adapter-exports">Adapter exports<span aria-hidden="true"> #</span></a></h2>
+<dl><dt>toFetchHandler(app)</dt><dd>Exported from adapters/bun and adapters/deno. Returns (request: Request) =&gt; Promise&lt;Response&gt;.</dd><dt>toNodeHandler(app, options?)</dt><dd>Exported from adapters/node. Returns an async IncomingMessage / ServerResponse handler.</dd><dt>RhythmNodeHandlerOptions</dt><dd>Node adapter options: bodyLimit?: number | false. Default: 1 MiB.</dd><dt>RhythmBodyTooLargeError</dt><dd>Exported Node adapter error class. The adapter converts this error into HTTP 413.</dd><dt>RhythmRouterOptions / RhythmRouterContext</dt><dd>Root type exports describing constructor options and matched path parameters.</dd></dl><p>See <a href="adapters.html">HTTP adapters</a> for buffering, streaming, and error handling.</p></section>
+      </div>
+      <nav class="pagination" aria-label="Previous and next pages"><a href="adapters.html"><span>← Previous</span><strong>HTTP runtime adapters</strong></a><span></span></nav>
+      <footer class="page-footer"><span>RhythmJS documentation · v0.0.1</span><a href="https://github.com/rhythmjs/rhythm">github.com/rhythmjs/rhythm</a></footer>
+    </main>
+    <aside class="toc"><nav aria-label="On this page"><p>ON THIS PAGE</p>
+<a href="#rhythmrouter">RhythmRouter</a>
+<a href="#adapter-exports">Adapter exports</a>
+
+    </nav></aside>
+  </div>
+</body>
+</html>

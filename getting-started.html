@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Go from the repository to your first running pipeline.">
+  <meta name="color-scheme" content="light dark">
+  <title>Quick start · RhythmJS</title>
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="RhythmJS documentation">
+  <meta property="og:title" content="Quick start · RhythmJS">
+  <meta property="og:description" content="Go from the repository to your first running pipeline.">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Quick start · RhythmJS">
+  <meta name="twitter:description" content="Go from the repository to your first running pipeline.">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/style.css">
+  <script defer src="assets/highlight.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="header">
+    <a class="brand" href="index.html" aria-label="RhythmJS documentation home"><svg viewBox="0 0 28 28" aria-hidden="true"><path d="M2 15h5l3-9 5 17 4-13 3 5h4"/></svg><span>rhythm<span class="brand-js">js</span></span></a>
+    <span class="version">v0.0.1</span>
+    <nav class="header-links" aria-label="Site"><a href="getting-started.html">Quick start</a><a href="https://github.com/rhythmjs/rhythm">GitHub</a></nav>
+  </header>
+  <details class="mobile-navigation"><summary>Browse documentation</summary>
+<nav aria-label="Documentation">
+<div class="nav-group">
+<p>Getting started</p>
+<a href="index.html">Introduction</a>
+<a href="getting-started.html" aria-current="page">Quick start</a>
+</div>
+<details class="nav-group package-group" open>
+<summary>Core</summary>
+<a href="rhythm/index.html">Overview</a>
+<a href="rhythm/middleware.html">Middleware &amp; context</a>
+<a href="rhythm/providers.html">Providers &amp; lifecycle</a>
+<a href="rhythm/modules.html">Encapsulated modules</a>
+<a href="rhythm/api.html">API reference</a>
+</details>
+<details class="nav-group package-group" open>
+<summary>Router</summary>
+<a href="router/index.html">Overview</a>
+<a href="router/adapters.html">Runtime adapters</a>
+<a href="router/api.html">API reference</a>
+</details>
+<details class="nav-group package-group" open>
+<summary>CLI</summary>
+<a href="cli/index.html">Overview</a>
+<a href="cli/prompts.html">Interactive prompts</a>
+<a href="cli/adapters.html">Runtime adapters</a>
+<a href="cli/api.html">API reference</a>
+</details>
+</nav>
+  </details>
+  <div class="layout">
+    <aside class="sidebar" id="sidebar">
+<nav aria-label="Documentation">
+<div class="nav-group">
+<p>Getting started</p>
+<a href="index.html">Introduction</a>
+<a href="getting-started.html" aria-current="page">Quick start</a>
+</div>
+<details class="nav-group package-group" open>
+<summary>Core</summary>
+<a href="rhythm/index.html">Overview</a>
+<a href="rhythm/middleware.html">Middleware &amp; context</a>
+<a href="rhythm/providers.html">Providers &amp; lifecycle</a>
+<a href="rhythm/modules.html">Encapsulated modules</a>
+<a href="rhythm/api.html">API reference</a>
+</details>
+<details class="nav-group package-group" open>
+<summary>Router</summary>
+<a href="router/index.html">Overview</a>
+<a href="router/adapters.html">Runtime adapters</a>
+<a href="router/api.html">API reference</a>
+</details>
+<details class="nav-group package-group" open>
+<summary>CLI</summary>
+<a href="cli/index.html">Overview</a>
+<a href="cli/prompts.html">Interactive prompts</a>
+<a href="cli/adapters.html">Runtime adapters</a>
+<a href="cli/api.html">API reference</a>
+</details>
+</nav>
+    </aside>
+    <main id="main" tabindex="-1">
+      <div class="breadcrumb"><a href="index.html">Docs</a> <span>/</span> Getting started <span>/</span> Quick start</div>
+      <h1>Quick start</h1>
+      <p class="lead">Go from the repository to your first running pipeline.</p>
+      <div class="article">
+<section aria-labelledby="set-up-the-workspace">
+<h2 id="set-up-the-workspace">
+<a href="#set-up-the-workspace">Set up the workspace<span aria-hidden="true"> #</span></a></h2>
+<p>Use Bun with this repository. The root manifest specifies <code>bun@1.4.2</code>. From the repository root, install its workspace dependencies:</p>
+<figure class="code-block"><pre><code>bun install</code></pre></figure></section>
+<section aria-labelledby="run-an-example">
+<h2 id="run-an-example">
+<a href="#run-an-example">Run an example<span aria-hidden="true"> #</span></a></h2>
+<p>The HTTP example serves on port 3000. Request <code>/api/users/u1</code> to try its nested users router.</p>
+<figure class="code-block"><pre><code>bun run examples/router/src/index.ts
+# In another terminal:
+curl http://localhost:3000/api/users/u1</code></pre></figure></section>
+<section aria-labelledby="try-the-cli">
+<h2 id="try-the-cli">
+<a href="#try-the-cli">Try the CLI<span aria-hidden="true"> #</span></a></h2>
+<p>The CLI example includes remote commands and an interactive initialization flow. Remote data is in memory and does not persist between invocations.</p>
+<figure class="code-block"><pre><code>bun run examples/cli/src/index.ts remote add origin https://example.com/repo
+bun run examples/cli/src/index.ts init</code></pre></figure></section>
+<section aria-labelledby="create-a-workspace-app">
+<h2 id="create-a-workspace-app">
+<a href="#create-a-workspace-app">Create a workspace app<span aria-hidden="true"> #</span></a></h2>
+<p>Add a directory under <code>examples/</code> with this manifest, then run <code>bun install</code> at the root. Workspace dependencies resolve directly to the TypeScript source.</p>
+<figure class="code-block"><pre><code>{
+  &quot;name&quot;: &quot;my-rhythm-app&quot;,
+  &quot;private&quot;: true,
+  &quot;type&quot;: &quot;module&quot;,
+  &quot;dependencies&quot;: {
+    &quot;@rhythmjs/rhythm&quot;: &quot;workspace:*&quot;
+  }
+}</code></pre></figure></section>
+<section aria-labelledby="write-your-pipeline">
+<h2 id="write-your-pipeline">
+<a href="#write-your-pipeline">Write your pipeline<span aria-hidden="true"> #</span></a></h2>
+<p>Save this as <code>index.ts</code> in your new workspace and run it with <code>bun run index.ts</code>.</p>
+<figure class="code-block"><pre><code>import { Rhythm } from &quot;@rhythmjs/rhythm&quot;;
+
+const app = new Rhythm&lt;{ name: string }&gt;()
+  .use((ctx) =&gt; console.log(`Hello, ${ctx.name}`));
+
+try {
+  await app.run({ name: &quot;Rhythm&quot; });
+} finally {
+  await app.teardown();
+}</code></pre></figure></section>
+<section aria-labelledby="check-the-repository">
+<h2 id="check-the-repository">
+<a href="#check-the-repository">Check the repository<span aria-hidden="true"> #</span></a></h2>
+<p>Run the existing package tests and TypeScript checks from the root.</p>
+<figure class="code-block"><pre><code>bun run test
+bun run typecheck</code></pre></figure></section>
+      </div>
+      <nav class="pagination" aria-label="Previous and next pages"><a href="index.html"><span>← Previous</span><strong>Introduction</strong></a><span></span></nav>
+      <footer class="page-footer"><span>RhythmJS documentation · v0.0.1</span><a href="https://github.com/rhythmjs/rhythm">github.com/rhythmjs/rhythm</a></footer>
+    </main>
+    <aside class="toc"><nav aria-label="On this page"><p>ON THIS PAGE</p>
+<a href="#set-up-the-workspace">Set up the workspace</a>
+<a href="#run-an-example">Run an example</a>
+<a href="#try-the-cli">Try the CLI</a>
+<a href="#create-a-workspace-app">Create a workspace app</a>
+<a href="#write-your-pipeline">Write your pipeline</a>
+<a href="#check-the-repository">Check the repository</a>
+
+    </nav></aside>
+  </div>
+</body>
+</html>
