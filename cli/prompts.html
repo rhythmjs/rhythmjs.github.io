@@ -162,14 +162,28 @@
             </h2>
             <p>
               The runtime adapter’s <code>createPrompt()</code> returns
-              <code>{ prompt, close }</code>. Keep its close function in a
-              private provider field and dispose it when the CLI finishes.
+              <code>{ prompt, close }</code>. Providers live on the host
+              <code>Rhythm</code> app, not on the cli: keep the close function
+              in a private provider field there, provide it before mounting
+              <code>commands()</code>, and dispose it via the app’s
+              <code>teardown()</code>. The cli declares that its handlers
+              expect the prompt through its context generic.
             </p>
             <figure class="code-block">
-              <pre><code>import { RhythmCli } from &quot;@rhythmjs/cli&quot;;
+              <pre><code>import { Rhythm } from &quot;@rhythmjs/rhythm&quot;;
+import { RhythmCli } from &quot;@rhythmjs/cli&quot;;
 import { createPrompt, toCliHandler } from &quot;@rhythmjs/cli/adapters/bun&quot;;
+import type { RhythmCliContext } from &quot;@rhythmjs/cli/adapters/context&quot;;
+import type { RhythmPrompt } from &quot;@rhythmjs/cli/prompt&quot;;
 
-const cli = new RhythmCli()
+const cli = new RhythmCli&lt;RhythmCliContext &amp; { prompt: RhythmPrompt }&gt;()
+  .command(&quot;init&quot;, async (ctx) =&gt; {
+    const name = await ctx.prompt.text(&quot;Project name?&quot;, { default: &quot;my-app&quot; });
+    const confirmed = await ctx.prompt.confirm(&quot;Continue?&quot;, { default: true });
+    if (confirmed) ctx.response.print(`Created ${name}`);
+  });
+
+const app = new Rhythm&lt;RhythmCliContext&gt;()
   .provide(
     () =&gt; {
       const { prompt, close } = createPrompt();
@@ -177,16 +191,12 @@ const cli = new RhythmCli()
     },
     (value) =&gt; value[&quot;#close&quot;](),
   )
-  .command(&quot;init&quot;, async (ctx) =&gt; {
-    const name = await ctx.prompt.text(&quot;Project name?&quot;, { default: &quot;my-app&quot; });
-    const confirmed = await ctx.prompt.confirm(&quot;Continue?&quot;, { default: true });
-    if (confirmed) ctx.response.print(`Created ${name}`);
-  });
+  .use(cli.commands());
 
 try {
-  process.exitCode = await toCliHandler(cli)(process.argv.slice(2));
+  process.exitCode = await toCliHandler(app)(process.argv.slice(2));
 } finally {
-  await cli.teardown();
+  await app.teardown();
 }</code></pre>
             </figure>
           </section>

@@ -132,21 +132,26 @@ await app.teardown();</code></pre>
               >
             </h2>
             <p>
-              The router registers routes with named parameters; the Node
-              adapter turns the app into an ordinary request listener. Run it
-              with <code>npx tsx server.ts</code>.
+              The router registers routes with named parameters and mounts
+              into a Rhythm host app via <code>routes()</code>; the Node
+              adapter turns the host app into an ordinary request listener.
+              Run it with <code>npx tsx server.ts</code>.
             </p>
             <figure class="code-block">
               <pre><code>import { createServer } from &quot;node:http&quot;;
+import { Rhythm } from &quot;@rhythmjs/rhythm&quot;;
 import { RhythmRouter } from &quot;@rhythmjs/router&quot;;
 import { toNodeHandler } from &quot;@rhythmjs/router/adapters/node&quot;;
+import type { RhythmHttpContext } from &quot;@rhythmjs/router/adapters/context&quot;;
 
 const router = new RhythmRouter().get(&quot;/users/:id&quot;, (ctx) =&gt; {
   ctx.response.headers.set(&quot;content-type&quot;, &quot;application/json&quot;);
   ctx.response.body = JSON.stringify({ id: ctx.params.id });
 });
 
-createServer(toNodeHandler(router)).listen(3000);</code></pre>
+const app = new Rhythm&lt;RhythmHttpContext&gt;().use(router.routes());
+
+createServer(toNodeHandler(app)).listen(3000);</code></pre>
             </figure>
           </section>
           <section aria-labelledby="add-validation">

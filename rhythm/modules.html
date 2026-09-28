@@ -222,12 +222,17 @@ await app.teardown();</code></pre>
               >
             </h2>
             <p>
-              <code>RhythmRouter</code> and <code>RhythmCli</code> disable
-              <code>register()</code>. Mount their middleware into a core module
-              with <code>use(router.routes())</code> or
-              <code>use(cli.commands())</code>. Complete nested controllers
-              before mounting them; their existing entries are copied when
-              nested.
+              <code>RhythmRouter</code> and <code>RhythmCli</code> are
+              standalone controllers, not <code>Rhythm</code> modules: they
+              have no <code>provide()</code> or <code>register()</code>, and
+              they cannot be passed to <code>register()</code> either &mdash;
+              it composes <code>Rhythm</code> instances only. Mount their
+              middleware into a core module with
+              <code>use(router.routes())</code> or
+              <code>use(cli.commands())</code>, and nest controller into
+              controller with <code>use(child)</code>. Complete nested
+              controllers before mounting them; their existing entries are
+              copied when nested.
             </p>
           </section>
         </div>

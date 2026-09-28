@@ -168,19 +168,28 @@
               >
             </h2>
             <dl>
-              <dt>new RhythmRouter({ name?, prefix? })</dt>
-              <dd>Create an HTTP controller.</dd>
+              <dt>new RhythmRouter({ prefix? })</dt>
+              <dd>
+                Create an HTTP controller. A router does not extend Rhythm; it
+                compiles routes and middleware down to a single middleware.
+              </dd>
               <dt>get / post / put / patch / delete(path, ...handlers)</dt>
               <dd>
                 Add handlers for a method and path. Matched parameters are in
                 ctx.params.
               </dd>
               <dt>routes()</dt>
-              <dd>Return mountable router middleware.</dd>
-              <dt>use(fn) / provide(factory, dispose?)</dt>
               <dd>
-                Compose middleware, nested routes, and providers. register()
-                throws.
+                Return this router as a plain middleware, for mounting into a
+                Rhythm app via use(). The only way a router reaches a runtime.
+              </dd>
+              <dt>use(fn) / use(child)</dt>
+              <dd>
+                Add a middleware, or mount a nested RhythmRouter with composed
+                prefixes. Registration order is execution order: a middleware
+                wraps only the routes registered after it. There is no
+                provide() or register(); providers live on the host Rhythm
+                app.
               </dd>
             </dl>
             <p>
@@ -199,13 +208,14 @@
             <dl>
               <dt>toFetchHandler(app)</dt>
               <dd>
-                Exported from adapters/bun and adapters/deno. Returns (request:
-                Request) =&gt; Promise&lt;Response&gt;.
+                Exported from adapters/bun and adapters/deno. Takes a Rhythm
+                app and returns (request: Request) =&gt;
+                Promise&lt;Response&gt;.
               </dd>
               <dt>toNodeHandler(app, options?)</dt>
               <dd>
-                Exported from adapters/node. Returns an async IncomingMessage /
-                ServerResponse handler.
+                Exported from adapters/node. Takes a Rhythm app and returns an
+                async IncomingMessage / ServerResponse handler.
               </dd>
               <dt>RhythmNodeHandlerOptions</dt>
               <dd>

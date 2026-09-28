@@ -181,9 +181,10 @@ const app = new Rhythm&lt;{ jobId: string }&gt;({ name: &quot;jobs&quot; })
             </h2>
             <p>
               <code>run(input)</code> initializes providers if needed, creates a
-              shallow context from provider fields and input, and returns the
-              final context. Input fields take precedence over provider fields
-              with the same name.
+              shallow context from the input, and returns the final context.
+              Provider values join the context at their position in the chain,
+              so a provider field with the same name as an input field
+              overwrites it once its position is reached.
             </p>
             <p>
               <code>callback()</code> exposes the reusable async handler. Finish

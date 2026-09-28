@@ -162,18 +162,25 @@
             </h2>
             <p>
               The router uses Web-standard requests and a mutable response
-              object. The adapter creates the final <code>Response</code>.
+              object. The adapter creates the final <code>Response</code>. A
+              router is a controller, not an app of its own: it compiles down
+              to a single middleware via <code>routes()</code>, and a
+              <code>Rhythm</code> host app owns the lifecycle and the adapter.
             </p>
             <figure class="code-block">
-              <pre><code>import { RhythmRouter } from &quot;@rhythmjs/router&quot;;
+              <pre><code>import { Rhythm } from &quot;@rhythmjs/rhythm&quot;;
+import { RhythmRouter } from &quot;@rhythmjs/router&quot;;
 import { toFetchHandler } from &quot;@rhythmjs/router/adapters/bun&quot;;
+import type { RhythmHttpContext } from &quot;@rhythmjs/router/adapters/context&quot;;
 
 const router = new RhythmRouter().get(&quot;/users/:id&quot;, (ctx) =&gt; {
   ctx.response.headers.set(&quot;content-type&quot;, &quot;application/json&quot;);
   ctx.response.body = JSON.stringify({ id: ctx.params.id });
 });
 
-Bun.serve({ port: 3000, fetch: toFetchHandler(router) });</code></pre>
+const app = new Rhythm&lt;RhythmHttpContext&gt;().use(router.routes());
+
+Bun.serve({ port: 3000, fetch: toFetchHandler(app) });</code></pre>
             </figure>
           </section>
           <section aria-labelledby="match-paths">
@@ -202,15 +209,21 @@ Bun.serve({ port: 3000, fetch: toFetchHandler(router) });</code></pre>
               >
             </h2>
             <p>
-              Nested router prefixes join together. The example below serves
-              <code>/api/users/:id</code>.
+              Mount a child router into a parent router with
+              <code>use(child)</code>; nested prefixes join together. The
+              example below serves <code>/api/users/:id</code>. Mounting copies
+              the child&#39;s routes and middleware at that moment, so routes
+              added to the child afterwards don&#39;t appear in the parent.
+              <code>routes()</code> is only for mounting into a
+              <code>Rhythm</code> app &mdash; an opaque middleware can&#39;t
+              have the parent&#39;s prefix applied to its routes.
             </p>
             <figure class="code-block">
               <pre><code>const users = new RhythmRouter({ prefix: &quot;/users&quot; })
   .get(&quot;/:id&quot;, (ctx) =&gt; { ctx.response.body = ctx.params.id; });
 
 const api = new RhythmRouter({ prefix: &quot;/api&quot; })
-  .use(users.routes());</code></pre>
+  .use(users);</code></pre>
             </figure>
           </section>
           <section aria-labelledby="provide-a-fallback">
@@ -223,7 +236,11 @@ const api = new RhythmRouter({ prefix: &quot;/api&quot; })
               An unmatched request calls the next middleware. Add an explicit
               404 fallback; the default response is status 200 with an empty
               body. A matched handler that calls <code>next()</code> also
-              continues downstream.
+              continues downstream. Registration order is execution order: a
+              <code>use()</code> middleware wraps only the routes registered
+              after it, and a matched route that doesn&#39;t call
+              <code>next()</code> returns without reaching anything registered
+              later.
             </p>
             <figure class="code-block">
               <pre><code>import { Rhythm } from &quot;@rhythmjs/rhythm&quot;;

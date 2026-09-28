@@ -175,7 +175,9 @@
               <code>provide(factory, dispose?)</code> accepts a factory
               returning an object or a promise of an object. Factories receive
               the previously resolved provider fields, not the input of an
-              individual run.
+              individual run. The resolved value joins the context at the
+              provider&#39;s position in the chain: only middleware and
+              mounted controllers registered after it see the value.
             </p>
             <figure class="code-block">
               <pre><code>const app = new Rhythm()
@@ -198,7 +200,7 @@
               >
             </h2>
             <p>
-              Keys starting with <code>#</code> are excluded from injected
+              Keys starting with <code>#</code> are excluded from the
               context and subsequent provider dependencies. The disposer
               receives the full factory result, including those private keys.
             </p>

@@ -163,22 +163,31 @@
               <code>ctx.args</code>. The first registered matching command wins,
               and its token count must match the positional arguments exactly.
             </p>
+            <p>
+              A cli is a controller, not an app of its own: it compiles down to
+              a single middleware via <code>commands()</code>, and a
+              <code>Rhythm</code> host app owns the lifecycle and the adapter.
+            </p>
             <figure class="code-block">
-              <pre><code>import { RhythmCli } from &quot;@rhythmjs/cli&quot;;
+              <pre><code>import { Rhythm } from &quot;@rhythmjs/rhythm&quot;;
+import { RhythmCli } from &quot;@rhythmjs/cli&quot;;
 import { toCliHandler } from &quot;@rhythmjs/cli/adapters/bun&quot;;
+import type { RhythmCliContext } from &quot;@rhythmjs/cli/adapters/context&quot;;
 
-const cli = new RhythmCli()
-  .command(&quot;deploy :environment&quot;, (ctx) =&gt; {
-    ctx.response.print(`Deploying to ${ctx.args.environment}`);
-  })
+const cli = new RhythmCli().command(&quot;deploy :environment&quot;, (ctx) =&gt; {
+  ctx.response.print(`Deploying to ${ctx.args.environment}`);
+});
+
+const app = new Rhythm&lt;RhythmCliContext&gt;()
+  .use(cli.commands())
   .use((ctx) =&gt; {
     ctx.response.exit(1).printError(&quot;Unknown command&quot;);
   });
 
 try {
-  process.exitCode = await toCliHandler(cli)(process.argv.slice(2));
+  process.exitCode = await toCliHandler(app)(process.argv.slice(2));
 } finally {
-  await cli.teardown();
+  await app.teardown();
 }</code></pre>
             </figure>
           </section>
@@ -212,8 +221,12 @@ try {
               >
             </h2>
             <p>
-              Prefixes compose when you mount a child using
-              <code>commands()</code>. Complete the child before mounting it.
+              Mount a child cli into a parent cli with <code>use(child)</code>;
+              prefixes compose. Mounting copies the child&#39;s commands and
+              middleware at that moment, so complete the child before mounting
+              it. <code>commands()</code> is only for mounting into a
+              <code>Rhythm</code> app &mdash; an opaque middleware can&#39;t
+              have the parent&#39;s prefix applied to its commands.
             </p>
             <figure class="code-block">
               <pre><code>const remote = new RhythmCli({ prefix: &quot;remote&quot; })
@@ -221,7 +234,7 @@ try {
     ctx.response.print(`Added ${ctx.args.name}: ${ctx.args.url}`);
   });
 
-const root = new RhythmCli().use(remote.commands());</code></pre>
+const root = new RhythmCli().use(remote);</code></pre>
             </figure>
           </section>
           <section aria-labelledby="write-output">
@@ -240,7 +253,9 @@ const root = new RhythmCli().use(remote.commands());</code></pre>
             <p>
               <code>exit()</code> sets a value; it does not terminate the
               process or stop middleware. Return without calling
-              <code>next()</code> to stop downstream execution.
+              <code>next()</code> to stop downstream execution. Registration
+              order is execution order: a <code>use()</code> middleware wraps
+              only the commands registered after it.
             </p>
           </section>
         </div>

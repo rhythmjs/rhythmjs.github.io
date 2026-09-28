@@ -166,7 +166,7 @@
             <figure class="code-block">
               <pre><code>import { toCliHandler } from &quot;@rhythmjs/cli/adapters/bun&quot;;
 
-process.exitCode = await toCliHandler(cli)(process.argv.slice(2));</code></pre>
+process.exitCode = await toCliHandler(app)(process.argv.slice(2));</code></pre>
             </figure>
           </section>
           <section aria-labelledby="node">
@@ -181,7 +181,7 @@ process.exitCode = await toCliHandler(cli)(process.argv.slice(2));</code></pre>
             <figure class="code-block">
               <pre><code>import { toCliHandler, createPrompt } from &quot;@rhythmjs/cli/adapters/node&quot;;
 
-process.exitCode = await toCliHandler(cli)(process.argv.slice(2));</code></pre>
+process.exitCode = await toCliHandler(app)(process.argv.slice(2));</code></pre>
             </figure>
           </section>
           <section aria-labelledby="deno">
@@ -196,7 +196,7 @@ process.exitCode = await toCliHandler(cli)(process.argv.slice(2));</code></pre>
             <figure class="code-block">
               <pre><code>import { toCliHandler } from &quot;@rhythmjs/cli/adapters/deno&quot;;
 
-Deno.exitCode = await toCliHandler(cli)(Deno.args);</code></pre>
+Deno.exitCode = await toCliHandler(app)(Deno.args);</code></pre>
             </figure>
           </section>
           <section aria-labelledby="execution-and-cleanup">
@@ -206,17 +206,19 @@ Deno.exitCode = await toCliHandler(cli)(Deno.args);</code></pre>
               >
             </h2>
             <p>
-              These snippets assume a configured <code>cli</code>. Each call
-              receives argument tokens without the runtime and script path. The
-              adapter creates the context, runs the pipeline, flushes stdout
-              followed by stderr, and returns the numeric exit code.
+              These snippets assume a configured host app &mdash; a
+              <code>Rhythm</code> pipeline with the cli mounted via
+              <code>use(cli.commands())</code>; the adapters accept the host
+              app, never a bare <code>RhythmCli</code>. Each call receives
+              argument tokens without the runtime and script path. The adapter
+              creates the context, runs the pipeline, flushes stdout followed
+              by stderr, and returns the numeric exit code.
             </p>
             <p>
               Thrown errors reject the handler promise; the CLI adapter does not
-              convert them into an exit code. Use try/finally to call
-              <code>cli.teardown()</code>, especially when providers own
-              readline prompts. Flat-mounted resource-owning children need their
-              own teardown.
+              convert them into an exit code. Use try/finally to call the host
+              app&#39;s <code>teardown()</code>, especially when its providers
+              own readline prompts.
             </p>
             <p>
               The packages currently export TypeScript source from private

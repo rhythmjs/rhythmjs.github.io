@@ -172,12 +172,14 @@
               <dt>provide(factory, dispose?)</dt>
               <dd>
                 Add a sync or async object factory and optional cleanup
-                callback. Excludes # keys from injected fields.
+                callback. Resolved once, injected at its chain position so
+                only later steps see it. Excludes # keys from context fields.
               </dd>
               <dt>register(child, exportValue?)</dt>
               <dd>
-                Register a child module, its lifecycle, and optional context
-                exports.
+                Register a child Rhythm module, its lifecycle, and optional
+                context exports. Accepts Rhythm instances only; controllers
+                mount via use() instead.
               </dd>
               <dt>run(input): Promise&lt;TContext&gt;</dt>
               <dd>

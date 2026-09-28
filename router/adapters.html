@@ -163,8 +163,9 @@
               <a href="#bun-http">Bun HTTP<span aria-hidden="true"> #</span></a>
             </h2>
             <p>
-              The fetch adapter accepts a core HTTP pipeline or router and
-              returns an async Request-to-Response handler.
+              The fetch adapter accepts a Rhythm host app and returns an
+              async Request-to-Response handler. Routers mount into the host
+              via use(router.routes()) and are never served directly.
             </p>
             <figure class="code-block">
               <pre><code>import { toFetchHandler } from &quot;@rhythmjs/router/adapters/bun&quot;;

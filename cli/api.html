@@ -162,21 +162,28 @@
               >
             </h2>
             <dl>
-              <dt>new RhythmCli({ name?, prefix? })</dt>
+              <dt>new RhythmCli({ prefix? })</dt>
               <dd>
                 Create a command controller with an optional space-separated
-                prefix.
+                prefix. A cli does not extend Rhythm; it compiles commands and
+                middleware down to a single middleware.
               </dd>
               <dt>command(path, ...handlers)</dt>
               <dd>
                 Add a command pattern with optional named tokens in ctx.args.
               </dd>
               <dt>commands()</dt>
-              <dd>Return mountable command middleware.</dd>
-              <dt>use(fn) / provide(factory, dispose?)</dt>
               <dd>
-                Compose middleware, nested commands, and providers. register()
-                throws.
+                Return this cli as a plain middleware, for mounting into a
+                Rhythm app via use(). The only way a cli reaches a runtime.
+              </dd>
+              <dt>use(fn) / use(child)</dt>
+              <dd>
+                Add a middleware, or mount a nested RhythmCli with composed
+                prefixes. Registration order is execution order: a middleware
+                wraps only the commands registered after it. There is no
+                provide() or register(); providers live on the host Rhythm
+                app.
               </dd>
             </dl>
             <p>
@@ -198,8 +205,8 @@
             <dl>
               <dt>toCliHandler(app)</dt>
               <dd>
-                Each runtime adapter returns an (argv: string[]) =&gt;
-                Promise&lt;number&gt; handler.
+                Each runtime adapter takes a Rhythm host app and returns an
+                (argv: string[]) =&gt; Promise&lt;number&gt; handler.
               </dd>
               <dt>createPrompt()</dt>
               <dd>
