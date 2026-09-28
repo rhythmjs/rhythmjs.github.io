@@ -1,6 +1,6 @@
 # RhythmJS documentation
 
-Fourteen standalone HTML pages organized by package. No framework, no build step. The only script is `assets/highlight.js`, a small hand-written syntax highlighter for the code blocks; pages render fine without it. Headings and prose use the system sans-serif stack; code uses JetBrains Mono, loaded from Google Fonts with local fallbacks. Neutral grays, muted blue links, and simple code panels keep the reference focused and readable in both color schemes. The site degrades gracefully offline.
+Fourteen standalone HTML pages organized by package. No framework, no build step. The only script is `assets/highlight.js`, a small hand-written syntax highlighter for the code blocks; pages render fine without it. Headings and prose use the system sans-serif stack; code uses JetBrains Mono, loaded from Google Fonts with local fallbacks. Neutral surfaces, teal and mint accents, and colorful syntax keep the reference focused and readable in both color schemes. The site degrades gracefully offline.
 
 Open [index.html](index.html) directly, or publish this directory on a static host.
 

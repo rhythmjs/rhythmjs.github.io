@@ -1,25 +1,25 @@
 /* RhythmJS documentation: calm, task-focused developer reference.
    System sans typography keeps navigation and prose consistent and fast.
-   Neutral surfaces and a muted blue accent keep the theme simple.
+   Teal accents and colorful syntax give the neutral reading surface energy.
    Both schemes use readable syntax colors and visible keyboard focus. */
 
 :root {
   color-scheme: light;
 
   --bg: #ffffff;
-  --ink: #242424;
-  --body: #3d3d3d;      /* article prose — darker than --muted on purpose */
-  --muted: #595959;
-  --faint: #707070;
-  --line: #e2e2e2;
-  --wash: #f6f6f6;      /* code blocks, hovers */
-  --accent: #365f91;
-  --accent-soft: #e8eef5;
+  --ink: #172b2a;
+  --body: #354543;      /* article prose — darker than --muted on purpose */
+  --muted: #526461;
+  --faint: #60716d;
+  --line: #dce7e4;
+  --wash: #f3f7f6;      /* code blocks, hovers */
+  --accent: #007566;
+  --accent-soft: #dff7ef;
 
-  --tk-com: #526b55;
-  --tk-str: #98601b;
-  --tk-kw: #6941b0;
-  --tk-num: #08756b;
+  --tk-com: #60716d;
+  --tk-str: #a34b16;
+  --tk-kw: #7c3acb;
+  --tk-num: #007a91;
 
   --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
@@ -28,20 +28,20 @@
 @media (prefers-color-scheme: dark) {
   :root {
     color-scheme: dark;
-    --bg: #1b1b1b;
-    --ink: #ededed;
-    --body: #cecece;
-    --muted: #aaaaaa;
-    --faint: #939393;
-    --line: #333333;
-    --wash: #232323;
-    --accent: #9ab9df;
-    --accent-soft: #2b3644;
+    --bg: #141a1a;
+    --ink: #edf7f3;
+    --body: #ccd9d4;
+    --muted: #a5b9b1;
+    --faint: #8da39a;
+    --line: #2c3b36;
+    --wash: #1c2522;
+    --accent: #5ee9bc;
+    --accent-soft: #203c31;
 
-    --tk-com: #93a58e;
-    --tk-str: #e7bb85;
-    --tk-kw: #bbabf5;
-    --tk-num: #80cfc0;
+    --tk-com: #8da39a;
+    --tk-str: #f2be7e;
+    --tk-kw: #c5a0ff;
+    --tk-num: #75d8ed;
   }
 }
 
@@ -194,7 +194,7 @@ h1,
 .nav-group a:hover { color: var(--ink); background: var(--wash); }
 .nav-group a[aria-current="page"] {
   color: var(--accent);
-  background: var(--wash);
+  background: var(--accent-soft);
   font-weight: 600;
 }
 
@@ -337,7 +337,7 @@ pre code {
 /* ----------------------------------------------------------- components */
 
 .note {
-  border-left: 2px solid var(--line);
+  border-left: 2px solid var(--accent);
   padding: 2px 0 2px 18px;
   margin: 24px 0;
   font-size: 14px;
