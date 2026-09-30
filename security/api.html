@@ -385,14 +385,21 @@ function memoryRateLimitStore(): RateLimitStore</code></pre>
                 <code>RateLimitInfo</code>, plus <code>reset</code>),
                 <code>keyOf(request)</code>, <code>skip(request)</code>,
                 <code>headers</code> (emit <code>RateLimit-*</code>; default
-                true), and <code>message</code>.
+                true), <code>message</code>, and <code>trustProxy</code>
+                (default <code>false</code>; <code>true</code> or a hop count
+                enables <code>X-Forwarded-For</code> keying).
               </dd>
               <dt>Default key</dt>
               <dd>
-                <code>request.ip</code> when your <code>Bun.serve</code> fetch
-                exposes it (via <code>server.requestIP()</code>), else the first
-                <code>X-Forwarded-For</code> hop, else the literal key
-                <code>&quot;global&quot;</code>.
+                With <code>trustProxy</code> set, the
+                <code>X-Forwarded-For</code> entry that many hops from the
+                right (the trusted proxy&#39;s append), truncated to 64
+                characters; else <code>request.ip</code> when your
+                <code>Bun.serve</code> fetch exposes it (via
+                <code>server.requestIP()</code>), else the literal key
+                <code>&quot;global&quot;</code>. <code>X-Forwarded-For</code>
+                is never consulted without <code>trustProxy</code>, since the
+                client controls it.
               </dd>
               <dt>On refusal</dt>
               <dd>

@@ -360,16 +360,28 @@ new RhythmRouter()
               you expose in your own <code>Bun.serve</code> fetch (<code
                 >Object.defineProperty(request, &quot;ip&quot;, { get: () =&gt;
                 server.requestIP(request)?.address })</code
-              >); then the first <code>X-Forwarded-For</code> hop when
-              <code>ip</code> is absent, then the literal key
-              <code>&quot;global&quot;</code> as a last resort (one shared
-              bucket). Behind a proxy, terminate the chain deliberately: either
-              trust the forwarded header or replace the key entirely with
-              <code>keyOf</code>; an authenticated user id gives fairer buckets
-              than an IP.
+              >), then the literal key <code>&quot;global&quot;</code> as a
+              last resort (one shared bucket).
+              <code>X-Forwarded-For</code> is <em>ignored</em> unless you set
+              <code>trustProxy</code> — anyone can send that header, and a
+              limiter keyed on it hands every client an unlimited supply of
+              fresh buckets.
+            </p>
+            <p>
+              Behind a reverse proxy you must set <code>trustProxy</code> to
+              the number of hops you operate (<code>true</code> means one):
+              the key becomes the <code>X-Forwarded-For</code> entry that many
+              hops from the <em>right</em> — the one your own proxy appended —
+              so spoofed client-supplied prefixes never reach the key. Without
+              it, every client shares the proxy&#39;s <code>request.ip</code>
+              bucket and a single abuser exhausts the site-wide budget for
+              everyone. Alternatively replace the key entirely with
+              <code>keyOf</code>; an authenticated user id gives fairer
+              buckets than an IP.
             </p>
             <figure class="code-block">
-              <pre><code>rateLimit({ keyOf: async (request) =&gt; (await sessionOf(request))?.userId ?? &quot;anonymous&quot; });</code></pre>
+              <pre><code>rateLimit({ trustProxy: true }); // one trusted hop (nginx, a load balancer)
+rateLimit({ keyOf: async (request) =&gt; (await sessionOf(request))?.userId ?? &quot;anonymous&quot; });</code></pre>
             </figure>
           </section>
           <section aria-labelledby="stores">
