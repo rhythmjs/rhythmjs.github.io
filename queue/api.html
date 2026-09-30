@@ -441,11 +441,14 @@ const queueModule: {
               <dd>
                 <code
                   >{ concurrency?: number; pollInterval?: number; onCompleted?:
-                  (name, jobId) =&gt; void; onFailed?: (name, jobId, error)
-                  =&gt; void }</code
+                  (name, jobId) =&gt; void; onError?: (error) =&gt; void;
+                  onFailed?: (name, jobId, error) =&gt; void }</code
                 >. <code>pollInterval</code> (default 20&nbsp;ms) is the idle
                 sleep between empty polls. <code>onFailed</code> fires once per
-                job, after the final attempt.
+                job, after the final attempt. <code>onError</code> receives
+                engine failures (backend errors, not job errors); the loop
+                sleeps one <code>pollInterval</code> and resumes instead of
+                dying.
               </dd>
               <dt>JobInfo</dt>
               <dd>

@@ -443,6 +443,13 @@ await worker.close(); // drains in-flight jobs</code></pre>
               parallel; idle workers poll the engine every
               <code>pollInterval</code> ms (default 20).
             </p>
+            <p>
+              Worker loops survive their backend: an engine failure (a Redis
+              connection reset, a corrupted repeat spec) is reported to
+              <code>onError</code>, the loop sleeps one
+              <code>pollInterval</code>, and polling resumes — it never kills
+              the worker.
+            </p>
           </section>
           <section aria-labelledby="introspection">
             <h2 id="introspection">
