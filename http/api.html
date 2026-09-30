@@ -594,7 +594,7 @@
               <pre><code>function cacheControl(options: CacheControlOptions): Middleware&lt;RhythmHttpContext&gt;
 function formatCacheControl(options: CacheControlOptions): string
 function cache(options?: CacheOptions): Middleware&lt;RhythmHttpContext&gt;
-function memoryCacheStore(): CacheStore</code></pre>
+function memoryCacheStore(options?: MemoryCacheStoreOptions): CacheStore</code></pre>
             </figure>
             <dl>
               <dt>CacheControlOptions</dt>
@@ -626,7 +626,18 @@ function memoryCacheStore(): CacheStore</code></pre>
                 <code>200</code> responses without <code>no-store</code>/<code
                   >private</code
                 >
-                cache-control are stored.
+                cache-control are stored, never ones carrying
+                <code>Set-Cookie</code>, stream bodies, or answers to
+                <code>Authorization</code> requests without an explicit
+                <code>public</code>/<code>s-maxage</code>/<code
+                  >must-revalidate</code
+                >.
+              </dd>
+              <dt>MemoryCacheStoreOptions</dt>
+              <dd>
+                <code>maxEntries</code> (default 1024) caps the LRU entry
+                count; <code>maxEntryBytes</code> (default 1 MiB) refuses
+                oversized bodies.
               </dd>
             </dl>
           </section>

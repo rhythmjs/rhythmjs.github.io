@@ -376,13 +376,19 @@ router.use(cache({ ttl: 30, vary: [&quot;accept-language&quot;] })).get(&quot;/p
             <p>
               Responses are skipped when they are not <code>200</code>, have no
               body, say <code>no-store</code> or <code>private</code>, are
-              server-sent events, carry <code>Vary: *</code>, or when your
-              <code>filter(ctx)</code> hook returns false. Streams are buffered
-              once on store and replayed as bytes. The
+              server-sent events, carry <code>Vary: *</code> or
+              <code>Set-Cookie</code>, have a stream body, answer a request
+              with <code>Authorization</code> (unless the response opts in with
+              <code>public</code>, <code>s-maxage</code>, or
+              <code>must-revalidate</code>), or when your
+              <code>filter(ctx)</code> hook returns false — a shared cache must
+              never replay one user's response to another. The
               <code>CacheStore</code> contract
               (<code>get</code>/<code>set</code>/<code>delete</code>) is
-              async-friendly; the bundled <code>memoryCacheStore()</code> sweeps
-              expired entries opportunistically.
+              async-friendly; the bundled <code>memoryCacheStore()</code> is an
+              LRU capped at <code>maxEntries</code> (default 1024) entries of
+              at most <code>maxEntryBytes</code> (default 1 MiB) each, and
+              sweeps expired entries opportunistically.
             </p>
           </section>
           <section aria-labelledby="compression">
