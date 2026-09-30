@@ -40,41 +40,41 @@
         href="index.html"
         aria-label="RhythmJS documentation home"
         ><svg viewBox="0 0 32 32" aria-hidden="true">
-          <path d="M5.4 25.5V13M9.64 25.5V7.5M13.88 25.5V17M18.12 25.5V6M22.36 25.5V11.5M26.6 25.5V15" /></svg
+          <path
+            d="M5.4 25.5V13M9.64 25.5V7.5M13.88 25.5V17M18.12 25.5V6M22.36 25.5V11.5M26.6 25.5V15"
+          /></svg
         ><span>rhythm<span class="brand-js">js</span></span></a
       >
-      <span class="version">v0.0.1</span>
+      <span class="version">v0.0.11</span>
       <nav class="header-tabs" aria-label="Site">
-        <a href="index.html" aria-current="true">Guide</a
-        ><a href="rhythm/index.html">Packages</a>
-      </nav>
-      <nav class="header-links" aria-label="External">
-        <a href="https://github.com/rhythmjs">GitHub</a>
-      </nav>
+<a href="index.html" aria-current="true">Guide</a
+><a href="rhythm/index.html">Packages</a>
+</nav>
+<nav class="header-links" aria-label="External">
+<a href="https://github.com/rhythmjs">GitHub</a>
+</nav>
     </header>
     <details class="mobile-navigation">
       <summary>Browse documentation</summary>
       <nav aria-label="Documentation">
-        <div class="nav-group">
-          <p>Guide</p>
-          <a href="index.html" aria-current="page">Introduction</a>
-          <a href="getting-started.html">Quick start</a>
-          <a href="philosophy.html">Philosophy</a>
-          <a href="template.html">Starter template</a>
-        </div>
-      </nav>
+<div class="nav-group">
+<p>Guide</p>
+<a href="index.html" aria-current="page">Introduction</a>
+<a href="getting-started.html">Quick start</a>
+<a href="philosophy.html">Philosophy</a>
+</div>
+</nav>
     </details>
     <div class="layout">
       <aside class="sidebar" id="sidebar">
         <nav aria-label="Documentation">
-          <div class="nav-group">
-            <p>Guide</p>
-            <a href="index.html" aria-current="page">Introduction</a>
-            <a href="getting-started.html">Quick start</a>
-            <a href="philosophy.html">Philosophy</a>
-            <a href="template.html">Starter template</a>
-          </div>
-        </nav>
+<div class="nav-group">
+<p>Guide</p>
+<a href="index.html" aria-current="page">Introduction</a>
+<a href="getting-started.html">Quick start</a>
+<a href="philosophy.html">Philosophy</a>
+</div>
+</nav>
       </aside>
       <main id="main" tabindex="-1">
         <div class="breadcrumb">
@@ -98,7 +98,10 @@
             </p>
             <p>
               The core has no HTTP layer or command router. Those live in
-              separate packages, built on the same primitives.
+              separate packages, built on the same primitives — and the whole
+              ecosystem is coupled to <a href="https://bun.com">Bun</a> on
+              purpose: no runtime adapters, no portability shims, Bun's native
+              APIs end to end.
             </p>
             <div class="cards">
               <a href="rhythm/index.html"
@@ -107,7 +110,11 @@
               >
               <a href="router/index.html"
                 ><code>@rhythmjs/router</code><strong>Handle a request</strong>
-                <p>Route Web-standard requests with runtime adapters.</p></a
+                <p>Route Web-standard requests, served on Bun.serve.</p></a
+              >
+              <a href="ws/index.html"
+                ><code>@rhythmjs/ws</code><strong>Hold a connection</strong>
+                <p>WebSocket routing on Bun's own model and pub/sub.</p></a
               >
               <a href="cli/index.html"
                 ><code>@rhythmjs/cli</code><strong>Run a command</strong>
@@ -132,6 +139,40 @@
                 ><code>@rhythmjs/observability</code
                 ><strong>Watch it run</strong>
                 <p>Request logging, request ids, and server timing.</p></a
+              >
+              <a href="config/index.html"
+                ><code>@rhythmjs/config</code><strong>Load the settings</strong>
+                <p>Validated, typed configuration on the kernel.</p></a
+              >
+              <a href="openapi/index.html"
+                ><code>@rhythmjs/openapi</code><strong>Describe the API</strong>
+                <p>
+                  Route metadata, generated documents, and reference UIs.
+                </p></a
+              >
+              <a href="events/index.html"
+                ><code>@rhythmjs/events</code><strong>Announce a change</strong>
+                <p>Typed in-process event bus with wildcard patterns.</p></a
+              >
+              <a href="schedule/index.html"
+                ><code>@rhythmjs/schedule</code><strong>Run it on time</strong>
+                <p>
+                  Cron, interval, and timeout jobs with an in-house engine.
+                </p></a
+              >
+              <a href="queue/index.html"
+                ><code>@rhythmjs/queue</code><strong>Obligate the work</strong>
+                <p>Typed job queues — in-memory or Bun's native redis.</p></a
+              >
+              <a href="bullmq/index.html"
+                ><code>@rhythmjs/bullmq</code><strong>Scale the workers</strong>
+                <p>The same typed queue surface on full BullMQ.</p></a
+              >
+              <a href="testing/index.html"
+                ><code>@rhythmjs/testing</code><strong>Prove it works</strong>
+                <p>
+                  Module mocks, a fetch test client, CLI and WS harnesses.
+                </p></a
               >
             </div>
           </section>
@@ -182,6 +223,11 @@ await app.teardown();</code></pre>
                 <strong>Explicit boundaries.</strong> Keep module fields private
                 until you choose to export them.
               </li>
+              <li>
+                <strong>Bun-native.</strong> Bun.serve, native WebSockets and
+                pub/sub, Bun.redis, Bun.CookieMap — no adapter layers in
+                between.
+              </li>
             </ul>
             <aside class="note">
               <strong>Published on npm</strong>
@@ -190,9 +236,10 @@ await app.teardown();</code></pre>
                 <a href="https://www.npmjs.com/org/rhythmjs"
                   >@rhythmjs organization</a
                 >
-                at version 0.0.1. Every module is exported by its own subpath,
-                such as <code>@rhythmjs/middleware/validate</code>; there are no
-                barrel exports.
+                — fifteen packages across the core, HTTP, background-work, and
+                testing repositories. Every module is exported by its own
+                subpath, such as <code>@rhythmjs/middleware/validate</code>;
+                there are no barrel exports.
               </p>
             </aside>
           </section>
@@ -206,9 +253,11 @@ await app.teardown();</code></pre>
               Begin with the <a href="getting-started.html">quick start</a>,
               read the <a href="philosophy.html">philosophy</a> behind the
               design, or clone the
-              <a href="template.html">starter template</a> for a Nest-style
-              skeleton. If you already know the model, jump to the
-              <a href="rhythm/api.html">API reference</a>.
+              <a href="getting-started.html#start-from-the-template"
+                >starter template</a
+              >
+              for a Nest-style skeleton. If you already know the model, jump to
+              the <a href="rhythm/api.html">API reference</a>.
             </p>
           </section>
         </div>
@@ -219,7 +268,7 @@ await app.teardown();</code></pre>
           >
         </nav>
         <footer class="page-footer">
-          <span>RhythmJS documentation · v0.0.1</span
+          <span>RhythmJS documentation · v0.0.11</span
           ><a href="https://github.com/rhythmjs/rhythm"
             >github.com/rhythmjs/rhythm</a
           >

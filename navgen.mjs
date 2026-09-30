@@ -7,7 +7,6 @@ const guides = [
   ["index.html", "Introduction"],
   ["getting-started.html", "Quick start"],
   ["philosophy.html", "Philosophy"],
-  ["template.html", "Starter template"],
 ];
 
 const groups = [
@@ -19,31 +18,82 @@ const groups = [
     ["rhythm/api.html", "API reference"],
   ]],
   ["Router", [
-    ["router/index.html", "Overview"],
-    ["router/adapters.html", "Runtime adapters"],
+    ["router/index.html", "Routing"],
+    ["router/static.html", "Serving files"],
     ["router/api.html", "API reference"],
   ]],
-  ["CLI", [
-    ["cli/index.html", "Overview"],
-    ["cli/prompts.html", "Interactive prompts"],
-    ["cli/adapters.html", "Runtime adapters"],
-    ["cli/api.html", "API reference"],
+  ["WebSockets", [
+    ["ws/index.html", "Connection routing"],
+    ["ws/serving.html", "Serving &amp; pub/sub"],
+    ["ws/api.html", "API reference"],
   ]],
   ["Middleware", [
-    ["middleware/index.html", "Overview"],
+    ["middleware/index.html", "Validate"],
+    ["middleware/intercept.html", "Intercept"],
+    ["middleware/filter.html", "Filter"],
     ["middleware/api.html", "API reference"],
   ]],
   ["HTTP", [
-    ["http/index.html", "Overview"],
+    ["http/index.html", "Cookies &amp; sessions"],
+    ["http/bodies.html", "Bodies &amp; uploads"],
+    ["http/caching.html", "Caching &amp; compression"],
+    ["http/streaming.html", "Streaming &amp; timeouts"],
+    ["http/proxy.html", "Proxy &amp; i18n"],
     ["http/api.html", "API reference"],
   ]],
   ["Security", [
-    ["security/index.html", "Overview"],
+    ["security/index.html", "Authentication &amp; authorization"],
+    ["security/protection.html", "CORS &amp; CSRF"],
+    ["security/hardening.html", "Rate limiting &amp; headers"],
     ["security/api.html", "API reference"],
   ]],
   ["Observability", [
-    ["observability/index.html", "Overview"],
+    ["observability/index.html", "Logging &amp; timing"],
+    ["observability/health.html", "Health &amp; shutdown"],
     ["observability/api.html", "API reference"],
+  ]],
+  ["CLI", [
+    ["cli/index.html", "Commands"],
+    ["cli/prompts.html", "Interactive prompts"],
+    ["cli/run.html", "Running on Bun"],
+    ["cli/api.html", "API reference"],
+  ]],
+  ["Config", [
+    ["config/index.html", "Defining configuration"],
+    ["config/service.html", "The config service"],
+    ["config/api.html", "API reference"],
+  ]],
+  ["OpenAPI", [
+    ["openapi/index.html", "Describing routes"],
+    ["openapi/document.html", "Documents &amp; UIs"],
+    ["openapi/api.html", "API reference"],
+  ]],
+  ["Events", [
+    ["events/index.html", "Subscribing"],
+    ["events/emitting.html", "Emitting &amp; errors"],
+    ["events/api.html", "API reference"],
+  ]],
+  ["Schedule", [
+    ["schedule/index.html", "Jobs &amp; scheduling"],
+    ["schedule/cron.html", "The cron engine"],
+    ["schedule/api.html", "API reference"],
+  ]],
+  ["Queue", [
+    ["queue/index.html", "Producing &amp; processing"],
+    ["queue/engines.html", "Engines &amp; repeats"],
+    ["queue/api.html", "API reference"],
+  ]],
+  ["BullMQ", [
+    ["bullmq/index.html", "The BullMQ module"],
+    ["bullmq/schedulers.html", "Schedulers &amp; queue access"],
+    ["bullmq/api.html", "API reference"],
+  ]],
+  ["Testing", [
+    ["testing/index.html", "Kernel &amp; modules"],
+    ["testing/router.html", "The router client"],
+    ["testing/cli.html", "The CLI runner"],
+    ["testing/ws.html", "The WebSocket harness"],
+    ["testing/api.html", "API reference"],
   ]],
 ];
 

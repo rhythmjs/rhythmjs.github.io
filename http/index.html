@@ -5,22 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="Cookies, sessions, caching, timeouts, and body limits for Rhythm routers."
+      content="Per-request state for Rhythm apps: Bun-native cookies, pluggable cookie sessions, and AsyncLocalStorage request scope."
     />
     <meta name="color-scheme" content="light dark" />
-    <title>Overview · RhythmJS</title>
+    <title>Cookies & sessions · RhythmJS</title>
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="RhythmJS documentation" />
-    <meta property="og:title" content="Overview · RhythmJS" />
+    <meta property="og:title" content="Cookies & sessions · RhythmJS" />
     <meta
       property="og:description"
-      content="Cookies, sessions, caching, timeouts, and body limits for Rhythm routers."
+      content="Per-request state for Rhythm apps: Bun-native cookies, pluggable cookie sessions, and AsyncLocalStorage request scope."
     />
     <meta name="twitter:card" content="summary" />
-    <meta name="twitter:title" content="Overview · RhythmJS" />
+    <meta name="twitter:title" content="Cookies & sessions · RhythmJS" />
     <meta
       name="twitter:description"
-      content="Cookies, sessions, caching, timeouts, and body limits for Rhythm routers."
+      content="Per-request state for Rhythm apps: Bun-native cookies, pluggable cookie sessions, and AsyncLocalStorage request scope."
     />
     <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -40,119 +40,240 @@
         href="../index.html"
         aria-label="RhythmJS documentation home"
         ><svg viewBox="0 0 32 32" aria-hidden="true">
-          <path d="M5.4 25.5V13M9.64 25.5V7.5M13.88 25.5V17M18.12 25.5V6M22.36 25.5V11.5M26.6 25.5V15" /></svg
+          <path
+            d="M5.4 25.5V13M9.64 25.5V7.5M13.88 25.5V17M18.12 25.5V6M22.36 25.5V11.5M26.6 25.5V15"
+          /></svg
         ><span>rhythm<span class="brand-js">js</span></span></a
       >
-      <span class="version">v0.0.1</span>
+      <span class="version">v0.0.11</span>
       <nav class="header-tabs" aria-label="Site">
-        <a href="../index.html">Guide</a
-        ><a href="../rhythm/index.html" aria-current="true">Packages</a>
-      </nav>
-      <nav class="header-links" aria-label="External">
-        <a href="https://github.com/rhythmjs">GitHub</a>
-      </nav>
+<a href="../index.html">Guide</a
+><a href="../rhythm/index.html" aria-current="true">Packages</a>
+</nav>
+<nav class="header-links" aria-label="External">
+<a href="https://github.com/rhythmjs">GitHub</a>
+</nav>
     </header>
     <details class="mobile-navigation">
       <summary>Browse documentation</summary>
       <nav aria-label="Documentation">
-        <details class="nav-group package-group">
-          <summary>Core</summary>
-          <a href="../rhythm/index.html">Overview</a>
-          <a href="../rhythm/middleware.html">Middleware &amp; context</a>
-          <a href="../rhythm/providers.html">Providers &amp; lifecycle</a>
-          <a href="../rhythm/modules.html">Encapsulated modules</a>
-          <a href="../rhythm/api.html">API reference</a>
-        </details>
-        <details class="nav-group package-group">
-          <summary>Router</summary>
-          <a href="../router/index.html">Overview</a>
-          <a href="../router/adapters.html">Runtime adapters</a>
-          <a href="../router/api.html">API reference</a>
-        </details>
-        <details class="nav-group package-group">
-          <summary>CLI</summary>
-          <a href="../cli/index.html">Overview</a>
-          <a href="../cli/prompts.html">Interactive prompts</a>
-          <a href="../cli/adapters.html">Runtime adapters</a>
-          <a href="../cli/api.html">API reference</a>
-        </details>
-        <details class="nav-group package-group">
-          <summary>Middleware</summary>
-          <a href="../middleware/index.html">Overview</a>
-          <a href="../middleware/api.html">API reference</a>
-        </details>
-        <details class="nav-group package-group" open>
-          <summary>HTTP</summary>
-          <a href="index.html" aria-current="page">Overview</a>
-          <a href="api.html">API reference</a>
-        </details>
-        <details class="nav-group package-group">
-          <summary>Security</summary>
-          <a href="../security/index.html">Overview</a>
-          <a href="../security/api.html">API reference</a>
-        </details>
-        <details class="nav-group package-group">
-          <summary>Observability</summary>
-          <a href="../observability/index.html">Overview</a>
-          <a href="../observability/api.html">API reference</a>
-        </details>
-      </nav>
+<details class="nav-group package-group">
+<summary>Core</summary>
+<a href="../rhythm/index.html">Overview</a>
+<a href="../rhythm/middleware.html">Middleware &amp; context</a>
+<a href="../rhythm/providers.html">Providers &amp; lifecycle</a>
+<a href="../rhythm/modules.html">Encapsulated modules</a>
+<a href="../rhythm/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Router</summary>
+<a href="../router/index.html">Routing</a>
+<a href="../router/static.html">Serving files</a>
+<a href="../router/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>WebSockets</summary>
+<a href="../ws/index.html">Connection routing</a>
+<a href="../ws/serving.html">Serving &amp; pub/sub</a>
+<a href="../ws/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Middleware</summary>
+<a href="../middleware/index.html">Validate</a>
+<a href="../middleware/intercept.html">Intercept</a>
+<a href="../middleware/filter.html">Filter</a>
+<a href="../middleware/api.html">API reference</a>
+</details>
+<details class="nav-group package-group" open>
+<summary>HTTP</summary>
+<a href="index.html" aria-current="page">Cookies &amp; sessions</a>
+<a href="bodies.html">Bodies &amp; uploads</a>
+<a href="caching.html">Caching &amp; compression</a>
+<a href="streaming.html">Streaming &amp; timeouts</a>
+<a href="proxy.html">Proxy &amp; i18n</a>
+<a href="api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Security</summary>
+<a href="../security/index.html">Authentication &amp; authorization</a>
+<a href="../security/protection.html">CORS &amp; CSRF</a>
+<a href="../security/hardening.html">Rate limiting &amp; headers</a>
+<a href="../security/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Observability</summary>
+<a href="../observability/index.html">Logging &amp; timing</a>
+<a href="../observability/health.html">Health &amp; shutdown</a>
+<a href="../observability/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>CLI</summary>
+<a href="../cli/index.html">Commands</a>
+<a href="../cli/prompts.html">Interactive prompts</a>
+<a href="../cli/run.html">Running on Bun</a>
+<a href="../cli/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Config</summary>
+<a href="../config/index.html">Defining configuration</a>
+<a href="../config/service.html">The config service</a>
+<a href="../config/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>OpenAPI</summary>
+<a href="../openapi/index.html">Describing routes</a>
+<a href="../openapi/document.html">Documents &amp; UIs</a>
+<a href="../openapi/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Events</summary>
+<a href="../events/index.html">Subscribing</a>
+<a href="../events/emitting.html">Emitting &amp; errors</a>
+<a href="../events/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Schedule</summary>
+<a href="../schedule/index.html">Jobs &amp; scheduling</a>
+<a href="../schedule/cron.html">The cron engine</a>
+<a href="../schedule/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Queue</summary>
+<a href="../queue/index.html">Producing &amp; processing</a>
+<a href="../queue/engines.html">Engines &amp; repeats</a>
+<a href="../queue/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>BullMQ</summary>
+<a href="../bullmq/index.html">The BullMQ module</a>
+<a href="../bullmq/schedulers.html">Schedulers &amp; queue access</a>
+<a href="../bullmq/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Testing</summary>
+<a href="../testing/index.html">Kernel &amp; modules</a>
+<a href="../testing/router.html">The router client</a>
+<a href="../testing/cli.html">The CLI runner</a>
+<a href="../testing/ws.html">The WebSocket harness</a>
+<a href="../testing/api.html">API reference</a>
+</details>
+</nav>
     </details>
     <div class="layout">
       <aside class="sidebar" id="sidebar">
         <nav aria-label="Documentation">
-          <details class="nav-group package-group">
-            <summary>Core</summary>
-            <a href="../rhythm/index.html">Overview</a>
-            <a href="../rhythm/middleware.html">Middleware &amp; context</a>
-            <a href="../rhythm/providers.html">Providers &amp; lifecycle</a>
-            <a href="../rhythm/modules.html">Encapsulated modules</a>
-            <a href="../rhythm/api.html">API reference</a>
-          </details>
-          <details class="nav-group package-group">
-            <summary>Router</summary>
-            <a href="../router/index.html">Overview</a>
-            <a href="../router/adapters.html">Runtime adapters</a>
-            <a href="../router/api.html">API reference</a>
-          </details>
-          <details class="nav-group package-group">
-            <summary>CLI</summary>
-            <a href="../cli/index.html">Overview</a>
-            <a href="../cli/prompts.html">Interactive prompts</a>
-            <a href="../cli/adapters.html">Runtime adapters</a>
-            <a href="../cli/api.html">API reference</a>
-          </details>
-          <details class="nav-group package-group">
-            <summary>Middleware</summary>
-            <a href="../middleware/index.html">Overview</a>
-            <a href="../middleware/api.html">API reference</a>
-          </details>
-          <details class="nav-group package-group" open>
-            <summary>HTTP</summary>
-            <a href="index.html" aria-current="page">Overview</a>
-            <a href="api.html">API reference</a>
-          </details>
-          <details class="nav-group package-group">
-            <summary>Security</summary>
-            <a href="../security/index.html">Overview</a>
-            <a href="../security/api.html">API reference</a>
-          </details>
-          <details class="nav-group package-group">
-            <summary>Observability</summary>
-            <a href="../observability/index.html">Overview</a>
-            <a href="../observability/api.html">API reference</a>
-          </details>
-        </nav>
+<details class="nav-group package-group">
+<summary>Core</summary>
+<a href="../rhythm/index.html">Overview</a>
+<a href="../rhythm/middleware.html">Middleware &amp; context</a>
+<a href="../rhythm/providers.html">Providers &amp; lifecycle</a>
+<a href="../rhythm/modules.html">Encapsulated modules</a>
+<a href="../rhythm/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Router</summary>
+<a href="../router/index.html">Routing</a>
+<a href="../router/static.html">Serving files</a>
+<a href="../router/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>WebSockets</summary>
+<a href="../ws/index.html">Connection routing</a>
+<a href="../ws/serving.html">Serving &amp; pub/sub</a>
+<a href="../ws/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Middleware</summary>
+<a href="../middleware/index.html">Validate</a>
+<a href="../middleware/intercept.html">Intercept</a>
+<a href="../middleware/filter.html">Filter</a>
+<a href="../middleware/api.html">API reference</a>
+</details>
+<details class="nav-group package-group" open>
+<summary>HTTP</summary>
+<a href="index.html" aria-current="page">Cookies &amp; sessions</a>
+<a href="bodies.html">Bodies &amp; uploads</a>
+<a href="caching.html">Caching &amp; compression</a>
+<a href="streaming.html">Streaming &amp; timeouts</a>
+<a href="proxy.html">Proxy &amp; i18n</a>
+<a href="api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Security</summary>
+<a href="../security/index.html">Authentication &amp; authorization</a>
+<a href="../security/protection.html">CORS &amp; CSRF</a>
+<a href="../security/hardening.html">Rate limiting &amp; headers</a>
+<a href="../security/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Observability</summary>
+<a href="../observability/index.html">Logging &amp; timing</a>
+<a href="../observability/health.html">Health &amp; shutdown</a>
+<a href="../observability/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>CLI</summary>
+<a href="../cli/index.html">Commands</a>
+<a href="../cli/prompts.html">Interactive prompts</a>
+<a href="../cli/run.html">Running on Bun</a>
+<a href="../cli/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Config</summary>
+<a href="../config/index.html">Defining configuration</a>
+<a href="../config/service.html">The config service</a>
+<a href="../config/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>OpenAPI</summary>
+<a href="../openapi/index.html">Describing routes</a>
+<a href="../openapi/document.html">Documents &amp; UIs</a>
+<a href="../openapi/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Events</summary>
+<a href="../events/index.html">Subscribing</a>
+<a href="../events/emitting.html">Emitting &amp; errors</a>
+<a href="../events/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Schedule</summary>
+<a href="../schedule/index.html">Jobs &amp; scheduling</a>
+<a href="../schedule/cron.html">The cron engine</a>
+<a href="../schedule/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Queue</summary>
+<a href="../queue/index.html">Producing &amp; processing</a>
+<a href="../queue/engines.html">Engines &amp; repeats</a>
+<a href="../queue/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>BullMQ</summary>
+<a href="../bullmq/index.html">The BullMQ module</a>
+<a href="../bullmq/schedulers.html">Schedulers &amp; queue access</a>
+<a href="../bullmq/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Testing</summary>
+<a href="../testing/index.html">Kernel &amp; modules</a>
+<a href="../testing/router.html">The router client</a>
+<a href="../testing/cli.html">The CLI runner</a>
+<a href="../testing/ws.html">The WebSocket harness</a>
+<a href="../testing/api.html">API reference</a>
+</details>
+</nav>
       </aside>
       <main id="main" tabindex="-1">
         <div class="breadcrumb">
           <a href="../index.html">Docs</a> <span>/</span> HTTP
-          <span>/</span> HTTP utilities
+          <span>/</span> Cookies &amp; sessions
         </div>
-        <h1>HTTP utilities</h1>
+        <h1>Cookies &amp; sessions</h1>
         <p class="lead">
-          Cookies, sessions, caching, timeouts, and body limits for Rhythm
-          routers.
+          Per-request state on Bun’s native primitives: a cookie jar over
+          <code>Bun.CookieMap</code>, lazy cookie sessions with a pluggable
+          store, and an ambient request scope.
         </p>
         <div class="article">
           <section aria-labelledby="install-the-package">
@@ -163,11 +284,13 @@
             </h2>
             <p>
               <code>@rhythmjs/http</code> ships utility middleware for Rhythm
-              routers and handlers. Each module is exported by its own subpath;
-              there is no root barrel export. Import only the pieces you use.
+              routers and handlers — thirteen modules, each on its own subpath
+              export, no root barrel. This group of pages walks them by theme;
+              this one covers per-request state: <code>/cookies</code>,
+              <code>/session</code>, and <code>/request-scope</code>.
             </p>
             <figure class="code-block">
-              <pre><code>pnpm add @rhythmjs/http @rhythmjs/rhythm @rhythmjs/router</code></pre>
+              <pre><code>bun add @rhythmjs/http @rhythmjs/rhythm @rhythmjs/router</code></pre>
             </figure>
           </section>
           <section aria-labelledby="read-and-write-cookies">
@@ -177,14 +300,25 @@
               >
             </h2>
             <p>
-              <code>cookies()</code> parses the request
-              <code>Cookie</code> header and exposes a <code>Cookies</code> jar
-              on the context, typed by <code>CookiesContext</code>. Read with
-              <code>get(name)</code> and <code>getAll()</code>; write with
-              <code>set(name, value, options?)</code>, which defaults to
-              <code>Path=/</code>, and <code>delete(name)</code>, which sets
-              <code>Max-Age=0</code>. Each <code>set()</code> call emits its own
-              <code>Set-Cookie</code> header.
+              <code>cookies()</code> wraps Bun’s native
+              <code>Bun.CookieMap</code> and <code>Bun.Cookie</code> in a
+              <code>Cookies</code> jar on the context, typed by
+              <code>CookiesContext</code>. Read with <code>get(name)</code>,
+              <code>has(name)</code>, and <code>getAll()</code> — values come
+              back decoded. Write with <code>set(name, value, options?)</code>;
+              each call emits its own <code>Set-Cookie</code> header.
+              <code>delete(name)</code> writes an empty value with
+              <code>Max-Age=0</code>.
+            </p>
+            <p>
+              <code>CookieOptions</code> is Bun’s
+              <code>CookieInit</code> without
+              <code>name</code>/<code>value</code>: <code>domain</code>,
+              <code>path</code>, <code>expires</code> (number,
+              <code>Date</code>, or string), <code>maxAge</code>,
+              <code>secure</code>, <code>httpOnly</code>, <code>sameSite</code>,
+              and <code>partitioned</code>. Bun’s serialization defaults apply:
+              <code>Path=/</code> and <code>SameSite=Lax</code>.
             </p>
             <figure class="code-block">
               <pre><code>import { RhythmRouter } from &quot;@rhythmjs/router&quot;;
@@ -192,11 +326,18 @@ import { cookies, type CookiesContext } from &quot;@rhythmjs/http/cookies&quot;;
 
 new RhythmRouter().use&lt;CookiesContext&gt;(cookies()).get(&quot;/&quot;, (ctx) =&gt; {
   const theme = ctx.cookies.get(&quot;theme&quot;) ?? &quot;light&quot;;
-  ctx.cookies.set(&quot;theme&quot;, theme, { httpOnly: true, sameSite: &quot;lax&quot;, maxAge: 3600 });
+  ctx.cookies.set(&quot;theme&quot;, theme, { httpOnly: true, maxAge: 3600 });
   ctx.cookies.delete(&quot;legacy&quot;);
   ctx.response.body = theme;
 });</code></pre>
             </figure>
+            <p>
+              The standalone helpers are exported too, both on the native
+              primitives: <code>parseCookies(header)</code> returns a decoded
+              record, and
+              <code>serializeCookie(name, value, options?)</code> one
+              <code>Set-Cookie</code> value.
+            </p>
           </section>
           <section aria-labelledby="keep-a-session">
             <h2 id="keep-a-session">
@@ -206,114 +347,99 @@ new RhythmRouter().use&lt;CookiesContext&gt;(cookies()).get(&quot;/&quot;, (ctx)
             </h2>
             <p>
               <code>session()</code> provides cookie-based sessions with a
-              pluggable <code>SessionStore</code>. The bundled
-              <code>MemoryStore</code> is the default and suits a single
-              process. The session cookie (<code>sid</code> by default;
-              <code>HttpOnly</code>, <code>SameSite=Lax</code>,
-              <code>Path=/</code>) is only written when the session is first
-              used.
+              pluggable <code>SessionStore</code>. Defaults: cookie name
+              <code>sid</code>, one-day <code>maxAge</code> (86&#8239;400
+              seconds), <code>Path=/</code>, <code>HttpOnly</code>,
+              <code>SameSite=Lax</code>; add <code>secure: true</code> in
+              production. The context gains
+              <code>ctx.session</code> (<code>SessionContext</code>):
+              <code>get</code>, <code>set</code>, <code>delete</code>,
+              <code>destroy</code>, and a stable <code>id</code>.
             </p>
             <p>
-              <code>ctx.session.destroy()</code> deletes the stored session and
-              expires the cookie. Unknown or expired session ids get a fresh
-              session, so a forged cookie value is never trusted as-is.
+              Writes are lazy on both ends. Nothing hits the store unless the
+              session was mutated during the request, and the
+              <code>Set-Cookie</code> header is only sent when a
+              <em>new</em> session writes for the first time — an existing
+              session keeps its cookie. An unknown or expired incoming id gets a
+              fresh id, so a forged cookie value is never trusted as a session
+              key.
             </p>
             <figure class="code-block">
               <pre><code>import { session, type SessionContext } from &quot;@rhythmjs/http/session&quot;;
 
 new RhythmRouter()
-  .use&lt;SessionContext&gt;(session())
+  .use&lt;SessionContext&gt;(session({ secure: true }))
   .post(&quot;/login&quot;, (ctx) =&gt; {
-    ctx.session.set(&quot;user&quot;, &quot;ada&quot;);
+    ctx.session.set(&quot;user&quot;, &quot;ada&quot;); // stored + cookie issued after the handler
     ctx.response.body = &quot;logged in&quot;;
   })
-  .get(&quot;/me&quot;, (ctx) =&gt; {
-    ctx.response.body = String(ctx.session.get(&quot;user&quot;) ?? &quot;anonymous&quot;);
-  })
   .post(&quot;/logout&quot;, (ctx) =&gt; {
-    ctx.session.destroy();
-    ctx.response.body = &quot;logged out&quot;;
+    ctx.session.destroy(); // store entry deleted, cookie expired with Max-Age=0
+    ctx.response.body = &quot;bye&quot;;
   });</code></pre>
             </figure>
+            <p>
+              The store contract is three methods — <code>get(id)</code>,
+              <code>set(id, data, maxAge)</code>, <code>delete(id)</code>, sync
+              or async — so a Redis or database store is a small object. The
+              bundled <code>memorySessionStore()</code> suits a single process
+              and expires entries lazily on read.
+            </p>
           </section>
-          <section aria-labelledby="cache-with-etags">
-            <h2 id="cache-with-etags">
-              <a href="#cache-with-etags"
-                >Cache with etags<span aria-hidden="true"> #</span></a
+          <section aria-labelledby="request-scope">
+            <h2 id="request-scope">
+              <a href="#request-scope"
+                >Request-scoped storage<span aria-hidden="true"> #</span></a
               >
             </h2>
             <p>
-              <code>etag()</code> adds an <code>ETag</code> header derived from
-              the response body with SHA-1 and answers
-              <code>304 Not Modified</code> when the request's
-              <code>If-None-Match</code> matches the tag. Only successful (2xx)
-              string bodies are tagged, and a pre-set <code>ETag</code> header
-              is left alone. Pass <code>{ weak: true }</code> to emit
-              <code>W/&quot;...&quot;</code> tags.
+              <code>requestScope()</code> opens an
+              <code>AsyncLocalStorage</code> frame around the rest of the chain,
+              and the static <code>RequestScope</code> class reads it from
+              <em>anywhere</em> in the same async call tree — repositories,
+              loggers, service functions — without threading
+              <code>ctx</code> through every signature.
             </p>
             <figure class="code-block">
-              <pre><code>import { etag } from &quot;@rhythmjs/http/etag&quot;;
+              <pre><code>import { requestScope, RequestScope } from &quot;@rhythmjs/http/request-scope&quot;;
 
-new RhythmRouter().use(etag()).get(&quot;/report&quot;, (ctx) =&gt; {
-  ctx.response.body = expensiveReport();
-});</code></pre>
+router.use(requestScope()).get(&quot;/orders&quot;, async (ctx) =&gt; {
+  RequestScope.set(&quot;tenant&quot;, ctx.request.headers.get(&quot;x-tenant&quot;));
+  ctx.response.body = JSON.stringify(await listOrders());
+});
+
+// deep inside the data layer, no ctx in sight:
+function listOrders() {
+  const tenant = RequestScope.get&lt;string&gt;(&quot;tenant&quot;);
+  const { request } = RequestScope.context(); // the live RhythmHttpContext
+  return db.orders.byTenant(tenant);
+}</code></pre>
             </figure>
-          </section>
-          <section aria-labelledby="enforce-a-deadline">
-            <h2 id="enforce-a-deadline">
-              <a href="#enforce-a-deadline"
-                >Enforce a deadline<span aria-hidden="true"> #</span></a
-              >
-            </h2>
             <p>
-              <code>timeout(ms)</code> fails requests that exceed the deadline
-              with a
-              <code
-                >504 { &quot;success&quot;: false, &quot;status&quot;: 504,
-                &quot;message&quot;: &quot;Gateway Timeout&quot; }</code
+              The surface:
+              <code>get</code>/<code>set</code>/<code>has</code>/<code
+                >delete</code
               >
-              JSON body. Downstream errors still propagate as errors; only the
-              deadline produces a 504. The downstream work is not aborted, its
-              result is discarded.
+              over string or symbol keys, <code>context()</code> for the live
+              request context (<code>contextOrNull()</code> to probe),
+              <code>isActive()</code>, and
+              <code>RequestScope.run(context, fn)</code> to open a scope
+              manually in tests or jobs. Calls outside an active scope throw a
+              descriptive <code>RequestScopeError</code>. Augment the empty
+              <code>RequestScopeStore</code> interface to type your keys
+              ecosystem-wide.
             </p>
-            <figure class="code-block">
-              <pre><code>import { timeout } from &quot;@rhythmjs/http/timeout&quot;;
-
-new RhythmRouter().use(timeout(5000)).get(&quot;/slow&quot;, async (ctx) =&gt; {
-  ctx.response.body = await slowUpstream();
-});</code></pre>
-            </figure>
-          </section>
-          <section aria-labelledby="limit-request-bodies">
-            <h2 id="limit-request-bodies">
-              <a href="#limit-request-bodies"
-                >Limit request bodies<span aria-hidden="true"> #</span></a
-              >
-            </h2>
-            <p>
-              <code>bodyLimit(maxBytes)</code> rejects request bodies larger
-              than the byte limit with <code>413 Payload Too Large</code>. It
-              checks <code>Content-Length</code> first when the header is
-              present; otherwise it measures a clone of the request body before
-              calling the next middleware.
-            </p>
-            <figure class="code-block">
-              <pre><code>import { bodyLimit } from &quot;@rhythmjs/http/body-limit&quot;;
-
-new RhythmRouter().use(bodyLimit(1024 * 1024)).post(&quot;/upload&quot;, async (ctx) =&gt; {
-  ctx.response.body = &quot;stored&quot;;
-});</code></pre>
-            </figure>
           </section>
         </div>
         <nav class="pagination" aria-label="Previous and next pages">
           <span></span
-          ><a href="api.html"
-            ><span>Next →</span><strong>API reference</strong></a
+          ><a href="bodies.html"
+            ><span>Next →</span><strong>Bodies &amp; uploads</strong></a
           >
         </nav>
         <footer class="page-footer">
-          <span>RhythmJS documentation · v0.0.1</span
+          <span>RhythmJS documentation · v0.0.11</span
           ><a href="https://github.com/rhythmjs/http"
             >github.com/rhythmjs/http</a
           >
@@ -322,12 +448,10 @@ new RhythmRouter().use(bodyLimit(1024 * 1024)).post(&quot;/upload&quot;, async (
       <aside class="toc">
         <nav aria-label="On this page">
           <p>ON THIS PAGE</p>
-          <a href="#install-the-package">Install the package</a>
-          <a href="#read-and-write-cookies">Read and write cookies</a>
-          <a href="#keep-a-session">Keep a session</a>
-          <a href="#cache-with-etags">Cache with etags</a>
-          <a href="#enforce-a-deadline">Enforce a deadline</a>
-          <a href="#limit-request-bodies">Limit request bodies</a>
+          <a href="#install-the-package">Install the package</a
+          ><a href="#read-and-write-cookies">Read and write cookies</a
+          ><a href="#keep-a-session">Keep a session</a
+          ><a href="#request-scope">Request-scoped storage</a>
         </nav>
       </aside>
     </div>

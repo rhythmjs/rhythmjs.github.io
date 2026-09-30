@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Test the Rhythm kernel in isolation: mockModule swaps real modules for typed fakes with teardown assertions, and runMiddleware drives one middleware against any context."
+    />
+    <meta name="color-scheme" content="light dark" />
+    <title>Kernel &amp; modules · RhythmJS</title>
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="RhythmJS documentation" />
+    <meta property="og:title" content="Kernel &amp; modules · RhythmJS" />
+    <meta
+      property="og:description"
+      content="Test the Rhythm kernel in isolation: mockModule swaps real modules for typed fakes with teardown assertions, and runMiddleware drives one middleware against any context."
+    />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Kernel &amp; modules · RhythmJS" />
+    <meta
+      name="twitter:description"
+      content="Test the Rhythm kernel in isolation: mockModule swaps real modules for typed fakes with teardown assertions, and runMiddleware drives one middleware against any context."
+    />
+    <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../assets/style.css" />
+    <script defer src="../assets/highlight.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="header">
+      <a
+        class="brand"
+        href="../index.html"
+        aria-label="RhythmJS documentation home"
+        ><svg viewBox="0 0 32 32" aria-hidden="true">
+          <path
+            d="M5.4 25.5V13M9.64 25.5V7.5M13.88 25.5V17M18.12 25.5V6M22.36 25.5V11.5M26.6 25.5V15"
+          /></svg
+        ><span>rhythm<span class="brand-js">js</span></span></a
+      >
+      <span class="version">v0.0.11</span>
+      <nav class="header-tabs" aria-label="Site">
+<a href="../index.html">Guide</a
+><a href="../rhythm/index.html" aria-current="true">Packages</a>
+</nav>
+<nav class="header-links" aria-label="External">
+<a href="https://github.com/rhythmjs">GitHub</a>
+</nav>
+    </header>
+    <details class="mobile-navigation">
+      <summary>Browse documentation</summary>
+      <nav aria-label="Documentation">
+<details class="nav-group package-group">
+<summary>Core</summary>
+<a href="../rhythm/index.html">Overview</a>
+<a href="../rhythm/middleware.html">Middleware &amp; context</a>
+<a href="../rhythm/providers.html">Providers &amp; lifecycle</a>
+<a href="../rhythm/modules.html">Encapsulated modules</a>
+<a href="../rhythm/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Router</summary>
+<a href="../router/index.html">Routing</a>
+<a href="../router/static.html">Serving files</a>
+<a href="../router/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>WebSockets</summary>
+<a href="../ws/index.html">Connection routing</a>
+<a href="../ws/serving.html">Serving &amp; pub/sub</a>
+<a href="../ws/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Middleware</summary>
+<a href="../middleware/index.html">Validate</a>
+<a href="../middleware/intercept.html">Intercept</a>
+<a href="../middleware/filter.html">Filter</a>
+<a href="../middleware/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>HTTP</summary>
+<a href="../http/index.html">Cookies &amp; sessions</a>
+<a href="../http/bodies.html">Bodies &amp; uploads</a>
+<a href="../http/caching.html">Caching &amp; compression</a>
+<a href="../http/streaming.html">Streaming &amp; timeouts</a>
+<a href="../http/proxy.html">Proxy &amp; i18n</a>
+<a href="../http/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Security</summary>
+<a href="../security/index.html">Authentication &amp; authorization</a>
+<a href="../security/protection.html">CORS &amp; CSRF</a>
+<a href="../security/hardening.html">Rate limiting &amp; headers</a>
+<a href="../security/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Observability</summary>
+<a href="../observability/index.html">Logging &amp; timing</a>
+<a href="../observability/health.html">Health &amp; shutdown</a>
+<a href="../observability/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>CLI</summary>
+<a href="../cli/index.html">Commands</a>
+<a href="../cli/prompts.html">Interactive prompts</a>
+<a href="../cli/run.html">Running on Bun</a>
+<a href="../cli/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Config</summary>
+<a href="../config/index.html">Defining configuration</a>
+<a href="../config/service.html">The config service</a>
+<a href="../config/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>OpenAPI</summary>
+<a href="../openapi/index.html">Describing routes</a>
+<a href="../openapi/document.html">Documents &amp; UIs</a>
+<a href="../openapi/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Events</summary>
+<a href="../events/index.html">Subscribing</a>
+<a href="../events/emitting.html">Emitting &amp; errors</a>
+<a href="../events/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Schedule</summary>
+<a href="../schedule/index.html">Jobs &amp; scheduling</a>
+<a href="../schedule/cron.html">The cron engine</a>
+<a href="../schedule/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Queue</summary>
+<a href="../queue/index.html">Producing &amp; processing</a>
+<a href="../queue/engines.html">Engines &amp; repeats</a>
+<a href="../queue/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>BullMQ</summary>
+<a href="../bullmq/index.html">The BullMQ module</a>
+<a href="../bullmq/schedulers.html">Schedulers &amp; queue access</a>
+<a href="../bullmq/api.html">API reference</a>
+</details>
+<details class="nav-group package-group" open>
+<summary>Testing</summary>
+<a href="index.html" aria-current="page">Kernel &amp; modules</a>
+<a href="router.html">The router client</a>
+<a href="cli.html">The CLI runner</a>
+<a href="ws.html">The WebSocket harness</a>
+<a href="api.html">API reference</a>
+</details>
+</nav>
+    </details>
+    <div class="layout">
+      <aside class="sidebar" id="sidebar">
+        <nav aria-label="Documentation">
+<details class="nav-group package-group">
+<summary>Core</summary>
+<a href="../rhythm/index.html">Overview</a>
+<a href="../rhythm/middleware.html">Middleware &amp; context</a>
+<a href="../rhythm/providers.html">Providers &amp; lifecycle</a>
+<a href="../rhythm/modules.html">Encapsulated modules</a>
+<a href="../rhythm/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Router</summary>
+<a href="../router/index.html">Routing</a>
+<a href="../router/static.html">Serving files</a>
+<a href="../router/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>WebSockets</summary>
+<a href="../ws/index.html">Connection routing</a>
+<a href="../ws/serving.html">Serving &amp; pub/sub</a>
+<a href="../ws/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Middleware</summary>
+<a href="../middleware/index.html">Validate</a>
+<a href="../middleware/intercept.html">Intercept</a>
+<a href="../middleware/filter.html">Filter</a>
+<a href="../middleware/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>HTTP</summary>
+<a href="../http/index.html">Cookies &amp; sessions</a>
+<a href="../http/bodies.html">Bodies &amp; uploads</a>
+<a href="../http/caching.html">Caching &amp; compression</a>
+<a href="../http/streaming.html">Streaming &amp; timeouts</a>
+<a href="../http/proxy.html">Proxy &amp; i18n</a>
+<a href="../http/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Security</summary>
+<a href="../security/index.html">Authentication &amp; authorization</a>
+<a href="../security/protection.html">CORS &amp; CSRF</a>
+<a href="../security/hardening.html">Rate limiting &amp; headers</a>
+<a href="../security/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Observability</summary>
+<a href="../observability/index.html">Logging &amp; timing</a>
+<a href="../observability/health.html">Health &amp; shutdown</a>
+<a href="../observability/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>CLI</summary>
+<a href="../cli/index.html">Commands</a>
+<a href="../cli/prompts.html">Interactive prompts</a>
+<a href="../cli/run.html">Running on Bun</a>
+<a href="../cli/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Config</summary>
+<a href="../config/index.html">Defining configuration</a>
+<a href="../config/service.html">The config service</a>
+<a href="../config/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>OpenAPI</summary>
+<a href="../openapi/index.html">Describing routes</a>
+<a href="../openapi/document.html">Documents &amp; UIs</a>
+<a href="../openapi/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Events</summary>
+<a href="../events/index.html">Subscribing</a>
+<a href="../events/emitting.html">Emitting &amp; errors</a>
+<a href="../events/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Schedule</summary>
+<a href="../schedule/index.html">Jobs &amp; scheduling</a>
+<a href="../schedule/cron.html">The cron engine</a>
+<a href="../schedule/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Queue</summary>
+<a href="../queue/index.html">Producing &amp; processing</a>
+<a href="../queue/engines.html">Engines &amp; repeats</a>
+<a href="../queue/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>BullMQ</summary>
+<a href="../bullmq/index.html">The BullMQ module</a>
+<a href="../bullmq/schedulers.html">Schedulers &amp; queue access</a>
+<a href="../bullmq/api.html">API reference</a>
+</details>
+<details class="nav-group package-group" open>
+<summary>Testing</summary>
+<a href="index.html" aria-current="page">Kernel &amp; modules</a>
+<a href="router.html">The router client</a>
+<a href="cli.html">The CLI runner</a>
+<a href="ws.html">The WebSocket harness</a>
+<a href="api.html">API reference</a>
+</details>
+</nav>
+      </aside>
+      <main id="main" tabindex="-1">
+        <div class="breadcrumb">
+          <a href="../index.html">Docs</a> <span>/</span> Testing
+          <span>/</span> Kernel &amp; modules
+        </div>
+        <h1>Mock the kernel</h1>
+        <p class="lead">
+          Typed module fakes that drop into <code>register()</code>, and a
+          one-middleware driver that reports whether <code>next()</code> ran —
+          no ports, no processes.
+        </p>
+        <div class="article">
+          <section aria-labelledby="install-the-package">
+            <h2 id="install-the-package">
+              <a href="#install-the-package"
+                >Install the package<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              <code>@rhythmjs/testing</code> is the test toolkit for the whole
+              ecosystem, one harness per layer, each on its own subpath export
+              with no root barrel: <code>/rhythm</code> for the kernel (this
+              page), <a href="router.html"><code>/router</code></a> for HTTP,
+              <a href="cli.html"><code>/cli</code></a> for commands, and
+              <a href="ws.html"><code>/ws</code></a> for WebSockets. Everything
+              runs in-process on <code>bun test</code>; nothing listens on a
+              port.
+            </p>
+            <figure class="code-block">
+              <pre><code>bun add -D @rhythmjs/testing</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="mock-kernel-modules">
+            <h2 id="mock-kernel-modules">
+              <a href="#mock-kernel-modules"
+                >Mock kernel modules<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              <code>mockModule(values, dispose?)</code> builds a Rhythm module
+              that provides exactly the object you pass — the drop-in
+              replacement for a real module in <code>register()</code>. Its
+              return type exposes <code>values</code>&#39; shape as both the
+              module&#39;s context and its exports, so the
+              <code>register()</code> pick callback stays fully typed. The
+              optional <code>dispose</code> runs on teardown
+              <em>with the same values object</em>, so a fake can assert its own
+              cleanup.
+            </p>
+            <figure class="code-block">
+              <pre><code>import { mockModule } from &quot;@rhythmjs/testing/rhythm&quot;;
+
+const sent: string[] = [];
+const app = new Rhythm().register(
+  mockModule(
+    { mailer: { send: async (to: string) =&gt; void sent.push(to) } },
+    (values) =&gt; expect(values.mailer).toBeDefined(), // teardown assertion
+  ),
+  ({ mailer }) =&gt; ({ mailer }),
+);</code></pre>
+            </figure>
+            <p>
+              Swap it for the real module at the one <code>register()</code>
+              call site; providers, handlers, and every downstream middleware
+              are untouched.
+            </p>
+          </section>
+          <section aria-labelledby="run-one-middleware">
+            <h2 id="run-one-middleware">
+              <a href="#run-one-middleware"
+                >Run one middleware<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              <code>runMiddleware(middleware, ctx)</code> drives a single
+              middleware against a context you construct — no kernel, no
+              composition. It resolves to <code>{ ctx, nextCalled }</code>: the
+              same (mutated) context back, and whether the middleware called
+              <code>next()</code>. The provided <code>next</code> resolves to
+              the context itself, matching the kernel&#39;s contract, so
+              onion-style middleware that reads state after
+              <code>await next()</code> behaves normally.
+            </p>
+            <figure class="code-block">
+              <pre><code>import { runMiddleware } from &quot;@rhythmjs/testing/rhythm&quot;;
+
+const { ctx, nextCalled } = await runMiddleware(audit(), { user: &quot;ada&quot;, log: [] });
+expect(nextCalled).toBe(true);
+expect(ctx.log).toContain(&quot;audited ada&quot;);</code></pre>
+            </figure>
+            <p>
+              Guards are the negative case: a middleware that short-circuits
+              reports <code>nextCalled: false</code>. For HTTP middleware
+              specifically, prefer
+              <a href="router.html#single-middleware"
+                ><code>runHttpMiddleware</code></a
+              >, which seeds a real HTTP context and renders the response.
+            </p>
+          </section>
+        </div>
+        <nav class="pagination" aria-label="Previous and next pages">
+          <span></span>
+          <a href="router.html"
+            ><span>Next →</span><strong>The router client</strong></a
+          >
+        </nav>
+        <footer class="page-footer">
+          <span>RhythmJS documentation · v0.0.11</span
+          ><a href="https://github.com/rhythmjs/testing"
+            >github.com/rhythmjs/testing</a
+          >
+        </footer>
+      </main>
+      <aside class="toc">
+        <nav aria-label="On this page">
+          <p>ON THIS PAGE</p>
+          <a href="#install-the-package">Install the package</a>
+          <a href="#mock-kernel-modules">Mock kernel modules</a>
+          <a href="#run-one-middleware">Run one middleware</a>
+        </nav>
+      </aside>
+    </div>
+  </body>
+</html>

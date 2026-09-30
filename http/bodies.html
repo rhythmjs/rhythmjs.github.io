@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Request body limits and streaming multipart uploads with per-file and per-form caps."
+    />
+    <meta name="color-scheme" content="light dark" />
+    <title>Bodies & uploads · RhythmJS</title>
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="RhythmJS documentation" />
+    <meta property="og:title" content="Bodies & uploads · RhythmJS" />
+    <meta
+      property="og:description"
+      content="Request body limits and streaming multipart uploads with per-file and per-form caps."
+    />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Bodies & uploads · RhythmJS" />
+    <meta
+      name="twitter:description"
+      content="Request body limits and streaming multipart uploads with per-file and per-form caps."
+    />
+    <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../assets/style.css" />
+    <script defer src="../assets/highlight.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="header">
+      <a
+        class="brand"
+        href="../index.html"
+        aria-label="RhythmJS documentation home"
+        ><svg viewBox="0 0 32 32" aria-hidden="true">
+          <path
+            d="M5.4 25.5V13M9.64 25.5V7.5M13.88 25.5V17M18.12 25.5V6M22.36 25.5V11.5M26.6 25.5V15"
+          /></svg
+        ><span>rhythm<span class="brand-js">js</span></span></a
+      >
+      <span class="version">v0.0.11</span>
+      <nav class="header-tabs" aria-label="Site">
+<a href="../index.html">Guide</a
+><a href="../rhythm/index.html" aria-current="true">Packages</a>
+</nav>
+<nav class="header-links" aria-label="External">
+<a href="https://github.com/rhythmjs">GitHub</a>
+</nav>
+    </header>
+    <details class="mobile-navigation">
+      <summary>Browse documentation</summary>
+      <nav aria-label="Documentation">
+<details class="nav-group package-group">
+<summary>Core</summary>
+<a href="../rhythm/index.html">Overview</a>
+<a href="../rhythm/middleware.html">Middleware &amp; context</a>
+<a href="../rhythm/providers.html">Providers &amp; lifecycle</a>
+<a href="../rhythm/modules.html">Encapsulated modules</a>
+<a href="../rhythm/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Router</summary>
+<a href="../router/index.html">Routing</a>
+<a href="../router/static.html">Serving files</a>
+<a href="../router/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>WebSockets</summary>
+<a href="../ws/index.html">Connection routing</a>
+<a href="../ws/serving.html">Serving &amp; pub/sub</a>
+<a href="../ws/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Middleware</summary>
+<a href="../middleware/index.html">Validate</a>
+<a href="../middleware/intercept.html">Intercept</a>
+<a href="../middleware/filter.html">Filter</a>
+<a href="../middleware/api.html">API reference</a>
+</details>
+<details class="nav-group package-group" open>
+<summary>HTTP</summary>
+<a href="index.html">Cookies &amp; sessions</a>
+<a href="bodies.html" aria-current="page">Bodies &amp; uploads</a>
+<a href="caching.html">Caching &amp; compression</a>
+<a href="streaming.html">Streaming &amp; timeouts</a>
+<a href="proxy.html">Proxy &amp; i18n</a>
+<a href="api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Security</summary>
+<a href="../security/index.html">Authentication &amp; authorization</a>
+<a href="../security/protection.html">CORS &amp; CSRF</a>
+<a href="../security/hardening.html">Rate limiting &amp; headers</a>
+<a href="../security/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Observability</summary>
+<a href="../observability/index.html">Logging &amp; timing</a>
+<a href="../observability/health.html">Health &amp; shutdown</a>
+<a href="../observability/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>CLI</summary>
+<a href="../cli/index.html">Commands</a>
+<a href="../cli/prompts.html">Interactive prompts</a>
+<a href="../cli/run.html">Running on Bun</a>
+<a href="../cli/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Config</summary>
+<a href="../config/index.html">Defining configuration</a>
+<a href="../config/service.html">The config service</a>
+<a href="../config/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>OpenAPI</summary>
+<a href="../openapi/index.html">Describing routes</a>
+<a href="../openapi/document.html">Documents &amp; UIs</a>
+<a href="../openapi/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Events</summary>
+<a href="../events/index.html">Subscribing</a>
+<a href="../events/emitting.html">Emitting &amp; errors</a>
+<a href="../events/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Schedule</summary>
+<a href="../schedule/index.html">Jobs &amp; scheduling</a>
+<a href="../schedule/cron.html">The cron engine</a>
+<a href="../schedule/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Queue</summary>
+<a href="../queue/index.html">Producing &amp; processing</a>
+<a href="../queue/engines.html">Engines &amp; repeats</a>
+<a href="../queue/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>BullMQ</summary>
+<a href="../bullmq/index.html">The BullMQ module</a>
+<a href="../bullmq/schedulers.html">Schedulers &amp; queue access</a>
+<a href="../bullmq/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Testing</summary>
+<a href="../testing/index.html">Kernel &amp; modules</a>
+<a href="../testing/router.html">The router client</a>
+<a href="../testing/cli.html">The CLI runner</a>
+<a href="../testing/ws.html">The WebSocket harness</a>
+<a href="../testing/api.html">API reference</a>
+</details>
+</nav>
+    </details>
+    <div class="layout">
+      <aside class="sidebar" id="sidebar">
+        <nav aria-label="Documentation">
+<details class="nav-group package-group">
+<summary>Core</summary>
+<a href="../rhythm/index.html">Overview</a>
+<a href="../rhythm/middleware.html">Middleware &amp; context</a>
+<a href="../rhythm/providers.html">Providers &amp; lifecycle</a>
+<a href="../rhythm/modules.html">Encapsulated modules</a>
+<a href="../rhythm/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Router</summary>
+<a href="../router/index.html">Routing</a>
+<a href="../router/static.html">Serving files</a>
+<a href="../router/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>WebSockets</summary>
+<a href="../ws/index.html">Connection routing</a>
+<a href="../ws/serving.html">Serving &amp; pub/sub</a>
+<a href="../ws/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Middleware</summary>
+<a href="../middleware/index.html">Validate</a>
+<a href="../middleware/intercept.html">Intercept</a>
+<a href="../middleware/filter.html">Filter</a>
+<a href="../middleware/api.html">API reference</a>
+</details>
+<details class="nav-group package-group" open>
+<summary>HTTP</summary>
+<a href="index.html">Cookies &amp; sessions</a>
+<a href="bodies.html" aria-current="page">Bodies &amp; uploads</a>
+<a href="caching.html">Caching &amp; compression</a>
+<a href="streaming.html">Streaming &amp; timeouts</a>
+<a href="proxy.html">Proxy &amp; i18n</a>
+<a href="api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Security</summary>
+<a href="../security/index.html">Authentication &amp; authorization</a>
+<a href="../security/protection.html">CORS &amp; CSRF</a>
+<a href="../security/hardening.html">Rate limiting &amp; headers</a>
+<a href="../security/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Observability</summary>
+<a href="../observability/index.html">Logging &amp; timing</a>
+<a href="../observability/health.html">Health &amp; shutdown</a>
+<a href="../observability/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>CLI</summary>
+<a href="../cli/index.html">Commands</a>
+<a href="../cli/prompts.html">Interactive prompts</a>
+<a href="../cli/run.html">Running on Bun</a>
+<a href="../cli/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Config</summary>
+<a href="../config/index.html">Defining configuration</a>
+<a href="../config/service.html">The config service</a>
+<a href="../config/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>OpenAPI</summary>
+<a href="../openapi/index.html">Describing routes</a>
+<a href="../openapi/document.html">Documents &amp; UIs</a>
+<a href="../openapi/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Events</summary>
+<a href="../events/index.html">Subscribing</a>
+<a href="../events/emitting.html">Emitting &amp; errors</a>
+<a href="../events/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Schedule</summary>
+<a href="../schedule/index.html">Jobs &amp; scheduling</a>
+<a href="../schedule/cron.html">The cron engine</a>
+<a href="../schedule/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Queue</summary>
+<a href="../queue/index.html">Producing &amp; processing</a>
+<a href="../queue/engines.html">Engines &amp; repeats</a>
+<a href="../queue/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>BullMQ</summary>
+<a href="../bullmq/index.html">The BullMQ module</a>
+<a href="../bullmq/schedulers.html">Schedulers &amp; queue access</a>
+<a href="../bullmq/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Testing</summary>
+<a href="../testing/index.html">Kernel &amp; modules</a>
+<a href="../testing/router.html">The router client</a>
+<a href="../testing/cli.html">The CLI runner</a>
+<a href="../testing/ws.html">The WebSocket harness</a>
+<a href="../testing/api.html">API reference</a>
+</details>
+</nav>
+      </aside>
+      <main id="main" tabindex="-1">
+        <div class="breadcrumb">
+          <a href="../index.html">Docs</a> <span>/</span> HTTP
+          <span>/</span> Bodies &amp; uploads
+        </div>
+        <h1>Bodies &amp; uploads</h1>
+        <p class="lead">
+          Cap request bodies with a header-first check, and parse multipart
+          uploads with limits that abort mid-stream instead of buffering.
+        </p>
+        <div class="article">
+          <section aria-labelledby="cap-the-body">
+            <h2 id="cap-the-body">
+              <a href="#cap-the-body"
+                >Cap the request body<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              <code>bodyLimit(maxBytes)</code> rejects oversized payloads with
+              <code>413 Payload Too Large</code> (a JSON error body) before your
+              handler runs. When the client sends <code>Content-Length</code>,
+              the check is free; without one, the middleware measures a
+              <em>clone</em> of the body, so the handler can still read the
+              original. Measuring a clone buffers it in memory — for large
+              uploads prefer <code>multipart</code>’s streaming
+              <code>maxBytes</code>.
+            </p>
+            <figure class="code-block">
+              <pre><code>import { bodyLimit } from &quot;@rhythmjs/http/body-limit&quot;;
+
+router.use(bodyLimit(1024 * 1024)).post(&quot;/import&quot;, async (ctx) =&gt; {
+  const rows = await ctx.request.json(); // at most 1 MiB
+  ctx.response.body = JSON.stringify({ imported: rows.length });
+});</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="parse-multipart">
+            <h2 id="parse-multipart">
+              <a href="#parse-multipart"
+                >Parse multipart uploads<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              <code>multipart(options?)</code> parses
+              <code>multipart/form-data</code> requests and puts a
+              <code>MultipartForm</code> on the context as
+              <code>ctx.form</code> (<code>MultipartContext</code>). Requests
+              that are not multipart answer <code>415</code>; an empty or
+              malformed body answers <code>400</code>; every limit violation
+              answers <code>413</code>.
+            </p>
+            <figure class="code-block">
+              <pre><code>import { multipart, type MultipartContext } from &quot;@rhythmjs/http/multipart&quot;;
+
+router.post&lt;MultipartContext&gt;(
+  &quot;/avatar&quot;,
+  multipart({ maxBytes: 5 * 1024 * 1024, maxFileSize: 2 * 1024 * 1024, maxFiles: 1 }),
+  async (ctx) =&gt; {
+    const file = ctx.form.file(&quot;avatar&quot;);
+    if (!file) { ctx.error(400, &quot;avatar missing&quot;); return; }
+    await Bun.write(`uploads/${crypto.randomUUID()}`, file);
+    ctx.json({ name: ctx.form.get(&quot;name&quot;), size: file.size });
+  },
+);</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="upload-limits">
+            <h2 id="upload-limits">
+              <a href="#upload-limits"
+                >Limits that stream<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              <code>maxBytes</code> is enforced twice: a fast
+              <code>Content-Length</code> precheck, and a counting
+              <code>ReadableStream</code> wrapped around the body so parsing
+              <em>aborts mid-stream</em> the moment the limit is crossed — an
+              attacker cannot make you buffer a lying request.
+              <code>maxFileSize</code> (per file), <code>maxFiles</code>, and
+              <code>maxFields</code> are checked after parsing.
+            </p>
+          </section>
+          <section aria-labelledby="reading-the-form">
+            <h2 id="reading-the-form">
+              <a href="#reading-the-form"
+                >Reading the form<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              <code>MultipartForm</code> separates fields from files.
+              <code>get(name)</code> and <code>getAll(name)</code> return string
+              fields only; <code>file(name)</code> returns the first file under
+              a name; <code>files(name?)</code> returns files under one name or
+              every file in the form. The raw parsed form stays available as
+              <code>form.data</code>.
+            </p>
+            <p>
+              Two exported types keep this honest under Bun:
+              <code>RequestFormData</code> is whatever
+              <code>request.formData()</code> actually returns, and
+              <code>FormFile</code> is its file entry type — use them instead of
+              the global <code>File</code>/<code>FormData</code> when the type
+              checker gets opinionated.
+            </p>
+          </section>
+        </div>
+        <nav class="pagination" aria-label="Previous and next pages">
+          <a href="index.html"
+            ><span>← Previous</span><strong>Cookies &amp; sessions</strong></a
+          ><a href="caching.html"
+            ><span>Next →</span><strong>Caching &amp; compression</strong></a
+          >
+        </nav>
+        <footer class="page-footer">
+          <span>RhythmJS documentation · v0.0.11</span
+          ><a href="https://github.com/rhythmjs/http"
+            >github.com/rhythmjs/http</a
+          >
+        </footer>
+      </main>
+      <aside class="toc">
+        <nav aria-label="On this page">
+          <p>ON THIS PAGE</p>
+          <a href="#cap-the-body">Cap the request body</a
+          ><a href="#parse-multipart">Parse multipart uploads</a
+          ><a href="#upload-limits">Limits that stream</a
+          ><a href="#reading-the-form">Reading the form</a>
+        </nav>
+      </aside>
+    </div>
+  </body>
+</html>

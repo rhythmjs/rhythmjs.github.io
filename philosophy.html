@@ -40,41 +40,41 @@
         href="index.html"
         aria-label="RhythmJS documentation home"
         ><svg viewBox="0 0 32 32" aria-hidden="true">
-          <path d="M5.4 25.5V13M9.64 25.5V7.5M13.88 25.5V17M18.12 25.5V6M22.36 25.5V11.5M26.6 25.5V15" /></svg
+          <path
+            d="M5.4 25.5V13M9.64 25.5V7.5M13.88 25.5V17M18.12 25.5V6M22.36 25.5V11.5M26.6 25.5V15"
+          /></svg
         ><span>rhythm<span class="brand-js">js</span></span></a
       >
-      <span class="version">v0.0.1</span>
+      <span class="version">v0.0.11</span>
       <nav class="header-tabs" aria-label="Site">
-        <a href="index.html" aria-current="true">Guide</a
-        ><a href="rhythm/index.html">Packages</a>
-      </nav>
-      <nav class="header-links" aria-label="External">
-        <a href="https://github.com/rhythmjs">GitHub</a>
-      </nav>
+<a href="index.html" aria-current="true">Guide</a
+><a href="rhythm/index.html">Packages</a>
+</nav>
+<nav class="header-links" aria-label="External">
+<a href="https://github.com/rhythmjs">GitHub</a>
+</nav>
     </header>
     <details class="mobile-navigation">
       <summary>Browse documentation</summary>
       <nav aria-label="Documentation">
-        <div class="nav-group">
-          <p>Guide</p>
-          <a href="index.html">Introduction</a>
-          <a href="getting-started.html">Quick start</a>
-          <a href="philosophy.html" aria-current="page">Philosophy</a>
-          <a href="template.html">Starter template</a>
-        </div>
-      </nav>
+<div class="nav-group">
+<p>Guide</p>
+<a href="index.html">Introduction</a>
+<a href="getting-started.html">Quick start</a>
+<a href="philosophy.html" aria-current="page">Philosophy</a>
+</div>
+</nav>
     </details>
     <div class="layout">
       <aside class="sidebar" id="sidebar">
         <nav aria-label="Documentation">
-          <div class="nav-group">
-            <p>Guide</p>
-            <a href="index.html">Introduction</a>
-            <a href="getting-started.html">Quick start</a>
-            <a href="philosophy.html" aria-current="page">Philosophy</a>
-            <a href="template.html">Starter template</a>
-          </div>
-        </nav>
+<div class="nav-group">
+<p>Guide</p>
+<a href="index.html">Introduction</a>
+<a href="getting-started.html">Quick start</a>
+<a href="philosophy.html" aria-current="page">Philosophy</a>
+</div>
+</nav>
       </aside>
       <main id="main" tabindex="-1">
         <div class="breadcrumb">
@@ -146,11 +146,17 @@
             <p>
               Rhythm speaks the platform's own language: standard
               <code>Request</code> and <code>Response</code> objects, standard
-              headers, standard streams. The same application runs on Node.js,
-              Bun, and Deno through thin adapters, and validation accepts any
-              schema library that implements the
+              headers, standard streams. Validation accepts any schema library
+              that implements the
               <a href="https://standardschema.dev">Standard Schema</a>
-              specification. The framework never asks you to marry a vendor.
+              specification. For the runtime itself, Rhythm made the opposite
+              call: it is coupled to <a href="https://bun.com">Bun</a> on
+              purpose. Multi-runtime adapters trade performance and clarity for
+              a portability you rarely use, so there are none —
+              <code>Bun.serve</code>, native WebSockets and pub/sub,
+              <code>Bun.redis</code>, and <code>Bun.file</code> are used
+              directly, and your handlers still read and write web-standard
+              primitives.
             </p>
           </section>
           <section aria-labelledby="explicit-beats-magical">
@@ -184,12 +190,10 @@
         <nav class="pagination" aria-label="Previous and next pages">
           <a href="getting-started.html"
             ><span>← Previous</span><strong>Quick start</strong></a
-          ><a href="template.html"
-            ><span>Next →</span><strong>Starter template</strong></a
-          >
+          ><span></span>
         </nav>
         <footer class="page-footer">
-          <span>RhythmJS documentation · v0.0.1</span
+          <span>RhythmJS documentation · v0.0.11</span
           ><a href="https://github.com/rhythmjs">github.com/rhythmjs</a>
         </footer>
       </main>

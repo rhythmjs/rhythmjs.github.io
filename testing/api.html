@@ -1,0 +1,501 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Every export of the four subpaths of @rhythmjs/testing: /rhythm, /router, /cli, and /ws."
+    />
+    <meta name="color-scheme" content="light dark" />
+    <title>API reference · RhythmJS</title>
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="RhythmJS documentation" />
+    <meta property="og:title" content="API reference · RhythmJS" />
+    <meta
+      property="og:description"
+      content="Every export of the four subpaths of @rhythmjs/testing: /rhythm, /router, /cli, and /ws."
+    />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="API reference · RhythmJS" />
+    <meta
+      name="twitter:description"
+      content="Every export of the four subpaths of @rhythmjs/testing: /rhythm, /router, /cli, and /ws."
+    />
+    <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../assets/style.css" />
+    <script defer src="../assets/highlight.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="header">
+      <a
+        class="brand"
+        href="../index.html"
+        aria-label="RhythmJS documentation home"
+        ><svg viewBox="0 0 32 32" aria-hidden="true">
+          <path
+            d="M5.4 25.5V13M9.64 25.5V7.5M13.88 25.5V17M18.12 25.5V6M22.36 25.5V11.5M26.6 25.5V15"
+          /></svg
+        ><span>rhythm<span class="brand-js">js</span></span></a
+      >
+      <span class="version">v0.0.11</span>
+      <nav class="header-tabs" aria-label="Site">
+<a href="../index.html">Guide</a
+><a href="../rhythm/index.html" aria-current="true">Packages</a>
+</nav>
+<nav class="header-links" aria-label="External">
+<a href="https://github.com/rhythmjs">GitHub</a>
+</nav>
+    </header>
+    <details class="mobile-navigation">
+      <summary>Browse documentation</summary>
+      <nav aria-label="Documentation">
+<details class="nav-group package-group">
+<summary>Core</summary>
+<a href="../rhythm/index.html">Overview</a>
+<a href="../rhythm/middleware.html">Middleware &amp; context</a>
+<a href="../rhythm/providers.html">Providers &amp; lifecycle</a>
+<a href="../rhythm/modules.html">Encapsulated modules</a>
+<a href="../rhythm/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Router</summary>
+<a href="../router/index.html">Routing</a>
+<a href="../router/static.html">Serving files</a>
+<a href="../router/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>WebSockets</summary>
+<a href="../ws/index.html">Connection routing</a>
+<a href="../ws/serving.html">Serving &amp; pub/sub</a>
+<a href="../ws/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Middleware</summary>
+<a href="../middleware/index.html">Validate</a>
+<a href="../middleware/intercept.html">Intercept</a>
+<a href="../middleware/filter.html">Filter</a>
+<a href="../middleware/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>HTTP</summary>
+<a href="../http/index.html">Cookies &amp; sessions</a>
+<a href="../http/bodies.html">Bodies &amp; uploads</a>
+<a href="../http/caching.html">Caching &amp; compression</a>
+<a href="../http/streaming.html">Streaming &amp; timeouts</a>
+<a href="../http/proxy.html">Proxy &amp; i18n</a>
+<a href="../http/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Security</summary>
+<a href="../security/index.html">Authentication &amp; authorization</a>
+<a href="../security/protection.html">CORS &amp; CSRF</a>
+<a href="../security/hardening.html">Rate limiting &amp; headers</a>
+<a href="../security/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Observability</summary>
+<a href="../observability/index.html">Logging &amp; timing</a>
+<a href="../observability/health.html">Health &amp; shutdown</a>
+<a href="../observability/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>CLI</summary>
+<a href="../cli/index.html">Commands</a>
+<a href="../cli/prompts.html">Interactive prompts</a>
+<a href="../cli/run.html">Running on Bun</a>
+<a href="../cli/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Config</summary>
+<a href="../config/index.html">Defining configuration</a>
+<a href="../config/service.html">The config service</a>
+<a href="../config/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>OpenAPI</summary>
+<a href="../openapi/index.html">Describing routes</a>
+<a href="../openapi/document.html">Documents &amp; UIs</a>
+<a href="../openapi/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Events</summary>
+<a href="../events/index.html">Subscribing</a>
+<a href="../events/emitting.html">Emitting &amp; errors</a>
+<a href="../events/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Schedule</summary>
+<a href="../schedule/index.html">Jobs &amp; scheduling</a>
+<a href="../schedule/cron.html">The cron engine</a>
+<a href="../schedule/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Queue</summary>
+<a href="../queue/index.html">Producing &amp; processing</a>
+<a href="../queue/engines.html">Engines &amp; repeats</a>
+<a href="../queue/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>BullMQ</summary>
+<a href="../bullmq/index.html">The BullMQ module</a>
+<a href="../bullmq/schedulers.html">Schedulers &amp; queue access</a>
+<a href="../bullmq/api.html">API reference</a>
+</details>
+<details class="nav-group package-group" open>
+<summary>Testing</summary>
+<a href="index.html">Kernel &amp; modules</a>
+<a href="router.html">The router client</a>
+<a href="cli.html">The CLI runner</a>
+<a href="ws.html">The WebSocket harness</a>
+<a href="api.html" aria-current="page">API reference</a>
+</details>
+</nav>
+    </details>
+    <div class="layout">
+      <aside class="sidebar" id="sidebar">
+        <nav aria-label="Documentation">
+<details class="nav-group package-group">
+<summary>Core</summary>
+<a href="../rhythm/index.html">Overview</a>
+<a href="../rhythm/middleware.html">Middleware &amp; context</a>
+<a href="../rhythm/providers.html">Providers &amp; lifecycle</a>
+<a href="../rhythm/modules.html">Encapsulated modules</a>
+<a href="../rhythm/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Router</summary>
+<a href="../router/index.html">Routing</a>
+<a href="../router/static.html">Serving files</a>
+<a href="../router/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>WebSockets</summary>
+<a href="../ws/index.html">Connection routing</a>
+<a href="../ws/serving.html">Serving &amp; pub/sub</a>
+<a href="../ws/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Middleware</summary>
+<a href="../middleware/index.html">Validate</a>
+<a href="../middleware/intercept.html">Intercept</a>
+<a href="../middleware/filter.html">Filter</a>
+<a href="../middleware/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>HTTP</summary>
+<a href="../http/index.html">Cookies &amp; sessions</a>
+<a href="../http/bodies.html">Bodies &amp; uploads</a>
+<a href="../http/caching.html">Caching &amp; compression</a>
+<a href="../http/streaming.html">Streaming &amp; timeouts</a>
+<a href="../http/proxy.html">Proxy &amp; i18n</a>
+<a href="../http/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Security</summary>
+<a href="../security/index.html">Authentication &amp; authorization</a>
+<a href="../security/protection.html">CORS &amp; CSRF</a>
+<a href="../security/hardening.html">Rate limiting &amp; headers</a>
+<a href="../security/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Observability</summary>
+<a href="../observability/index.html">Logging &amp; timing</a>
+<a href="../observability/health.html">Health &amp; shutdown</a>
+<a href="../observability/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>CLI</summary>
+<a href="../cli/index.html">Commands</a>
+<a href="../cli/prompts.html">Interactive prompts</a>
+<a href="../cli/run.html">Running on Bun</a>
+<a href="../cli/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Config</summary>
+<a href="../config/index.html">Defining configuration</a>
+<a href="../config/service.html">The config service</a>
+<a href="../config/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>OpenAPI</summary>
+<a href="../openapi/index.html">Describing routes</a>
+<a href="../openapi/document.html">Documents &amp; UIs</a>
+<a href="../openapi/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Events</summary>
+<a href="../events/index.html">Subscribing</a>
+<a href="../events/emitting.html">Emitting &amp; errors</a>
+<a href="../events/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Schedule</summary>
+<a href="../schedule/index.html">Jobs &amp; scheduling</a>
+<a href="../schedule/cron.html">The cron engine</a>
+<a href="../schedule/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Queue</summary>
+<a href="../queue/index.html">Producing &amp; processing</a>
+<a href="../queue/engines.html">Engines &amp; repeats</a>
+<a href="../queue/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>BullMQ</summary>
+<a href="../bullmq/index.html">The BullMQ module</a>
+<a href="../bullmq/schedulers.html">Schedulers &amp; queue access</a>
+<a href="../bullmq/api.html">API reference</a>
+</details>
+<details class="nav-group package-group" open>
+<summary>Testing</summary>
+<a href="index.html">Kernel &amp; modules</a>
+<a href="router.html">The router client</a>
+<a href="cli.html">The CLI runner</a>
+<a href="ws.html">The WebSocket harness</a>
+<a href="api.html" aria-current="page">API reference</a>
+</details>
+</nav>
+      </aside>
+      <main id="main" tabindex="-1">
+        <div class="breadcrumb">
+          <a href="../index.html">Docs</a> <span>/</span> Testing
+          <span>/</span> API reference
+        </div>
+        <h1>API reference</h1>
+        <p class="lead">
+          Every export of the four subpaths:
+          <code>@rhythmjs/testing/rhythm</code>, <code>/router</code>,
+          <code>/cli</code>, and <code>/ws</code>. There is no root barrel
+          export.
+        </p>
+        <div class="article">
+          <section aria-labelledby="rhythm-subpath">
+            <h2 id="rhythm-subpath">
+              <a href="#rhythm-subpath"
+                >@rhythmjs/testing/rhythm<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <figure class="code-block">
+              <pre><code>function mockModule&lt;TExports extends object&gt;(
+  values: TExports,
+  dispose?: (values: TExports) =&gt; void | Promise&lt;void&gt;,
+): Rhythm&lt;{}, TExports, TExports&gt;;
+
+function runMiddleware&lt;TContext extends object&gt;(
+  middleware: Middleware&lt;TContext&gt;,
+  ctx: TContext,
+): Promise&lt;MiddlewareRun&lt;TContext&gt;&gt;;</code></pre>
+            </figure>
+            <dl>
+              <dt>mockModule(values, dispose?)</dt>
+              <dd>
+                A Rhythm module (type <code>module</code>, name
+                <code>mock</code>) providing <code>values</code> verbatim.
+                <code>dispose</code>, when given, runs on the host app&#39;s
+                teardown with those same values.
+              </dd>
+              <dt>runMiddleware(middleware, ctx)</dt>
+              <dd>
+                Invokes the middleware with your context and a
+                <code>next()</code> that records being called and resolves to
+                the context.
+              </dd>
+              <dt>MiddlewareRun&lt;TContext&gt;</dt>
+              <dd>
+                { ctx: TContext; nextCalled: boolean } — the mutated context and
+                whether the chain continued.
+              </dd>
+            </dl>
+          </section>
+          <section aria-labelledby="router-subpath">
+            <h2 id="router-subpath">
+              <a href="#router-subpath"
+                >@rhythmjs/testing/router<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <figure class="code-block">
+              <pre><code>function createTestClient(
+  app: Rhythm&lt;RhythmHttpContext, …&gt; | RhythmRouter,
+  options?: TestClientOptions,
+): TestClient;
+
+function runHttpMiddleware&lt;TExtras extends object = {}&gt;(
+  middleware: Middleware&lt;RhythmHttpContext &amp; TExtras&gt;,
+  request?: string | Request,
+  extras?: TExtras,
+): Promise&lt;HttpMiddlewareRun&lt;RhythmHttpContext &amp; TExtras&gt;&gt;;</code></pre>
+            </figure>
+            <dl>
+              <dt>createTestClient(app, options?)</dt>
+              <dd>
+                Accepts a Rhythm HTTP app or a bare
+                <code>RhythmRouter</code> (mounted into a fresh app for you) and
+                returns verb helpers over <code>toFetchHandler</code>.
+                <code>options.baseUrl</code> resolves relative paths (default
+                <code>http://localhost</code>).
+              </dd>
+              <dt>TestClient</dt>
+              <dd>
+                <code>fetch(input, init?)</code> plus <code>get</code> /
+                <code>head</code> / <code>post</code> / <code>put</code> /
+                <code>patch</code> / <code>delete</code>, each
+                <code>(path, options?) =&gt; Promise&lt;Response&gt;</code>, and
+                <code>teardown()</code> which disposes the app&#39;s providers.
+              </dd>
+              <dt>TestRequestOptions</dt>
+              <dd>
+                { headers?; body?; json? } — <code>json</code> serializes the
+                value and sets
+                <code>content-type: application/json</code> unless you set one
+                yourself. <code>TestRequestHeaders</code>,
+                <code>TestRequestBody</code>, and
+                <code>TestRequestInit</code> alias the corresponding fetch
+                constructor parameter types.
+              </dd>
+              <dt>runHttpMiddleware(middleware, request?, extras?)</dt>
+              <dd>
+                Builds a real HTTP context with
+                <code>createHttpContext</code> from a path or
+                <code>Request</code> (default <code>http://localhost/</code>),
+                assigns <code>extras</code> onto it, runs the middleware, and
+                returns <code>HttpMiddlewareRun</code>.
+              </dd>
+              <dt>HttpMiddlewareRun</dt>
+              <dd>
+                { ctx; nextCalled: boolean; response: Response } —
+                <code>response</code> is the context&#39;s response rendered
+                with <code>toResponse</code>.
+              </dd>
+            </dl>
+          </section>
+          <section aria-labelledby="cli-subpath">
+            <h2 id="cli-subpath">
+              <a href="#cli-subpath"
+                >@rhythmjs/testing/cli<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <figure class="code-block">
+              <pre><code>function createCliRunner(
+  app: Rhythm&lt;RhythmCliContext, …&gt; | RhythmCli,
+): CliRunner;</code></pre>
+            </figure>
+            <dl>
+              <dt>createCliRunner(app)</dt>
+              <dd>
+                Accepts a Rhythm CLI app or a bare
+                <code>RhythmCli</code> (mounted for you). The runner parses
+                flags exactly like the real entry point, via
+                <code>parseArgv</code>.
+              </dd>
+              <dt>CliRunner.run(argv, options?)</dt>
+              <dd>
+                <code>argv</code> is a command string (whitespace-split) or an
+                argv array. <code>options.stdin</code> becomes a web
+                <code>ReadableStream</code> on the context; omitted,
+                <code>ctx.stdin</code> is null, matching a TTY. Resolves to
+                <code>CliRunResult</code>.
+              </dd>
+              <dt>CliRunResult</dt>
+              <dd>
+                { ctx; stdout: string[]; stderr: string[]; exitCode: number } —
+                copies of the response buffers, nothing written to real stdio.
+              </dd>
+              <dt>CliRunner.teardown()</dt>
+              <dd>Disposes the underlying app&#39;s providers.</dd>
+            </dl>
+          </section>
+          <section aria-labelledby="ws-subpath">
+            <h2 id="ws-subpath">
+              <a href="#ws-subpath"
+                >@rhythmjs/testing/ws<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <figure class="code-block">
+              <pre><code>function upgradeWs&lt;Data extends object = Record&lt;string, string&gt;&gt;(
+  ws: RhythmWs,
+  request: string | Request,
+): Promise&lt;WsUpgradeResult&lt;Data&gt;&gt;;
+
+function mockWs&lt;Data extends object = Record&lt;string, string&gt;&gt;(data: Data): MockWs&lt;Data&gt;;
+
+function fireOpen(ws: RhythmWs, peer: MockWs): void | Promise&lt;void&gt;;
+function fireMessage(ws: RhythmWs, peer: MockWs, data: string | Uint8Array | object): void | Promise&lt;void&gt;;
+function fireClose(ws: RhythmWs, peer: MockWs, code = 1000, reason = &quot;&quot;): void | Promise&lt;void&gt;;
+function fireDrain(ws: RhythmWs, peer: MockWs): void | Promise&lt;void&gt;;</code></pre>
+            </figure>
+            <dl>
+              <dt>upgradeWs(ws, request)</dt>
+              <dd>
+                Drives <code>RhythmWs.upgrade</code> against a mock server whose
+                <code>upgrade()</code> always accepts and records its options. A
+                string becomes a request with the
+                <code>upgrade: websocket</code> header implied. Guards, the
+                route&#39;s <code>upgrade</code>, and <code>headers</code> all
+                run for real.
+              </dd>
+              <dt>WsUpgradeResult&lt;Data&gt;</dt>
+              <dd>
+                { matched; upgraded; response; data; headers } —
+                <code>matched</code> is false when
+                <code>upgrade()</code> returned null (not a websocket request,
+                or no route); <code>response</code> carries a rejection; on
+                success <code>data</code> is the exact
+                <code>ws.data</code> object and <code>headers</code> whatever
+                the route contributed to the 101.
+              </dd>
+              <dt>mockWs(data)</dt>
+              <dd>
+                A recording <code>ServerWebSocket</code> stand-in:
+                <code>sent</code>, <code>published</code>, <code>topics</code>,
+                <code>closed</code>, and <code>terminated</code> capture
+                everything handlers do; <code>send</code>/<code>publish</code>
+                return byte counts; <code>close</code>/<code>terminate</code>
+                flip <code>readyState</code> to 3. <code>data</code>,
+                <code>readyState</code>, <code>remoteAddress</code> (127.0.0.1),
+                and <code>isSubscribed</code> round out the surface handlers
+                touch.
+              </dd>
+              <dt>fireOpen / fireMessage / fireClose / fireDrain</dt>
+              <dd>
+                Dispatch through the instance&#39;s real
+                <code>websocket</code> behavior, so routing by
+                <code>ws.data</code> identity is exercised too.
+                <code>fireMessage</code> passes strings through, wraps
+                <code>Uint8Array</code> in a <code>Buffer</code>, and
+                JSON-serializes any other object.
+              </dd>
+            </dl>
+          </section>
+        </div>
+        <nav class="pagination" aria-label="Previous and next pages">
+          <a href="ws.html"
+            ><span>← Previous</span><strong>The WebSocket harness</strong></a
+          ><span></span>
+        </nav>
+        <footer class="page-footer">
+          <span>RhythmJS documentation · v0.0.11</span
+          ><a href="https://github.com/rhythmjs/testing"
+            >github.com/rhythmjs/testing</a
+          >
+        </footer>
+      </main>
+      <aside class="toc">
+        <nav aria-label="On this page">
+          <p>ON THIS PAGE</p>
+          <a href="#rhythm-subpath">/rhythm</a>
+          <a href="#router-subpath">/router</a>
+          <a href="#cli-subpath">/cli</a>
+          <a href="#ws-subpath">/ws</a>
+        </nav>
+      </aside>
+    </div>
+  </body>
+</html>

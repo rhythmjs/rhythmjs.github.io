@@ -1,0 +1,481 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Route WebSocket upgrades to Bun's own handlers: typed ws.data per route, rou3 patterns, handshake headers, guards, and merged instances."
+    />
+    <meta name="color-scheme" content="light dark" />
+    <title>Connection routing · RhythmJS</title>
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="RhythmJS documentation" />
+    <meta property="og:title" content="Connection routing · RhythmJS" />
+    <meta
+      property="og:description"
+      content="Route WebSocket upgrades to Bun's own handlers: typed ws.data per route, rou3 patterns, handshake headers, guards, and merged instances."
+    />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Connection routing · RhythmJS" />
+    <meta
+      name="twitter:description"
+      content="Route WebSocket upgrades to Bun's own handlers: typed ws.data per route, rou3 patterns, handshake headers, guards, and merged instances."
+    />
+    <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../assets/style.css" />
+    <script defer src="../assets/highlight.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="header">
+      <a
+        class="brand"
+        href="../index.html"
+        aria-label="RhythmJS documentation home"
+        ><svg viewBox="0 0 32 32" aria-hidden="true">
+          <path
+            d="M5.4 25.5V13M9.64 25.5V7.5M13.88 25.5V17M18.12 25.5V6M22.36 25.5V11.5M26.6 25.5V15"
+          /></svg
+        ><span>rhythm<span class="brand-js">js</span></span></a
+      >
+      <span class="version">v0.0.11</span>
+      <nav class="header-tabs" aria-label="Site">
+<a href="../index.html">Guide</a
+><a href="../rhythm/index.html" aria-current="true">Packages</a>
+</nav>
+<nav class="header-links" aria-label="External">
+<a href="https://github.com/rhythmjs">GitHub</a>
+</nav>
+    </header>
+    <details class="mobile-navigation">
+      <summary>Browse documentation</summary>
+      <nav aria-label="Documentation">
+<details class="nav-group package-group">
+<summary>Core</summary>
+<a href="../rhythm/index.html">Overview</a>
+<a href="../rhythm/middleware.html">Middleware &amp; context</a>
+<a href="../rhythm/providers.html">Providers &amp; lifecycle</a>
+<a href="../rhythm/modules.html">Encapsulated modules</a>
+<a href="../rhythm/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Router</summary>
+<a href="../router/index.html">Routing</a>
+<a href="../router/static.html">Serving files</a>
+<a href="../router/api.html">API reference</a>
+</details>
+<details class="nav-group package-group" open>
+<summary>WebSockets</summary>
+<a href="index.html" aria-current="page">Connection routing</a>
+<a href="serving.html">Serving &amp; pub/sub</a>
+<a href="api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Middleware</summary>
+<a href="../middleware/index.html">Validate</a>
+<a href="../middleware/intercept.html">Intercept</a>
+<a href="../middleware/filter.html">Filter</a>
+<a href="../middleware/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>HTTP</summary>
+<a href="../http/index.html">Cookies &amp; sessions</a>
+<a href="../http/bodies.html">Bodies &amp; uploads</a>
+<a href="../http/caching.html">Caching &amp; compression</a>
+<a href="../http/streaming.html">Streaming &amp; timeouts</a>
+<a href="../http/proxy.html">Proxy &amp; i18n</a>
+<a href="../http/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Security</summary>
+<a href="../security/index.html">Authentication &amp; authorization</a>
+<a href="../security/protection.html">CORS &amp; CSRF</a>
+<a href="../security/hardening.html">Rate limiting &amp; headers</a>
+<a href="../security/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Observability</summary>
+<a href="../observability/index.html">Logging &amp; timing</a>
+<a href="../observability/health.html">Health &amp; shutdown</a>
+<a href="../observability/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>CLI</summary>
+<a href="../cli/index.html">Commands</a>
+<a href="../cli/prompts.html">Interactive prompts</a>
+<a href="../cli/run.html">Running on Bun</a>
+<a href="../cli/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Config</summary>
+<a href="../config/index.html">Defining configuration</a>
+<a href="../config/service.html">The config service</a>
+<a href="../config/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>OpenAPI</summary>
+<a href="../openapi/index.html">Describing routes</a>
+<a href="../openapi/document.html">Documents &amp; UIs</a>
+<a href="../openapi/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Events</summary>
+<a href="../events/index.html">Subscribing</a>
+<a href="../events/emitting.html">Emitting &amp; errors</a>
+<a href="../events/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Schedule</summary>
+<a href="../schedule/index.html">Jobs &amp; scheduling</a>
+<a href="../schedule/cron.html">The cron engine</a>
+<a href="../schedule/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Queue</summary>
+<a href="../queue/index.html">Producing &amp; processing</a>
+<a href="../queue/engines.html">Engines &amp; repeats</a>
+<a href="../queue/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>BullMQ</summary>
+<a href="../bullmq/index.html">The BullMQ module</a>
+<a href="../bullmq/schedulers.html">Schedulers &amp; queue access</a>
+<a href="../bullmq/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Testing</summary>
+<a href="../testing/index.html">Kernel &amp; modules</a>
+<a href="../testing/router.html">The router client</a>
+<a href="../testing/cli.html">The CLI runner</a>
+<a href="../testing/ws.html">The WebSocket harness</a>
+<a href="../testing/api.html">API reference</a>
+</details>
+</nav>
+    </details>
+    <div class="layout">
+      <aside class="sidebar" id="sidebar">
+        <nav aria-label="Documentation">
+<details class="nav-group package-group">
+<summary>Core</summary>
+<a href="../rhythm/index.html">Overview</a>
+<a href="../rhythm/middleware.html">Middleware &amp; context</a>
+<a href="../rhythm/providers.html">Providers &amp; lifecycle</a>
+<a href="../rhythm/modules.html">Encapsulated modules</a>
+<a href="../rhythm/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Router</summary>
+<a href="../router/index.html">Routing</a>
+<a href="../router/static.html">Serving files</a>
+<a href="../router/api.html">API reference</a>
+</details>
+<details class="nav-group package-group" open>
+<summary>WebSockets</summary>
+<a href="index.html" aria-current="page">Connection routing</a>
+<a href="serving.html">Serving &amp; pub/sub</a>
+<a href="api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Middleware</summary>
+<a href="../middleware/index.html">Validate</a>
+<a href="../middleware/intercept.html">Intercept</a>
+<a href="../middleware/filter.html">Filter</a>
+<a href="../middleware/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>HTTP</summary>
+<a href="../http/index.html">Cookies &amp; sessions</a>
+<a href="../http/bodies.html">Bodies &amp; uploads</a>
+<a href="../http/caching.html">Caching &amp; compression</a>
+<a href="../http/streaming.html">Streaming &amp; timeouts</a>
+<a href="../http/proxy.html">Proxy &amp; i18n</a>
+<a href="../http/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Security</summary>
+<a href="../security/index.html">Authentication &amp; authorization</a>
+<a href="../security/protection.html">CORS &amp; CSRF</a>
+<a href="../security/hardening.html">Rate limiting &amp; headers</a>
+<a href="../security/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Observability</summary>
+<a href="../observability/index.html">Logging &amp; timing</a>
+<a href="../observability/health.html">Health &amp; shutdown</a>
+<a href="../observability/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>CLI</summary>
+<a href="../cli/index.html">Commands</a>
+<a href="../cli/prompts.html">Interactive prompts</a>
+<a href="../cli/run.html">Running on Bun</a>
+<a href="../cli/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Config</summary>
+<a href="../config/index.html">Defining configuration</a>
+<a href="../config/service.html">The config service</a>
+<a href="../config/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>OpenAPI</summary>
+<a href="../openapi/index.html">Describing routes</a>
+<a href="../openapi/document.html">Documents &amp; UIs</a>
+<a href="../openapi/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Events</summary>
+<a href="../events/index.html">Subscribing</a>
+<a href="../events/emitting.html">Emitting &amp; errors</a>
+<a href="../events/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Schedule</summary>
+<a href="../schedule/index.html">Jobs &amp; scheduling</a>
+<a href="../schedule/cron.html">The cron engine</a>
+<a href="../schedule/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Queue</summary>
+<a href="../queue/index.html">Producing &amp; processing</a>
+<a href="../queue/engines.html">Engines &amp; repeats</a>
+<a href="../queue/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>BullMQ</summary>
+<a href="../bullmq/index.html">The BullMQ module</a>
+<a href="../bullmq/schedulers.html">Schedulers &amp; queue access</a>
+<a href="../bullmq/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Testing</summary>
+<a href="../testing/index.html">Kernel &amp; modules</a>
+<a href="../testing/router.html">The router client</a>
+<a href="../testing/cli.html">The CLI runner</a>
+<a href="../testing/ws.html">The WebSocket harness</a>
+<a href="../testing/api.html">API reference</a>
+</details>
+</nav>
+      </aside>
+      <main id="main" tabindex="-1">
+        <div class="breadcrumb">
+          <a href="../index.html">Docs</a> <span>/</span> WebSockets
+          <span>/</span> Connection routing
+        </div>
+        <h1>Route the connection</h1>
+        <p class="lead">
+          Routes are Bun websocket handlers under rou3 paths;
+          <code>upgrade</code> decides what each connection&#39;s typed
+          <code>ws.data</code> is — the route params by default.
+        </p>
+        <div class="article">
+          <section aria-labelledby="install-the-package">
+            <h2 id="install-the-package">
+              <a href="#install-the-package"
+                >Install the package<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              <code>@rhythmjs/ws</code> routes WebSocket connections for
+              <code>Bun.serve</code>. It is built directly on Bun&#39;s
+              WebSocket model and adds exactly the two things Bun leaves to you:
+              matching upgrade requests to endpoints, and deciding what each
+              connection&#39;s <code>ws.data</code> is. Everything else
+              <em>is</em> Bun — handlers are Bun
+              <code>WebSocketHandler</code> members receiving Bun&#39;s
+              <code>ServerWebSocket</code>, and fan-out is Bun&#39;s native
+              pub/sub. The only dependency is rou3, the route matcher shared
+              with the router. Wiring the compiled instance into a server is the
+              <a href="serving.html">Serving &amp; pub/sub</a> page.
+            </p>
+            <figure class="code-block">
+              <pre><code>bun add @rhythmjs/ws</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="routes-are-bun-handlers">
+            <h2 id="routes-are-bun-handlers">
+              <a href="#routes-are-bun-handlers"
+                >Routes are Bun handlers<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              <code>route&lt;Data&gt;(path, handlers)</code> registers an
+              endpoint. Paths use rou3 patterns (<code>:param</code>,
+              <code>:param?</code>, <code>*</code>, <code>**</code>), the
+              instance&#39;s <code>prefix</code> is prepended, and a static
+              segment always beats a param segment regardless of registration
+              order. The handlers object carries Bun&#39;s own lifecycle members
+              — <code>open</code>, <code>message</code>, <code>drain</code>,
+              <code>close</code>, <code>ping</code>, <code>pong</code> — with
+              Bun&#39;s exact signatures (<code>message</code> receives
+              <code>string | Buffer</code>, <code>close</code> receives
+              <code>code</code> and <code>reason</code>), plus two upgrade-time
+              members covered below.
+            </p>
+            <figure class="code-block">
+              <pre><code>import { RhythmWs } from &quot;@rhythmjs/ws&quot;;
+
+interface Chat {
+  user: string;
+  room: string;
+}
+
+const ws = new RhythmWs({ prefix: &quot;/ws&quot;, idleTimeout: 120 })
+  .route&lt;Chat&gt;(&quot;/rooms/:id&quot;, {
+    upgrade(request, params) {
+      const user = userFrom(request);
+      if (!user) return new Response(&quot;Forbidden&quot;, { status: 403 });
+      return { user, room: params.id! }; // becomes ws.data
+    },
+    open(ws) {
+      ws.subscribe(`room:${ws.data.room}`);
+    },
+    message(ws, message) {
+      ws.publish(`room:${ws.data.room}`, `${ws.data.user}: ${message}`);
+    },
+    close(ws) {
+      ws.publish(`room:${ws.data.room}`, `${ws.data.user} left`);
+    },
+  });</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="typed-connection-data">
+            <h2 id="typed-connection-data">
+              <a href="#typed-connection-data"
+                >Typed connection data<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              <code>upgrade(request, params, server)</code> runs before the
+              handshake and returns this connection&#39;s <code>ws.data</code> —
+              any object — or a <code>Response</code> to reject. The route&#39;s
+              <code>Data</code> type parameter flows into every lifecycle
+              member, so <code>ws.data.user</code> above is a typed
+              <code>string</code>. Without an <code>upgrade</code> member,
+              <code>Data</code> defaults to the route params:
+              <code>ws.data.id</code> on <code>/rooms/:id</code> just works.
+            </p>
+            <p>
+              Dispatch is keyed on the data object&#39;s <em>identity</em> (a
+              module-level <code>WeakMap</code> maps it to the route), so
+              <code>upgrade</code> must return an object, fresh per connection —
+              the default params object already is one. Returning
+              <code>undefined</code> at runtime falls back to the params.
+              <code>ws.routes</code> lists the compiled paths for introspection.
+            </p>
+          </section>
+          <section aria-labelledby="handshake-headers">
+            <h2 id="handshake-headers">
+              <a href="#handshake-headers"
+                >Handshake headers and subprotocols<span aria-hidden="true">
+                  #</span
+                ></a
+              >
+            </h2>
+            <p>
+              The optional <code>headers</code> member adds headers to the
+              <code>101 Switching Protocols</code> response — a
+              <code>HeadersInit</code>, or a function of
+              <code>(request, params)</code> (async allowed) when the value
+              depends on the connection. This is where subprotocol negotiation
+              and upgrade-time cookies live:
+            </p>
+            <figure class="code-block">
+              <pre><code>const feed = new RhythmWs().route(&quot;/feed&quot;, {
+  headers: (request) =&gt; ({
+    &quot;sec-websocket-protocol&quot;:
+      request.headers.get(&quot;sec-websocket-protocol&quot;)?.split(&quot;,&quot;)[0]?.trim() ?? &quot;&quot;,
+  }),
+  open(ws) {
+    ws.send(&quot;ready&quot;);
+  },
+});
+// new WebSocket(url, [&quot;json&quot;, &quot;text&quot;]) negotiates socket.protocol === &quot;json&quot;</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="guards">
+            <h2 id="guards">
+              <a href="#guards">Guards<span aria-hidden="true"> #</span></a>
+            </h2>
+            <p>
+              <code>guard(fn)</code> registers
+              <code>(request, server) =&gt; Response | undefined</code>. Guards
+              are instance-wide: they run in registration order before
+              <em>every matched</em> route of the instance — never for unmatched
+              paths, so a miss costs nothing. Returning (or throwing nothing but
+              returning) a <code>Response</code> rejects the handshake with it;
+              returning <code>undefined</code> continues. The
+              <code>server</code> argument gives guards access to server-level
+              facilities such as <code>server.requestIP()</code>.
+            </p>
+            <figure class="code-block">
+              <pre><code>const ws = new RhythmWs()
+  .guard((request) =&gt;
+    new URL(request.url).searchParams.get(&quot;token&quot;) === &quot;good&quot;
+      ? undefined
+      : new Response(&quot;Unauthorized&quot;, { status: 401 }),
+  )
+  .route(&quot;/guarded&quot;, { open: (ws) =&gt; void ws.send(&quot;in&quot;) });</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="merging-instances">
+            <h2 id="merging-instances">
+              <a href="#merging-instances"
+                >Merging instances<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              <code>merge(child)</code> copies another instance&#39;s routes
+              under this instance&#39;s prefix — <code>/ws</code> +
+              <code>/rooms/:id</code> becomes <code>/ws/rooms/:id</code> — and
+              keeps the child&#39;s guards nested inside the parent&#39;s own:
+              parent guards run first, then the child&#39;s, then the
+              route&#39;s <code>upgrade</code>. The merge is a snapshot; routes
+              or guards added to the child afterwards stay out of the parent.
+              Different protection levels therefore compose as separate
+              instances merged into one root.
+            </p>
+            <figure class="code-block">
+              <pre><code>const rooms = new RhythmWs({ prefix: &quot;/rooms&quot; })
+  .guard(requireAuth)
+  .route(&quot;/:id&quot;, roomHandlers);
+
+const root = new RhythmWs({ prefix: &quot;/ws&quot; })
+  .guard(requireTenant) // runs first, for every matched route
+  .merge(rooms)         // /ws/rooms/:id, behind requireTenant then requireAuth
+  .route(&quot;/live&quot;, liveHandlers); // parent routes skip the child's guards</code></pre>
+            </figure>
+          </section>
+        </div>
+        <nav class="pagination" aria-label="Previous and next pages">
+          <span></span>
+          <a href="serving.html"
+            ><span>Next →</span><strong>Serving &amp; pub/sub</strong></a
+          >
+        </nav>
+        <footer class="page-footer">
+          <span>RhythmJS documentation · v0.0.11</span
+          ><a href="https://github.com/rhythmjs/ws">github.com/rhythmjs/ws</a>
+        </footer>
+      </main>
+      <aside class="toc">
+        <nav aria-label="On this page">
+          <p>ON THIS PAGE</p>
+          <a href="#install-the-package">Install the package</a>
+          <a href="#routes-are-bun-handlers">Routes are Bun handlers</a>
+          <a href="#typed-connection-data">Typed connection data</a>
+          <a href="#handshake-headers">Handshake headers</a>
+          <a href="#guards">Guards</a>
+          <a href="#merging-instances">Merging instances</a>
+        </nav>
+      </aside>
+    </div>
+  </body>
+</html>

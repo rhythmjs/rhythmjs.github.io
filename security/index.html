@@ -5,22 +5,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="CORS, CSRF protection, and secure headers for Rhythm routers."
+      content="Authentication and authorization middleware for Rhythm: attachUser, requireAuthentication, roles, and permissions."
     />
     <meta name="color-scheme" content="light dark" />
-    <title>Overview · RhythmJS</title>
+    <title>Authentication &amp; authorization · RhythmJS</title>
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="RhythmJS documentation" />
-    <meta property="og:title" content="Overview · RhythmJS" />
+    <meta
+      property="og:title"
+      content="Authentication &amp; authorization · RhythmJS"
+    />
     <meta
       property="og:description"
-      content="CORS, CSRF protection, and secure headers for Rhythm routers."
+      content="Authentication and authorization middleware for Rhythm: attachUser, requireAuthentication, roles, and permissions."
     />
     <meta name="twitter:card" content="summary" />
-    <meta name="twitter:title" content="Overview · RhythmJS" />
+    <meta
+      name="twitter:title"
+      content="Authentication &amp; authorization · RhythmJS"
+    />
     <meta
       name="twitter:description"
-      content="CORS, CSRF protection, and secure headers for Rhythm routers."
+      content="Authentication and authorization middleware for Rhythm: attachUser, requireAuthentication, roles, and permissions."
     />
     <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -40,118 +46,240 @@
         href="../index.html"
         aria-label="RhythmJS documentation home"
         ><svg viewBox="0 0 32 32" aria-hidden="true">
-          <path d="M5.4 25.5V13M9.64 25.5V7.5M13.88 25.5V17M18.12 25.5V6M22.36 25.5V11.5M26.6 25.5V15" /></svg
+          <path
+            d="M5.4 25.5V13M9.64 25.5V7.5M13.88 25.5V17M18.12 25.5V6M22.36 25.5V11.5M26.6 25.5V15"
+          /></svg
         ><span>rhythm<span class="brand-js">js</span></span></a
       >
-      <span class="version">v0.0.1</span>
+      <span class="version">v0.0.11</span>
       <nav class="header-tabs" aria-label="Site">
-        <a href="../index.html">Guide</a
-        ><a href="../rhythm/index.html" aria-current="true">Packages</a>
-      </nav>
-      <nav class="header-links" aria-label="External">
-        <a href="https://github.com/rhythmjs">GitHub</a>
-      </nav>
+<a href="../index.html">Guide</a
+><a href="../rhythm/index.html" aria-current="true">Packages</a>
+</nav>
+<nav class="header-links" aria-label="External">
+<a href="https://github.com/rhythmjs">GitHub</a>
+</nav>
     </header>
     <details class="mobile-navigation">
       <summary>Browse documentation</summary>
       <nav aria-label="Documentation">
-        <details class="nav-group package-group">
-          <summary>Core</summary>
-          <a href="../rhythm/index.html">Overview</a>
-          <a href="../rhythm/middleware.html">Middleware &amp; context</a>
-          <a href="../rhythm/providers.html">Providers &amp; lifecycle</a>
-          <a href="../rhythm/modules.html">Encapsulated modules</a>
-          <a href="../rhythm/api.html">API reference</a>
-        </details>
-        <details class="nav-group package-group">
-          <summary>Router</summary>
-          <a href="../router/index.html">Overview</a>
-          <a href="../router/adapters.html">Runtime adapters</a>
-          <a href="../router/api.html">API reference</a>
-        </details>
-        <details class="nav-group package-group">
-          <summary>CLI</summary>
-          <a href="../cli/index.html">Overview</a>
-          <a href="../cli/prompts.html">Interactive prompts</a>
-          <a href="../cli/adapters.html">Runtime adapters</a>
-          <a href="../cli/api.html">API reference</a>
-        </details>
-        <details class="nav-group package-group">
-          <summary>Middleware</summary>
-          <a href="../middleware/index.html">Overview</a>
-          <a href="../middleware/api.html">API reference</a>
-        </details>
-        <details class="nav-group package-group">
-          <summary>HTTP</summary>
-          <a href="../http/index.html">Overview</a>
-          <a href="../http/api.html">API reference</a>
-        </details>
-        <details class="nav-group package-group" open>
-          <summary>Security</summary>
-          <a href="index.html" aria-current="page">Overview</a>
-          <a href="api.html">API reference</a>
-        </details>
-        <details class="nav-group package-group">
-          <summary>Observability</summary>
-          <a href="../observability/index.html">Overview</a>
-          <a href="../observability/api.html">API reference</a>
-        </details>
-      </nav>
+<details class="nav-group package-group">
+<summary>Core</summary>
+<a href="../rhythm/index.html">Overview</a>
+<a href="../rhythm/middleware.html">Middleware &amp; context</a>
+<a href="../rhythm/providers.html">Providers &amp; lifecycle</a>
+<a href="../rhythm/modules.html">Encapsulated modules</a>
+<a href="../rhythm/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Router</summary>
+<a href="../router/index.html">Routing</a>
+<a href="../router/static.html">Serving files</a>
+<a href="../router/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>WebSockets</summary>
+<a href="../ws/index.html">Connection routing</a>
+<a href="../ws/serving.html">Serving &amp; pub/sub</a>
+<a href="../ws/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Middleware</summary>
+<a href="../middleware/index.html">Validate</a>
+<a href="../middleware/intercept.html">Intercept</a>
+<a href="../middleware/filter.html">Filter</a>
+<a href="../middleware/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>HTTP</summary>
+<a href="../http/index.html">Cookies &amp; sessions</a>
+<a href="../http/bodies.html">Bodies &amp; uploads</a>
+<a href="../http/caching.html">Caching &amp; compression</a>
+<a href="../http/streaming.html">Streaming &amp; timeouts</a>
+<a href="../http/proxy.html">Proxy &amp; i18n</a>
+<a href="../http/api.html">API reference</a>
+</details>
+<details class="nav-group package-group" open>
+<summary>Security</summary>
+<a href="index.html" aria-current="page">Authentication &amp; authorization</a>
+<a href="protection.html">CORS &amp; CSRF</a>
+<a href="hardening.html">Rate limiting &amp; headers</a>
+<a href="api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Observability</summary>
+<a href="../observability/index.html">Logging &amp; timing</a>
+<a href="../observability/health.html">Health &amp; shutdown</a>
+<a href="../observability/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>CLI</summary>
+<a href="../cli/index.html">Commands</a>
+<a href="../cli/prompts.html">Interactive prompts</a>
+<a href="../cli/run.html">Running on Bun</a>
+<a href="../cli/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Config</summary>
+<a href="../config/index.html">Defining configuration</a>
+<a href="../config/service.html">The config service</a>
+<a href="../config/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>OpenAPI</summary>
+<a href="../openapi/index.html">Describing routes</a>
+<a href="../openapi/document.html">Documents &amp; UIs</a>
+<a href="../openapi/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Events</summary>
+<a href="../events/index.html">Subscribing</a>
+<a href="../events/emitting.html">Emitting &amp; errors</a>
+<a href="../events/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Schedule</summary>
+<a href="../schedule/index.html">Jobs &amp; scheduling</a>
+<a href="../schedule/cron.html">The cron engine</a>
+<a href="../schedule/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Queue</summary>
+<a href="../queue/index.html">Producing &amp; processing</a>
+<a href="../queue/engines.html">Engines &amp; repeats</a>
+<a href="../queue/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>BullMQ</summary>
+<a href="../bullmq/index.html">The BullMQ module</a>
+<a href="../bullmq/schedulers.html">Schedulers &amp; queue access</a>
+<a href="../bullmq/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Testing</summary>
+<a href="../testing/index.html">Kernel &amp; modules</a>
+<a href="../testing/router.html">The router client</a>
+<a href="../testing/cli.html">The CLI runner</a>
+<a href="../testing/ws.html">The WebSocket harness</a>
+<a href="../testing/api.html">API reference</a>
+</details>
+</nav>
     </details>
     <div class="layout">
       <aside class="sidebar" id="sidebar">
         <nav aria-label="Documentation">
-          <details class="nav-group package-group">
-            <summary>Core</summary>
-            <a href="../rhythm/index.html">Overview</a>
-            <a href="../rhythm/middleware.html">Middleware &amp; context</a>
-            <a href="../rhythm/providers.html">Providers &amp; lifecycle</a>
-            <a href="../rhythm/modules.html">Encapsulated modules</a>
-            <a href="../rhythm/api.html">API reference</a>
-          </details>
-          <details class="nav-group package-group">
-            <summary>Router</summary>
-            <a href="../router/index.html">Overview</a>
-            <a href="../router/adapters.html">Runtime adapters</a>
-            <a href="../router/api.html">API reference</a>
-          </details>
-          <details class="nav-group package-group">
-            <summary>CLI</summary>
-            <a href="../cli/index.html">Overview</a>
-            <a href="../cli/prompts.html">Interactive prompts</a>
-            <a href="../cli/adapters.html">Runtime adapters</a>
-            <a href="../cli/api.html">API reference</a>
-          </details>
-          <details class="nav-group package-group">
-            <summary>Middleware</summary>
-            <a href="../middleware/index.html">Overview</a>
-            <a href="../middleware/api.html">API reference</a>
-          </details>
-          <details class="nav-group package-group">
-            <summary>HTTP</summary>
-            <a href="../http/index.html">Overview</a>
-            <a href="../http/api.html">API reference</a>
-          </details>
-          <details class="nav-group package-group" open>
-            <summary>Security</summary>
-            <a href="index.html" aria-current="page">Overview</a>
-            <a href="api.html">API reference</a>
-          </details>
-          <details class="nav-group package-group">
-            <summary>Observability</summary>
-            <a href="../observability/index.html">Overview</a>
-            <a href="../observability/api.html">API reference</a>
-          </details>
-        </nav>
+<details class="nav-group package-group">
+<summary>Core</summary>
+<a href="../rhythm/index.html">Overview</a>
+<a href="../rhythm/middleware.html">Middleware &amp; context</a>
+<a href="../rhythm/providers.html">Providers &amp; lifecycle</a>
+<a href="../rhythm/modules.html">Encapsulated modules</a>
+<a href="../rhythm/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Router</summary>
+<a href="../router/index.html">Routing</a>
+<a href="../router/static.html">Serving files</a>
+<a href="../router/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>WebSockets</summary>
+<a href="../ws/index.html">Connection routing</a>
+<a href="../ws/serving.html">Serving &amp; pub/sub</a>
+<a href="../ws/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Middleware</summary>
+<a href="../middleware/index.html">Validate</a>
+<a href="../middleware/intercept.html">Intercept</a>
+<a href="../middleware/filter.html">Filter</a>
+<a href="../middleware/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>HTTP</summary>
+<a href="../http/index.html">Cookies &amp; sessions</a>
+<a href="../http/bodies.html">Bodies &amp; uploads</a>
+<a href="../http/caching.html">Caching &amp; compression</a>
+<a href="../http/streaming.html">Streaming &amp; timeouts</a>
+<a href="../http/proxy.html">Proxy &amp; i18n</a>
+<a href="../http/api.html">API reference</a>
+</details>
+<details class="nav-group package-group" open>
+<summary>Security</summary>
+<a href="index.html" aria-current="page">Authentication &amp; authorization</a>
+<a href="protection.html">CORS &amp; CSRF</a>
+<a href="hardening.html">Rate limiting &amp; headers</a>
+<a href="api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Observability</summary>
+<a href="../observability/index.html">Logging &amp; timing</a>
+<a href="../observability/health.html">Health &amp; shutdown</a>
+<a href="../observability/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>CLI</summary>
+<a href="../cli/index.html">Commands</a>
+<a href="../cli/prompts.html">Interactive prompts</a>
+<a href="../cli/run.html">Running on Bun</a>
+<a href="../cli/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Config</summary>
+<a href="../config/index.html">Defining configuration</a>
+<a href="../config/service.html">The config service</a>
+<a href="../config/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>OpenAPI</summary>
+<a href="../openapi/index.html">Describing routes</a>
+<a href="../openapi/document.html">Documents &amp; UIs</a>
+<a href="../openapi/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Events</summary>
+<a href="../events/index.html">Subscribing</a>
+<a href="../events/emitting.html">Emitting &amp; errors</a>
+<a href="../events/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Schedule</summary>
+<a href="../schedule/index.html">Jobs &amp; scheduling</a>
+<a href="../schedule/cron.html">The cron engine</a>
+<a href="../schedule/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Queue</summary>
+<a href="../queue/index.html">Producing &amp; processing</a>
+<a href="../queue/engines.html">Engines &amp; repeats</a>
+<a href="../queue/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>BullMQ</summary>
+<a href="../bullmq/index.html">The BullMQ module</a>
+<a href="../bullmq/schedulers.html">Schedulers &amp; queue access</a>
+<a href="../bullmq/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Testing</summary>
+<a href="../testing/index.html">Kernel &amp; modules</a>
+<a href="../testing/router.html">The router client</a>
+<a href="../testing/cli.html">The CLI runner</a>
+<a href="../testing/ws.html">The WebSocket harness</a>
+<a href="../testing/api.html">API reference</a>
+</details>
+</nav>
       </aside>
       <main id="main" tabindex="-1">
         <div class="breadcrumb">
           <a href="../index.html">Docs</a> <span>/</span> Security
-          <span>/</span> Overview
+          <span>/</span> Authentication &amp; authorization
         </div>
-        <h1>Security middleware</h1>
+        <h1>Authentication &amp; authorization</h1>
         <p class="lead">
-          CORS, CSRF protection, and secure headers for Rhythm routers.
+          Resolve the user once, derive it onto the context, and guard what
+          follows — predicates, roles, and permissions with honest 401/403
+          semantics.
         </p>
         <div class="article">
           <section aria-labelledby="install">
@@ -159,133 +287,188 @@
               <a href="#install">Install<span aria-hidden="true"> #</span></a>
             </h2>
             <p>
-              The package provides three independent middleware modules. Each
-              module is its own subpath export; there is no root barrel export.
-              Mount any of them with <code>use()</code> on a router or app.
+              <code>@rhythmjs/security</code> ships six independent middleware
+              modules, each on its own subpath export — there is no root barrel.
+              This page covers <code>/authentication</code> and
+              <code>/authorization</code>;
+              <a href="protection.html">CORS &amp; CSRF</a> and
+              <a href="hardening.html">rate limiting &amp; secure headers</a>
+              have their own pages.
             </p>
             <figure class="code-block">
-              <pre><code>pnpm add @rhythmjs/security @rhythmjs/rhythm @rhythmjs/router</code></pre>
+              <pre><code>bun add @rhythmjs/security @rhythmjs/rhythm @rhythmjs/router</code></pre>
             </figure>
           </section>
-          <section aria-labelledby="cors">
-            <h2 id="cors">
-              <a href="#cors">CORS<span aria-hidden="true"> #</span></a>
-            </h2>
-            <p>
-              <code>@rhythmjs/security/cors</code> sets the
-              <code>Access-Control-*</code> headers on every response and
-              answers preflight <code>OPTIONS</code> requests with
-              <code>204</code> before the router runs. The
-              <code>origin</code> option accepts the wildcard
-              <code>&quot;*&quot;</code> (the default), a single origin string,
-              an array of origins, or an
-              <code>(origin) =&gt; string | null</code> function. A non-wildcard
-              origin is echoed back only when the request origin matches, and
-              <code>Vary: Origin</code> is appended so caches keep responses
-              separate per origin.
-            </p>
-            <p>
-              Set <code>credentials</code> to allow cookies,
-              <code>exposeHeaders</code> to make response headers readable from
-              scripts, and <code>maxAge</code> to cache preflight results.
-            </p>
-            <figure class="code-block">
-              <pre><code>import { RhythmRouter } from &quot;@rhythmjs/router&quot;;
-import { cors } from &quot;@rhythmjs/security/cors&quot;;
-
-new RhythmRouter()
-  .use(cors({
-    origin: [&quot;https://app.example.com&quot;],
-    credentials: true,
-    maxAge: 600,
-  }))
-  .get(&quot;/api/data&quot;, (ctx) =&gt; {
-    ctx.response.body = &quot;data&quot;;
-  });</code></pre>
-            </figure>
-          </section>
-          <section aria-labelledby="csrf-protection">
-            <h2 id="csrf-protection">
-              <a href="#csrf-protection"
-                >CSRF protection<span aria-hidden="true"> #</span></a
+          <section aria-labelledby="attach-the-user">
+            <h2 id="attach-the-user">
+              <a href="#attach-the-user"
+                >Attach the user<span aria-hidden="true"> #</span></a
               >
             </h2>
             <p>
-              <code>@rhythmjs/security/csrf</code> blocks cross-site form
-              submissions by checking the <code>Origin</code> header. An unsafe
-              method (anything other than <code>GET</code> or <code>HEAD</code>)
-              with a form content type
-              (<code>application/x-www-form-urlencoded</code>,
-              <code>multipart/form-data</code>, or <code>text/plain</code>) and
-              a missing or unallowed <code>Origin</code> is rejected with
-              <code>403</code>. JSON and other non-form content types pass
-              through, because cross-site pages cannot send them without a CORS
-              preflight.
-            </p>
-            <p>
-              By default only same-origin form posts are allowed: the origin
-              must equal the request URL's own origin. The
-              <code>origin</code> option accepts a string, an array of strings,
-              or an <code>(origin) =&gt; boolean</code> predicate naming the
-              allowed origins.
+              <code>attachUser(resolve)</code> runs your resolver once per
+              request and derives <code>ctx.user</code> onto the context
+              (<code>UserContext&lt;TUser&gt;</code>). The resolver receives the
+              full <code>RhythmHttpContext</code>, may be async, and whatever it
+              returns is normalized with <code>?? null</code> — returning
+              <code>undefined</code> and returning <code>null</code> both mean
+              anonymous. Identity stays in your hands: a session lookup, a token
+              verification, a database call; the middleware only owns the
+              plumbing.
             </p>
             <figure class="code-block">
-              <pre><code>import { RhythmRouter } from &quot;@rhythmjs/router&quot;;
-import { csrf } from &quot;@rhythmjs/security/csrf&quot;;
+              <pre><code>import { attachUser, getBearerToken } from &quot;@rhythmjs/security/authentication&quot;;
 
-new RhythmRouter()
-  .use(csrf({ origin: [&quot;https://app.example.com&quot;] }))
-  .post(&quot;/submit&quot;, (ctx) =&gt; {
-    ctx.response.body = &quot;submitted&quot;;
-  });</code></pre>
+const withUser = attachUser(async (ctx) =&gt; {
+  const token = getBearerToken(ctx.request);
+  return token === null ? null : await users.byToken(token);
+});
+
+new RhythmRouter().use(withUser).get(&quot;/me&quot;, (ctx) =&gt; {
+  ctx.json(ctx.user); // TUser | null
+});</code></pre>
             </figure>
           </section>
-          <section aria-labelledby="secure-headers">
-            <h2 id="secure-headers">
-              <a href="#secure-headers"
-                >Secure headers<span aria-hidden="true"> #</span></a
+          <section aria-labelledby="guard-with-requireauthentication">
+            <h2 id="guard-with-requireauthentication">
+              <a href="#guard-with-requireauthentication"
+                >Guard with requireAuthentication<span aria-hidden="true">
+                  #</span
+                ></a
               >
             </h2>
             <p>
-              <code>@rhythmjs/security/secure-headers</code> applies
-              helmet-style security headers to every response after the handlers
-              run. Ten headers are set by default, including
-              <code>X-Frame-Options: SAMEORIGIN</code>,
-              <code>X-Content-Type-Options: nosniff</code>, and
-              <code>Strict-Transport-Security</code>. Every option accepts a
-              string to override the value or <code>false</code> to drop the
-              header. <code>contentSecurityPolicy</code> and
-              <code>crossOriginEmbedderPolicy</code> are off by default and set
-              only when configured.
+              <code>requireAuthentication()</code> stops anonymous requests and
+              narrows <code>ctx.user</code> to non-null for everything
+              downstream. The rejection is configurable: by default it answers
+              <code>401</code> (<code>status</code> and
+              <code>message</code> override it); <code>redirectTo</code> answers
+              a <code>302</code> to your login page instead;
+              <code>challenge</code> sets a <code>WWW-Authenticate</code> header
+              (for example <code>&quot;Bearer&quot;</code> or
+              <code>&quot;Basic realm=admin&quot;</code>) alongside the 401.
             </p>
             <figure class="code-block">
-              <pre><code>import { RhythmRouter } from &quot;@rhythmjs/router&quot;;
-import { secureHeaders } from &quot;@rhythmjs/security/secure-headers&quot;;
+              <pre><code>import { attachUser, requireAuthentication } from &quot;@rhythmjs/security/authentication&quot;;
 
 new RhythmRouter()
-  .use(secureHeaders({
-    contentSecurityPolicy: &quot;default-src 'self'&quot;,
-    xFrameOptions: &quot;DENY&quot;,
-    strictTransportSecurity: false,
-  }))
-  .get(&quot;/&quot;, (ctx) =&gt; {
-    ctx.response.body = &quot;&lt;h1&gt;hi&lt;/h1&gt;&quot;;
-  });</code></pre>
+  .use(attachUser((ctx) =&gt; sessionUser(ctx)))
+  .use(requireAuthentication({ challenge: &quot;Bearer&quot; }))
+  .get(&quot;/me&quot;, (ctx) =&gt; ctx.json(ctx.user)); // ctx.user: TUser — narrowed, no null check</code></pre>
             </figure>
             <p>
-              See the <a href="api.html">API reference</a> for every option and
-              its default value.
+              Two companions cover the remaining flows:
+              <code>isAuthenticated(ctx)</code> is the underlying type-guard
+              predicate, usable in your own branches, and
+              <code>redirectIfAuthenticated(to)</code> is the login-page inverse
+              — an already-signed-in user is redirected away, everyone else
+              falls through.
+            </p>
+          </section>
+          <section aria-labelledby="parse-authorization-headers">
+            <h2 id="parse-authorization-headers">
+              <a href="#parse-authorization-headers"
+                >Parse Authorization headers<span aria-hidden="true">
+                  #</span
+                ></a
+              >
+            </h2>
+            <p>
+              Two parsers read the <code>Authorization</code> header without
+              touching the context. <code>getBearerToken(request)</code> matches
+              <code>Bearer&nbsp;</code> case-insensitively, trims the token, and
+              returns <code>null</code> for a missing header, a different
+              scheme, or an empty token.
+              <code>getBasicCredentials(request)</code> base64-decodes
+              <code>Basic</code> credentials byte-safely (UTF-8 usernames and
+              passwords survive), splits on the first <code>:</code>, and
+              returns <code>{ username, password }</code> — or
+              <code>null</code> for malformed input rather than throwing.
+            </p>
+            <figure class="code-block">
+              <pre><code>import { getBasicCredentials } from &quot;@rhythmjs/security/authentication&quot;;
+
+const credentials = getBasicCredentials(ctx.request);
+// { username: &quot;ada&quot;, password: &quot;s3cret&quot; } | null</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="authorize-predicates">
+            <h2 id="authorize-predicates">
+              <a href="#authorize-predicates"
+                >Authorize with predicates<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              <code>@rhythmjs/security/authorization</code> builds on
+              <code>ctx.user</code>. The primitive is
+              <code>authorize(check)</code>: any sync or async predicate over
+              the context; a refusal answers <code>403</code> (override with
+              <code>status</code> / <code>message</code>) and the chain stops.
+            </p>
+            <figure class="code-block">
+              <pre><code>import { authorize } from &quot;@rhythmjs/security/authorization&quot;;
+
+documentsRouter.use(
+  authorize(async (ctx) =&gt; (await loadDocument(ctx)).ownerId === ctx.user.id, {
+    message: &quot;Not your document&quot;,
+  }),
+);</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="roles-and-permissions">
+            <h2 id="roles-and-permissions">
+              <a href="#roles-and-permissions"
+                >Roles and permissions<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              <code>requireRoles(required)</code> and
+              <code>requirePermissions(required)</code> are the common cases
+              packaged. They read <code>user.roles</code> and
+              <code>user.permissions</code> by default — override with the
+              <code>roles</code> / <code>permissions</code> extractor options
+              when your user shape differs. The <code>match</code> defaults
+              differ on purpose: roles match <code>&quot;any&quot;</code> (one
+              qualifying role suffices), permissions match
+              <code>&quot;all&quot;</code> (every listed permission is
+              required).
+            </p>
+            <figure class="code-block">
+              <pre><code>import { requireRoles, requirePermissions } from &quot;@rhythmjs/security/authorization&quot;;
+
+adminRouter.use(requireRoles([&quot;admin&quot;, &quot;ops&quot;])); // any of the two
+reportsRouter.use(requirePermissions([&quot;reports.read&quot;, &quot;reports.export&quot;])); // all of them
+legacyRouter.use(requireRoles([&quot;editor&quot;], { roles: (user) =&gt; user.groups }));</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="status-semantics">
+            <h2 id="status-semantics">
+              <a href="#status-semantics"
+                >401 versus 403<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              The two modules split the status codes the way HTTP intends.
+              Missing identity is <code>401</code>:
+              <code>requireAuthentication</code> answers it, and so do
+              <code>requireRoles</code> / <code>requirePermissions</code> when
+              <code>ctx.user</code> is null — an anonymous request is never told
+              it lacks a role. Present-but-insufficient identity is
+              <code>403</code>: <code>authorize</code> refusals and failed role
+              or permission checks. Rejections use the router&#x27;s
+              <code>ctx.error()</code>, so your exception filters and error
+              mapping see them like any other error response.
             </p>
           </section>
         </div>
         <nav class="pagination" aria-label="Previous and next pages">
           <span></span
-          ><a href="api.html"
-            ><span>Next →</span><strong>API reference</strong></a
+          ><a href="protection.html"
+            ><span>Next →</span><strong>CORS &amp; CSRF</strong></a
           >
         </nav>
         <footer class="page-footer">
-          <span>RhythmJS documentation · v0.0.1</span
+          <span>RhythmJS documentation · v0.0.11</span
           ><a href="https://github.com/rhythmjs/security"
             >github.com/rhythmjs/security</a
           >
@@ -295,9 +478,14 @@ new RhythmRouter()
         <nav aria-label="On this page">
           <p>ON THIS PAGE</p>
           <a href="#install">Install</a>
-          <a href="#cors">CORS</a>
-          <a href="#csrf-protection">CSRF protection</a>
-          <a href="#secure-headers">Secure headers</a>
+          <a href="#attach-the-user">Attach the user</a>
+          <a href="#guard-with-requireauthentication"
+            >Guard with requireAuthentication</a
+          >
+          <a href="#parse-authorization-headers">Parse Authorization headers</a>
+          <a href="#authorize-predicates">Authorize with predicates</a>
+          <a href="#roles-and-permissions">Roles and permissions</a>
+          <a href="#status-semantics">401 versus 403</a>
         </nav>
       </aside>
     </div>

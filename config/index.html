@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Schema-validated config factories for Rhythm: defineConfig, registerAs namespaces, and ConfigError reporting."
+    />
+    <meta name="color-scheme" content="light dark" />
+    <title>Defining configuration · RhythmJS</title>
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="RhythmJS documentation" />
+    <meta property="og:title" content="Defining configuration · RhythmJS" />
+    <meta
+      property="og:description"
+      content="Schema-validated config factories for Rhythm: defineConfig, registerAs namespaces, and ConfigError reporting."
+    />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Defining configuration · RhythmJS" />
+    <meta
+      name="twitter:description"
+      content="Schema-validated config factories for Rhythm: defineConfig, registerAs namespaces, and ConfigError reporting."
+    />
+    <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../assets/style.css" />
+    <script defer src="../assets/highlight.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="header">
+      <a
+        class="brand"
+        href="../index.html"
+        aria-label="RhythmJS documentation home"
+        ><svg viewBox="0 0 32 32" aria-hidden="true">
+          <path
+            d="M5.4 25.5V13M9.64 25.5V7.5M13.88 25.5V17M18.12 25.5V6M22.36 25.5V11.5M26.6 25.5V15"
+          /></svg
+        ><span>rhythm<span class="brand-js">js</span></span></a
+      >
+      <span class="version">v0.0.11</span>
+      <nav class="header-tabs" aria-label="Site">
+<a href="../index.html">Guide</a
+><a href="../rhythm/index.html" aria-current="true">Packages</a>
+</nav>
+<nav class="header-links" aria-label="External">
+<a href="https://github.com/rhythmjs">GitHub</a>
+</nav>
+    </header>
+    <details class="mobile-navigation">
+      <summary>Browse documentation</summary>
+      <nav aria-label="Documentation">
+<details class="nav-group package-group">
+<summary>Core</summary>
+<a href="../rhythm/index.html">Overview</a>
+<a href="../rhythm/middleware.html">Middleware &amp; context</a>
+<a href="../rhythm/providers.html">Providers &amp; lifecycle</a>
+<a href="../rhythm/modules.html">Encapsulated modules</a>
+<a href="../rhythm/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Router</summary>
+<a href="../router/index.html">Routing</a>
+<a href="../router/static.html">Serving files</a>
+<a href="../router/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>WebSockets</summary>
+<a href="../ws/index.html">Connection routing</a>
+<a href="../ws/serving.html">Serving &amp; pub/sub</a>
+<a href="../ws/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Middleware</summary>
+<a href="../middleware/index.html">Validate</a>
+<a href="../middleware/intercept.html">Intercept</a>
+<a href="../middleware/filter.html">Filter</a>
+<a href="../middleware/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>HTTP</summary>
+<a href="../http/index.html">Cookies &amp; sessions</a>
+<a href="../http/bodies.html">Bodies &amp; uploads</a>
+<a href="../http/caching.html">Caching &amp; compression</a>
+<a href="../http/streaming.html">Streaming &amp; timeouts</a>
+<a href="../http/proxy.html">Proxy &amp; i18n</a>
+<a href="../http/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Security</summary>
+<a href="../security/index.html">Authentication &amp; authorization</a>
+<a href="../security/protection.html">CORS &amp; CSRF</a>
+<a href="../security/hardening.html">Rate limiting &amp; headers</a>
+<a href="../security/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Observability</summary>
+<a href="../observability/index.html">Logging &amp; timing</a>
+<a href="../observability/health.html">Health &amp; shutdown</a>
+<a href="../observability/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>CLI</summary>
+<a href="../cli/index.html">Commands</a>
+<a href="../cli/prompts.html">Interactive prompts</a>
+<a href="../cli/run.html">Running on Bun</a>
+<a href="../cli/api.html">API reference</a>
+</details>
+<details class="nav-group package-group" open>
+<summary>Config</summary>
+<a href="index.html" aria-current="page">Defining configuration</a>
+<a href="service.html">The config service</a>
+<a href="api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>OpenAPI</summary>
+<a href="../openapi/index.html">Describing routes</a>
+<a href="../openapi/document.html">Documents &amp; UIs</a>
+<a href="../openapi/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Events</summary>
+<a href="../events/index.html">Subscribing</a>
+<a href="../events/emitting.html">Emitting &amp; errors</a>
+<a href="../events/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Schedule</summary>
+<a href="../schedule/index.html">Jobs &amp; scheduling</a>
+<a href="../schedule/cron.html">The cron engine</a>
+<a href="../schedule/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Queue</summary>
+<a href="../queue/index.html">Producing &amp; processing</a>
+<a href="../queue/engines.html">Engines &amp; repeats</a>
+<a href="../queue/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>BullMQ</summary>
+<a href="../bullmq/index.html">The BullMQ module</a>
+<a href="../bullmq/schedulers.html">Schedulers &amp; queue access</a>
+<a href="../bullmq/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Testing</summary>
+<a href="../testing/index.html">Kernel &amp; modules</a>
+<a href="../testing/router.html">The router client</a>
+<a href="../testing/cli.html">The CLI runner</a>
+<a href="../testing/ws.html">The WebSocket harness</a>
+<a href="../testing/api.html">API reference</a>
+</details>
+</nav>
+    </details>
+    <div class="layout">
+      <aside class="sidebar" id="sidebar">
+        <nav aria-label="Documentation">
+<details class="nav-group package-group">
+<summary>Core</summary>
+<a href="../rhythm/index.html">Overview</a>
+<a href="../rhythm/middleware.html">Middleware &amp; context</a>
+<a href="../rhythm/providers.html">Providers &amp; lifecycle</a>
+<a href="../rhythm/modules.html">Encapsulated modules</a>
+<a href="../rhythm/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Router</summary>
+<a href="../router/index.html">Routing</a>
+<a href="../router/static.html">Serving files</a>
+<a href="../router/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>WebSockets</summary>
+<a href="../ws/index.html">Connection routing</a>
+<a href="../ws/serving.html">Serving &amp; pub/sub</a>
+<a href="../ws/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Middleware</summary>
+<a href="../middleware/index.html">Validate</a>
+<a href="../middleware/intercept.html">Intercept</a>
+<a href="../middleware/filter.html">Filter</a>
+<a href="../middleware/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>HTTP</summary>
+<a href="../http/index.html">Cookies &amp; sessions</a>
+<a href="../http/bodies.html">Bodies &amp; uploads</a>
+<a href="../http/caching.html">Caching &amp; compression</a>
+<a href="../http/streaming.html">Streaming &amp; timeouts</a>
+<a href="../http/proxy.html">Proxy &amp; i18n</a>
+<a href="../http/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Security</summary>
+<a href="../security/index.html">Authentication &amp; authorization</a>
+<a href="../security/protection.html">CORS &amp; CSRF</a>
+<a href="../security/hardening.html">Rate limiting &amp; headers</a>
+<a href="../security/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Observability</summary>
+<a href="../observability/index.html">Logging &amp; timing</a>
+<a href="../observability/health.html">Health &amp; shutdown</a>
+<a href="../observability/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>CLI</summary>
+<a href="../cli/index.html">Commands</a>
+<a href="../cli/prompts.html">Interactive prompts</a>
+<a href="../cli/run.html">Running on Bun</a>
+<a href="../cli/api.html">API reference</a>
+</details>
+<details class="nav-group package-group" open>
+<summary>Config</summary>
+<a href="index.html" aria-current="page">Defining configuration</a>
+<a href="service.html">The config service</a>
+<a href="api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>OpenAPI</summary>
+<a href="../openapi/index.html">Describing routes</a>
+<a href="../openapi/document.html">Documents &amp; UIs</a>
+<a href="../openapi/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Events</summary>
+<a href="../events/index.html">Subscribing</a>
+<a href="../events/emitting.html">Emitting &amp; errors</a>
+<a href="../events/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Schedule</summary>
+<a href="../schedule/index.html">Jobs &amp; scheduling</a>
+<a href="../schedule/cron.html">The cron engine</a>
+<a href="../schedule/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Queue</summary>
+<a href="../queue/index.html">Producing &amp; processing</a>
+<a href="../queue/engines.html">Engines &amp; repeats</a>
+<a href="../queue/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>BullMQ</summary>
+<a href="../bullmq/index.html">The BullMQ module</a>
+<a href="../bullmq/schedulers.html">Schedulers &amp; queue access</a>
+<a href="../bullmq/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Testing</summary>
+<a href="../testing/index.html">Kernel &amp; modules</a>
+<a href="../testing/router.html">The router client</a>
+<a href="../testing/cli.html">The CLI runner</a>
+<a href="../testing/ws.html">The WebSocket harness</a>
+<a href="../testing/api.html">API reference</a>
+</details>
+</nav>
+      </aside>
+      <main id="main" tabindex="-1">
+        <div class="breadcrumb">
+          <a href="../index.html">Docs</a> <span>/</span> Config
+          <span>/</span> Defining configuration
+        </div>
+        <h1>Defining configuration</h1>
+        <p class="lead">
+          Config factories that own their own Standard Schema validation —
+          defineConfig for the root, registerAs for namespaces, ConfigError for
+          honest failures.
+        </p>
+        <div class="article">
+          <section aria-labelledby="install-the-package">
+            <h2 id="install-the-package">
+              <a href="#install-the-package"
+                >Install the package<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              <code>@rhythmjs/config</code> is a NestJS-style configuration
+              module for the Rhythm kernel. Everything is exported from the
+              package root; the type helpers are also available on the
+              <code>/types</code> subpath. Schemas are
+              <a href="https://standardschema.dev">Standard Schema v1</a>, so
+              zod, valibot, and arktype all work. This page covers defining and
+              validating configuration;
+              <a href="service.html">the config service</a> covers registering
+              it and reading it back.
+            </p>
+            <figure class="code-block">
+              <pre><code>bun add @rhythmjs/config @rhythmjs/rhythm zod</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="config-files-own-their-schemas">
+            <h2 id="config-files-own-their-schemas">
+              <a href="#config-files-own-their-schemas"
+                >Config files own their schemas<span aria-hidden="true">
+                  #</span
+                ></a
+              >
+            </h2>
+            <p>
+              <code>defineConfig(schema, factory)</code> pairs a schema with the
+              factory that reads the environment: each config file validates and
+              coerces itself, NestJS-style. The returned function is an async
+              factory that runs the schema every time it is called and throws a
+              <code>ConfigError</code> with serialized issues when validation
+              fails. Coercions and defaults live in the schema, so
+              <code>process.env</code> strings become numbers and booleans
+              before anyone reads them — and Bun loads <code>.env</code> files
+              natively, no loader needed.
+            </p>
+            <figure class="code-block">
+              <pre><code>import { defineConfig } from &quot;@rhythmjs/config&quot;;
+import { z } from &quot;zod&quot;;
+
+export const appConfig = defineConfig(
+  z.object({
+    port: z.coerce.number().default(3000),
+    debug: z.coerce.boolean().default(false),
+  }),
+  () =&gt; ({ port: process.env.PORT, debug: process.env.DEBUG }),
+);</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="namespace-with-registeras">
+            <h2 id="namespace-with-registeras">
+              <a href="#namespace-with-registeras"
+                >Namespace with registerAs<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              <code>registerAs(token, schema, factory)</code> builds the same
+              kind of self-validating factory but tags it with a namespace: its
+              output lands under <code>token</code> in the merged tree, and
+              validation issues carry the token prefixed to their paths
+              (<code>database.port</code>, not <code>port</code>), so aggregated
+              boot errors stay readable. The two-argument form
+              <code>registerAs(token, factory)</code> skips validation for
+              values that are already trusted. Factories may be async — fetching
+              remote configuration at boot works.
+            </p>
+            <figure class="code-block">
+              <pre><code>import { registerAs } from &quot;@rhythmjs/config&quot;;
+import { z } from &quot;zod&quot;;
+
+export const databaseConfig = registerAs(
+  &quot;database&quot;,
+  z.object({
+    host: z.string().default(&quot;localhost&quot;),
+    port: z.coerce.number().default(5432),
+  }),
+  () =&gt; ({ host: process.env.DATABASE_HOST, port: process.env.DATABASE_PORT }),
+);
+
+const remoteConfig = registerAs(&quot;remote&quot;, async () =&gt; fetchSettings());</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="configerror">
+            <h2 id="configerror">
+              <a href="#configerror"
+                >ConfigError<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              Every validation failure surfaces as a <code>ConfigError</code>.
+              Its <code>issues</code> array holds
+              <code>{ message, path? }</code> entries serialized from the schema
+              library&#x27;s Standard Schema issues (symbol path segments are
+              dropped, object segments reduced to their keys), and its message
+              lists every issue with its dot path — one line per problem.
+              <code>createConfigService(value)</code> is also exported directly
+              for building a service from an already-validated object, without
+              the module.
+            </p>
+            <figure class="code-block">
+              <pre><code>import { ConfigError } from &quot;@rhythmjs/config&quot;;
+
+try {
+  await app.setup();
+} catch (error) {
+  if (error instanceof ConfigError) {
+    for (const issue of error.issues) report(issue.path?.join(&quot;.&quot;), issue.message);
+  }
+  throw error;
+}</code></pre>
+            </figure>
+          </section>
+        </div>
+        <nav class="pagination" aria-label="Previous and next pages">
+          <span></span
+          ><a href="service.html"
+            ><span>Next →</span><strong>The config service</strong></a
+          >
+        </nav>
+        <footer class="page-footer">
+          <span>RhythmJS documentation · v0.0.11</span
+          ><a href="https://github.com/rhythmjs/config"
+            >github.com/rhythmjs/config</a
+          >
+        </footer>
+      </main>
+      <aside class="toc">
+        <nav aria-label="On this page">
+          <p>ON THIS PAGE</p>
+          <a href="#install-the-package">Install the package</a>
+          <a href="#config-files-own-their-schemas"
+            >Config files own their schemas</a
+          >
+          <a href="#namespace-with-registeras">Namespace with registerAs</a>
+          <a href="#configerror">ConfigError</a>
+        </nav>
+      </aside>
+    </div>
+  </body>
+</html>

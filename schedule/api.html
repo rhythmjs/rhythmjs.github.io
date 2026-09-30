@@ -1,0 +1,520 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Every export of @rhythmjs/schedule: job factories, cronPatterns, the schedule service, the Cron engine, and the in-process scheduler."
+    />
+    <meta name="color-scheme" content="light dark" />
+    <title>API reference · RhythmJS</title>
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="RhythmJS documentation" />
+    <meta property="og:title" content="API reference · RhythmJS" />
+    <meta
+      property="og:description"
+      content="Every export of @rhythmjs/schedule: job factories, cronPatterns, the schedule service, the Cron engine, and the in-process scheduler."
+    />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="API reference · RhythmJS" />
+    <meta
+      name="twitter:description"
+      content="Every export of @rhythmjs/schedule: job factories, cronPatterns, the schedule service, the Cron engine, and the in-process scheduler."
+    />
+    <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../assets/style.css" />
+    <script defer src="../assets/highlight.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="header">
+      <a
+        class="brand"
+        href="../index.html"
+        aria-label="RhythmJS documentation home"
+        ><svg viewBox="0 0 32 32" aria-hidden="true">
+          <path
+            d="M5.4 25.5V13M9.64 25.5V7.5M13.88 25.5V17M18.12 25.5V6M22.36 25.5V11.5M26.6 25.5V15"
+          /></svg
+        ><span>rhythm<span class="brand-js">js</span></span></a
+      >
+      <span class="version">v0.0.11</span>
+      <nav class="header-tabs" aria-label="Site">
+<a href="../index.html">Guide</a
+><a href="../rhythm/index.html" aria-current="true">Packages</a>
+</nav>
+<nav class="header-links" aria-label="External">
+<a href="https://github.com/rhythmjs">GitHub</a>
+</nav>
+    </header>
+    <details class="mobile-navigation">
+      <summary>Browse documentation</summary>
+      <nav aria-label="Documentation">
+<details class="nav-group package-group">
+<summary>Core</summary>
+<a href="../rhythm/index.html">Overview</a>
+<a href="../rhythm/middleware.html">Middleware &amp; context</a>
+<a href="../rhythm/providers.html">Providers &amp; lifecycle</a>
+<a href="../rhythm/modules.html">Encapsulated modules</a>
+<a href="../rhythm/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Router</summary>
+<a href="../router/index.html">Routing</a>
+<a href="../router/static.html">Serving files</a>
+<a href="../router/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>WebSockets</summary>
+<a href="../ws/index.html">Connection routing</a>
+<a href="../ws/serving.html">Serving &amp; pub/sub</a>
+<a href="../ws/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Middleware</summary>
+<a href="../middleware/index.html">Validate</a>
+<a href="../middleware/intercept.html">Intercept</a>
+<a href="../middleware/filter.html">Filter</a>
+<a href="../middleware/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>HTTP</summary>
+<a href="../http/index.html">Cookies &amp; sessions</a>
+<a href="../http/bodies.html">Bodies &amp; uploads</a>
+<a href="../http/caching.html">Caching &amp; compression</a>
+<a href="../http/streaming.html">Streaming &amp; timeouts</a>
+<a href="../http/proxy.html">Proxy &amp; i18n</a>
+<a href="../http/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Security</summary>
+<a href="../security/index.html">Authentication &amp; authorization</a>
+<a href="../security/protection.html">CORS &amp; CSRF</a>
+<a href="../security/hardening.html">Rate limiting &amp; headers</a>
+<a href="../security/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Observability</summary>
+<a href="../observability/index.html">Logging &amp; timing</a>
+<a href="../observability/health.html">Health &amp; shutdown</a>
+<a href="../observability/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>CLI</summary>
+<a href="../cli/index.html">Commands</a>
+<a href="../cli/prompts.html">Interactive prompts</a>
+<a href="../cli/run.html">Running on Bun</a>
+<a href="../cli/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Config</summary>
+<a href="../config/index.html">Defining configuration</a>
+<a href="../config/service.html">The config service</a>
+<a href="../config/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>OpenAPI</summary>
+<a href="../openapi/index.html">Describing routes</a>
+<a href="../openapi/document.html">Documents &amp; UIs</a>
+<a href="../openapi/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Events</summary>
+<a href="../events/index.html">Subscribing</a>
+<a href="../events/emitting.html">Emitting &amp; errors</a>
+<a href="../events/api.html">API reference</a>
+</details>
+<details class="nav-group package-group" open>
+<summary>Schedule</summary>
+<a href="index.html">Jobs &amp; scheduling</a>
+<a href="cron.html">The cron engine</a>
+<a href="api.html" aria-current="page">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Queue</summary>
+<a href="../queue/index.html">Producing &amp; processing</a>
+<a href="../queue/engines.html">Engines &amp; repeats</a>
+<a href="../queue/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>BullMQ</summary>
+<a href="../bullmq/index.html">The BullMQ module</a>
+<a href="../bullmq/schedulers.html">Schedulers &amp; queue access</a>
+<a href="../bullmq/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Testing</summary>
+<a href="../testing/index.html">Kernel &amp; modules</a>
+<a href="../testing/router.html">The router client</a>
+<a href="../testing/cli.html">The CLI runner</a>
+<a href="../testing/ws.html">The WebSocket harness</a>
+<a href="../testing/api.html">API reference</a>
+</details>
+</nav>
+    </details>
+    <div class="layout">
+      <aside class="sidebar" id="sidebar">
+        <nav aria-label="Documentation">
+<details class="nav-group package-group">
+<summary>Core</summary>
+<a href="../rhythm/index.html">Overview</a>
+<a href="../rhythm/middleware.html">Middleware &amp; context</a>
+<a href="../rhythm/providers.html">Providers &amp; lifecycle</a>
+<a href="../rhythm/modules.html">Encapsulated modules</a>
+<a href="../rhythm/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Router</summary>
+<a href="../router/index.html">Routing</a>
+<a href="../router/static.html">Serving files</a>
+<a href="../router/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>WebSockets</summary>
+<a href="../ws/index.html">Connection routing</a>
+<a href="../ws/serving.html">Serving &amp; pub/sub</a>
+<a href="../ws/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Middleware</summary>
+<a href="../middleware/index.html">Validate</a>
+<a href="../middleware/intercept.html">Intercept</a>
+<a href="../middleware/filter.html">Filter</a>
+<a href="../middleware/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>HTTP</summary>
+<a href="../http/index.html">Cookies &amp; sessions</a>
+<a href="../http/bodies.html">Bodies &amp; uploads</a>
+<a href="../http/caching.html">Caching &amp; compression</a>
+<a href="../http/streaming.html">Streaming &amp; timeouts</a>
+<a href="../http/proxy.html">Proxy &amp; i18n</a>
+<a href="../http/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Security</summary>
+<a href="../security/index.html">Authentication &amp; authorization</a>
+<a href="../security/protection.html">CORS &amp; CSRF</a>
+<a href="../security/hardening.html">Rate limiting &amp; headers</a>
+<a href="../security/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Observability</summary>
+<a href="../observability/index.html">Logging &amp; timing</a>
+<a href="../observability/health.html">Health &amp; shutdown</a>
+<a href="../observability/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>CLI</summary>
+<a href="../cli/index.html">Commands</a>
+<a href="../cli/prompts.html">Interactive prompts</a>
+<a href="../cli/run.html">Running on Bun</a>
+<a href="../cli/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Config</summary>
+<a href="../config/index.html">Defining configuration</a>
+<a href="../config/service.html">The config service</a>
+<a href="../config/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>OpenAPI</summary>
+<a href="../openapi/index.html">Describing routes</a>
+<a href="../openapi/document.html">Documents &amp; UIs</a>
+<a href="../openapi/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Events</summary>
+<a href="../events/index.html">Subscribing</a>
+<a href="../events/emitting.html">Emitting &amp; errors</a>
+<a href="../events/api.html">API reference</a>
+</details>
+<details class="nav-group package-group" open>
+<summary>Schedule</summary>
+<a href="index.html">Jobs &amp; scheduling</a>
+<a href="cron.html">The cron engine</a>
+<a href="api.html" aria-current="page">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Queue</summary>
+<a href="../queue/index.html">Producing &amp; processing</a>
+<a href="../queue/engines.html">Engines &amp; repeats</a>
+<a href="../queue/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>BullMQ</summary>
+<a href="../bullmq/index.html">The BullMQ module</a>
+<a href="../bullmq/schedulers.html">Schedulers &amp; queue access</a>
+<a href="../bullmq/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Testing</summary>
+<a href="../testing/index.html">Kernel &amp; modules</a>
+<a href="../testing/router.html">The router client</a>
+<a href="../testing/cli.html">The CLI runner</a>
+<a href="../testing/ws.html">The WebSocket harness</a>
+<a href="../testing/api.html">API reference</a>
+</details>
+</nav>
+      </aside>
+      <main id="main" tabindex="-1">
+        <div class="breadcrumb">
+          <a href="../index.html">Docs</a> <span>/</span> Schedule
+          <span>/</span> API reference
+        </div>
+        <h1>API reference</h1>
+        <p class="lead">
+          Every export across the four subpaths: job factories and the service
+          on the root, the shared types, the Cron engine on /cron, and
+          startScheduler on /scheduler.
+        </p>
+        <div class="article">
+          <section aria-labelledby="root-subpath">
+            <h2 id="root-subpath">
+              <a href="#root-subpath"
+                >@rhythmjs/schedule<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <figure class="code-block">
+              <pre><code>function cronJob(name: string, schedule: string, handler: JobHandler, options?: JobOptions): ScheduleJob;
+function intervalJob(name: string, ms: number, handler: JobHandler, options?: JobOptions): ScheduleJob;
+function timeoutJob(name: string, ms: number, handler: JobHandler, options?: JobOptions): ScheduleJob;</code></pre>
+            </figure>
+            <p>
+              Job factories. Each validates that <code>handler</code> is a
+              function and freezes the options into the job value:
+              <code>timezone</code> is kept only when given,
+              <code>overlap</code> defaults to <code>&quot;skip&quot;</code>,
+              <code>disabled</code> to <code>false</code>.
+            </p>
+            <figure class="code-block">
+              <pre><code>const cronPatterns: {
+  everySecond: &quot;* * * * * *&quot;; everyMinute: &quot;* * * * *&quot;;
+  every5Minutes: &quot;*/5 * * * *&quot;; every10Minutes: &quot;*/10 * * * *&quot;;
+  every30Minutes: &quot;*/30 * * * *&quot;; hourly: &quot;0 * * * *&quot;;
+  daily: &quot;0 0 * * *&quot;; weekly: &quot;0 0 * * 0&quot;;
+  monthly: &quot;0 0 1 * *&quot;; yearly: &quot;0 0 1 1 *&quot;;
+};</code></pre>
+            </figure>
+            <figure class="code-block">
+              <pre><code>function createScheduleService(...jobs: ScheduleJob[]): ScheduleService;</code></pre>
+            </figure>
+            <p>
+              Builds the registry and state map. Throws on duplicate job names;
+              every service method that takes a name throws
+              <code>unknown job &quot;name&quot;</code> for unregistered names.
+            </p>
+            <figure class="code-block">
+              <pre><code>const scheduleModule: {
+  forRoot(...jobs: ScheduleJob[]): Rhythm&lt;...&gt;; // provides { scheduleService }
+};</code></pre>
+            </figure>
+            <p>All types below are re-exported from the root as well.</p>
+          </section>
+          <section aria-labelledby="schedule-service">
+            <h2 id="schedule-service">
+              <a href="#schedule-service"
+                >ScheduleService<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <figure class="code-block">
+              <pre><code>interface ScheduleService {
+  readonly jobs: readonly ScheduleJob[];
+  add(job: ScheduleJob): void;
+  remove(name: string): void;
+  run(name: string): Promise&lt;JobRunResult&gt;;
+  runDue(date?: Date): Promise&lt;JobRunResult[]&gt;;
+  nextRun(name: string, from?: Date): Date | null;
+  state(name: string): JobState;
+}</code></pre>
+            </figure>
+            <dl>
+              <dt>run(name)</dt>
+              <dd>
+                Executes one job now. Returns
+                <code>{ name, ran: false }</code> when the job is disabled, or
+                already running with <code>overlap: &quot;skip&quot;</code>.
+                Otherwise runs the handler, records <code>lastRun</code> and
+                <code>runs</code>, captures a thrown error's message into
+                <code>lastError</code> and the result, and always reports
+                <code>durationMs</code> (rounded).
+              </dd>
+              <dt>runDue(date?)</dt>
+              <dd>
+                For every enabled cron job, computes the occurrence in the
+                minute containing <code>date</code> (default now) and runs the
+                job when that occurrence falls at or before <code>date</code>.
+                Returns the results in registry order.
+              </dd>
+              <dt>nextRun(name, from?)</dt>
+              <dd>
+                The next occurrence of a cron job strictly after
+                <code>from</code> (default now); <code>null</code> for interval
+                and timeout jobs, or when the pattern can never occur again.
+              </dd>
+              <dt>state(name)</dt>
+              <dd>
+                <code>{ running, runs, lastRun?, lastError? }</code> plus
+                <code>nextRun</code> for cron jobs.
+                <code>lastError</code> clears on the next successful run.
+              </dd>
+              <dt>add(job) / remove(name) / jobs</dt>
+              <dd>
+                Dynamic registry. <code>add</code> throws on duplicates;
+                <code>remove</code> throws on unknown names;
+                <code>jobs</code> returns a fresh array.
+              </dd>
+            </dl>
+          </section>
+          <section aria-labelledby="types-subpath">
+            <h2 id="types-subpath">
+              <a href="#types-subpath"
+                >@rhythmjs/schedule/types<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <dl>
+              <dt>JobHandler</dt>
+              <dd><code>() =&gt; void | Promise&lt;void&gt;</code>.</dd>
+              <dt>JobKind</dt>
+              <dd>
+                <code
+                  >&quot;cron&quot; | &quot;interval&quot; |
+                  &quot;timeout&quot;</code
+                >.
+              </dd>
+              <dt>OverlapPolicy</dt>
+              <dd><code>&quot;skip&quot; | &quot;allow&quot;</code>.</dd>
+              <dt>JobOptions</dt>
+              <dd>
+                <code
+                  >{ timezone?: string; overlap?: OverlapPolicy; disabled?:
+                  boolean }</code
+                >.
+              </dd>
+              <dt>ScheduleJob</dt>
+              <dd>
+                The frozen job value:
+                <code
+                  >{ name, kind, schedule: string | number, handler, timezone?,
+                  overlap, disabled }</code
+                >.
+              </dd>
+              <dt>JobState</dt>
+              <dd>
+                <code
+                  >{ running: boolean; runs: number; lastRun?: Date; lastError?:
+                  string; nextRun?: Date }</code
+                >.
+              </dd>
+              <dt>JobRunResult</dt>
+              <dd>
+                <code
+                  >{ name: string; ran: boolean; durationMs?: number; error?:
+                  string }</code
+                >.
+              </dd>
+              <dt>ScheduleContext</dt>
+              <dd>
+                <code>{ scheduleService: ScheduleService }</code> — the context
+                slice the module provides.
+              </dd>
+            </dl>
+          </section>
+          <section aria-labelledby="cron-subpath">
+            <h2 id="cron-subpath">
+              <a href="#cron-subpath"
+                >@rhythmjs/schedule/cron<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <figure class="code-block">
+              <pre><code>interface CronOptions { timezone?: string }
+
+class Cron {
+  readonly pattern: string;
+  constructor(pattern: string, options?: CronOptions);
+  nextRun(from?: Date): Date | null;
+}</code></pre>
+            </figure>
+            <p>
+              The dependency-free cron engine. The constructor throws on
+              malformed patterns (field counts other than 5 or 6, out-of-range
+              values, reversed ranges, zero steps, unknown names) and on unknown
+              timezones. Accepted syntax per field: <code>*</code>, values,
+              names (<code>jan–dec</code>, <code>sun–sat</code>), lists
+              (<code>a,b,c</code>), ranges (<code>a-b</code>), steps
+              (<code>*/n</code>, <code>a-b/n</code>, <code>a/n</code> meaning
+              <code>a</code> to max), plus the <code>@yearly</code>,
+              <code>@annually</code>, <code>@monthly</code>,
+              <code>@weekly</code>, <code>@daily</code>,
+              <code>@hourly</code> aliases. Six fields add leading seconds; five
+              fields imply second zero. Day-of-week <code>7</code> is Sunday.
+            </p>
+            <p>
+              <code>nextRun(from?)</code> returns the next occurrence strictly
+              after <code>from</code> at second resolution. When both
+              day-of-month and day-of-week are restricted (neither starts with
+              <code>*</code>), a date matching either is due. With
+              <code>timezone</code> set, wall-clock fields are evaluated in that
+              zone via <code>Intl.DateTimeFormat</code>; a time erased by a DST
+              spring-forward gap is skipped to the next real occurrence. The
+              search is bounded (about eight years) — an impossible date such as
+              February 30 returns <code>null</code>.
+            </p>
+          </section>
+          <section aria-labelledby="scheduler-subpath">
+            <h2 id="scheduler-subpath">
+              <a href="#scheduler-subpath"
+                >@rhythmjs/schedule/scheduler<span aria-hidden="true">
+                  #</span
+                ></a
+              >
+            </h2>
+            <figure class="code-block">
+              <pre><code>interface Scheduler { stop(): void }
+
+function startScheduler(service: ScheduleService): Scheduler;</code></pre>
+            </figure>
+            <p>
+              Snapshots <code>service.jobs</code> and arms every enabled job:
+              cron jobs via a <code>setTimeout</code> chain that re-arms after
+              each run (<code>service.run</code> enforces the overlap policy),
+              intervals via <code>setInterval</code>, timeouts via a single
+              <code>setTimeout</code>. Delays above <code>2³¹−1</code> ms re-arm
+              in chunks instead of firing early. <code>stop()</code> clears
+              every timer and prevents re-arming; a run already in flight
+              completes.
+            </p>
+          </section>
+        </div>
+        <nav class="pagination" aria-label="Previous and next pages">
+          <a href="cron.html"
+            ><span>← Previous</span><strong>The cron engine</strong></a
+          ><span></span>
+        </nav>
+        <footer class="page-footer">
+          <span>RhythmJS documentation · v0.0.11</span
+          ><a href="https://github.com/rhythmjs/tasks"
+            >github.com/rhythmjs/tasks</a
+          >
+        </footer>
+      </main>
+      <aside class="toc">
+        <nav aria-label="On this page">
+          <p>ON THIS PAGE</p>
+          <a href="#root-subpath">@rhythmjs/schedule</a>
+          <a href="#schedule-service">ScheduleService</a>
+          <a href="#types-subpath">@rhythmjs/schedule/types</a>
+          <a href="#cron-subpath">@rhythmjs/schedule/cron</a>
+          <a href="#scheduler-subpath">@rhythmjs/schedule/scheduler</a>
+        </nav>
+      </aside>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,454 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="The queue's two in-house engines — in-memory and Bun.redis with atomic ZREM claims — plus replica-safe repeatable schedules and the QueueEngine contract."
+    />
+    <meta name="color-scheme" content="light dark" />
+    <title>Engines &amp; repeats · RhythmJS</title>
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="RhythmJS documentation" />
+    <meta property="og:title" content="Engines &amp; repeats · RhythmJS" />
+    <meta
+      property="og:description"
+      content="The queue's two in-house engines — in-memory and Bun.redis with atomic ZREM claims — plus replica-safe repeatable schedules and the QueueEngine contract."
+    />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Engines &amp; repeats · RhythmJS" />
+    <meta
+      name="twitter:description"
+      content="The queue's two in-house engines — in-memory and Bun.redis with atomic ZREM claims — plus replica-safe repeatable schedules and the QueueEngine contract."
+    />
+    <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../assets/style.css" />
+    <script defer src="../assets/highlight.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="header">
+      <a
+        class="brand"
+        href="../index.html"
+        aria-label="RhythmJS documentation home"
+        ><svg viewBox="0 0 32 32" aria-hidden="true">
+          <path
+            d="M5.4 25.5V13M9.64 25.5V7.5M13.88 25.5V17M18.12 25.5V6M22.36 25.5V11.5M26.6 25.5V15"
+          /></svg
+        ><span>rhythm<span class="brand-js">js</span></span></a
+      >
+      <span class="version">v0.0.11</span>
+      <nav class="header-tabs" aria-label="Site">
+<a href="../index.html">Guide</a
+><a href="../rhythm/index.html" aria-current="true">Packages</a>
+</nav>
+<nav class="header-links" aria-label="External">
+<a href="https://github.com/rhythmjs">GitHub</a>
+</nav>
+    </header>
+    <details class="mobile-navigation">
+      <summary>Browse documentation</summary>
+      <nav aria-label="Documentation">
+<details class="nav-group package-group">
+<summary>Core</summary>
+<a href="../rhythm/index.html">Overview</a>
+<a href="../rhythm/middleware.html">Middleware &amp; context</a>
+<a href="../rhythm/providers.html">Providers &amp; lifecycle</a>
+<a href="../rhythm/modules.html">Encapsulated modules</a>
+<a href="../rhythm/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Router</summary>
+<a href="../router/index.html">Routing</a>
+<a href="../router/static.html">Serving files</a>
+<a href="../router/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>WebSockets</summary>
+<a href="../ws/index.html">Connection routing</a>
+<a href="../ws/serving.html">Serving &amp; pub/sub</a>
+<a href="../ws/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Middleware</summary>
+<a href="../middleware/index.html">Validate</a>
+<a href="../middleware/intercept.html">Intercept</a>
+<a href="../middleware/filter.html">Filter</a>
+<a href="../middleware/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>HTTP</summary>
+<a href="../http/index.html">Cookies &amp; sessions</a>
+<a href="../http/bodies.html">Bodies &amp; uploads</a>
+<a href="../http/caching.html">Caching &amp; compression</a>
+<a href="../http/streaming.html">Streaming &amp; timeouts</a>
+<a href="../http/proxy.html">Proxy &amp; i18n</a>
+<a href="../http/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Security</summary>
+<a href="../security/index.html">Authentication &amp; authorization</a>
+<a href="../security/protection.html">CORS &amp; CSRF</a>
+<a href="../security/hardening.html">Rate limiting &amp; headers</a>
+<a href="../security/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Observability</summary>
+<a href="../observability/index.html">Logging &amp; timing</a>
+<a href="../observability/health.html">Health &amp; shutdown</a>
+<a href="../observability/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>CLI</summary>
+<a href="../cli/index.html">Commands</a>
+<a href="../cli/prompts.html">Interactive prompts</a>
+<a href="../cli/run.html">Running on Bun</a>
+<a href="../cli/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Config</summary>
+<a href="../config/index.html">Defining configuration</a>
+<a href="../config/service.html">The config service</a>
+<a href="../config/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>OpenAPI</summary>
+<a href="../openapi/index.html">Describing routes</a>
+<a href="../openapi/document.html">Documents &amp; UIs</a>
+<a href="../openapi/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Events</summary>
+<a href="../events/index.html">Subscribing</a>
+<a href="../events/emitting.html">Emitting &amp; errors</a>
+<a href="../events/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Schedule</summary>
+<a href="../schedule/index.html">Jobs &amp; scheduling</a>
+<a href="../schedule/cron.html">The cron engine</a>
+<a href="../schedule/api.html">API reference</a>
+</details>
+<details class="nav-group package-group" open>
+<summary>Queue</summary>
+<a href="index.html">Producing &amp; processing</a>
+<a href="engines.html" aria-current="page">Engines &amp; repeats</a>
+<a href="api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>BullMQ</summary>
+<a href="../bullmq/index.html">The BullMQ module</a>
+<a href="../bullmq/schedulers.html">Schedulers &amp; queue access</a>
+<a href="../bullmq/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Testing</summary>
+<a href="../testing/index.html">Kernel &amp; modules</a>
+<a href="../testing/router.html">The router client</a>
+<a href="../testing/cli.html">The CLI runner</a>
+<a href="../testing/ws.html">The WebSocket harness</a>
+<a href="../testing/api.html">API reference</a>
+</details>
+</nav>
+    </details>
+    <div class="layout">
+      <aside class="sidebar" id="sidebar">
+        <nav aria-label="Documentation">
+<details class="nav-group package-group">
+<summary>Core</summary>
+<a href="../rhythm/index.html">Overview</a>
+<a href="../rhythm/middleware.html">Middleware &amp; context</a>
+<a href="../rhythm/providers.html">Providers &amp; lifecycle</a>
+<a href="../rhythm/modules.html">Encapsulated modules</a>
+<a href="../rhythm/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Router</summary>
+<a href="../router/index.html">Routing</a>
+<a href="../router/static.html">Serving files</a>
+<a href="../router/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>WebSockets</summary>
+<a href="../ws/index.html">Connection routing</a>
+<a href="../ws/serving.html">Serving &amp; pub/sub</a>
+<a href="../ws/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Middleware</summary>
+<a href="../middleware/index.html">Validate</a>
+<a href="../middleware/intercept.html">Intercept</a>
+<a href="../middleware/filter.html">Filter</a>
+<a href="../middleware/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>HTTP</summary>
+<a href="../http/index.html">Cookies &amp; sessions</a>
+<a href="../http/bodies.html">Bodies &amp; uploads</a>
+<a href="../http/caching.html">Caching &amp; compression</a>
+<a href="../http/streaming.html">Streaming &amp; timeouts</a>
+<a href="../http/proxy.html">Proxy &amp; i18n</a>
+<a href="../http/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Security</summary>
+<a href="../security/index.html">Authentication &amp; authorization</a>
+<a href="../security/protection.html">CORS &amp; CSRF</a>
+<a href="../security/hardening.html">Rate limiting &amp; headers</a>
+<a href="../security/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Observability</summary>
+<a href="../observability/index.html">Logging &amp; timing</a>
+<a href="../observability/health.html">Health &amp; shutdown</a>
+<a href="../observability/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>CLI</summary>
+<a href="../cli/index.html">Commands</a>
+<a href="../cli/prompts.html">Interactive prompts</a>
+<a href="../cli/run.html">Running on Bun</a>
+<a href="../cli/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Config</summary>
+<a href="../config/index.html">Defining configuration</a>
+<a href="../config/service.html">The config service</a>
+<a href="../config/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>OpenAPI</summary>
+<a href="../openapi/index.html">Describing routes</a>
+<a href="../openapi/document.html">Documents &amp; UIs</a>
+<a href="../openapi/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Events</summary>
+<a href="../events/index.html">Subscribing</a>
+<a href="../events/emitting.html">Emitting &amp; errors</a>
+<a href="../events/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Schedule</summary>
+<a href="../schedule/index.html">Jobs &amp; scheduling</a>
+<a href="../schedule/cron.html">The cron engine</a>
+<a href="../schedule/api.html">API reference</a>
+</details>
+<details class="nav-group package-group" open>
+<summary>Queue</summary>
+<a href="index.html">Producing &amp; processing</a>
+<a href="engines.html" aria-current="page">Engines &amp; repeats</a>
+<a href="api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>BullMQ</summary>
+<a href="../bullmq/index.html">The BullMQ module</a>
+<a href="../bullmq/schedulers.html">Schedulers &amp; queue access</a>
+<a href="../bullmq/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Testing</summary>
+<a href="../testing/index.html">Kernel &amp; modules</a>
+<a href="../testing/router.html">The router client</a>
+<a href="../testing/cli.html">The CLI runner</a>
+<a href="../testing/ws.html">The WebSocket harness</a>
+<a href="../testing/api.html">API reference</a>
+</details>
+</nav>
+      </aside>
+      <main id="main" tabindex="-1">
+        <div class="breadcrumb">
+          <a href="../index.html">Docs</a> <span>/</span> Queue
+          <span>/</span> Engines &amp; repeats
+        </div>
+        <h1>Two engines, one contract</h1>
+        <p class="lead">
+          In-memory by default, Bun's native redis client for distribution: key
+          layout, atomic claims, repeatable schedules through the cron engine,
+          and the structural contract both engines implement.
+        </p>
+        <div class="article">
+          <section aria-labelledby="choosing-an-engine">
+            <h2 id="choosing-an-engine">
+              <a href="#choosing-an-engine"
+                >Choosing an engine<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              The service is engine-agnostic. With no options it runs on
+              <code>memoryEngine()</code>; setting <code>redis</code> selects
+              <code>redisEngine</code> on Bun's native client; passing
+              <code>engine</code> injects your own. Producers and processors
+              never change.
+            </p>
+            <figure class="code-block">
+              <pre><code>queueModule.forRoot&lt;AppJobs&gt;();                                  // in-memory
+queueModule.forRoot&lt;AppJobs&gt;({ redis: process.env.REDIS_URL });  // distributed
+queueModule.forRoot&lt;AppJobs&gt;({ engine: myEngine });              // custom</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="the-memory-engine">
+            <h2 id="the-memory-engine">
+              <a href="#the-memory-engine"
+                >The memory engine<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              <code>memoryEngine()</code> is in-process and zero-dependency:
+              waiting and delayed jobs live in arrays, due delayed jobs are
+              promoted on every take, the highest <code>priority</code> wins
+              (FIFO within), and a pending-id set implements
+              <code>jobId</code> dedupe. Perfect for tests, CLIs, and
+              single-instance apps; nothing survives the process.
+            </p>
+          </section>
+          <section aria-labelledby="the-redis-engine">
+            <h2 id="the-redis-engine">
+              <a href="#the-redis-engine"
+                >The redis engine<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              <code>redisEngine(connection?, { prefix? })</code> distributes on
+              Bun's native redis client. Pass a <code>redis://</code> URL — the
+              engine constructs, owns, and closes the client — an existing
+              <code>Bun.RedisClient</code> (left open on close), or nothing to
+              use <code>Bun.redis</code> and its <code>REDIS_URL</code>. It
+              actually accepts any
+              <code>RedisLike</code> (<code>send</code>/<code>close</code>),
+              which is how the package's own tests run against an in-memory
+              fake, no server needed.
+            </p>
+            <figure class="code-block">
+              <pre><code>import { createQueueService, redisEngine } from &quot;@rhythmjs/queue&quot;;
+
+const service = createQueueService&lt;AppJobs&gt;({
+  engine: redisEngine(&quot;redis://localhost:6379&quot;, { prefix: &quot;app:jobs&quot; }),
+});</code></pre>
+            </figure>
+            <p>
+              The key layout is plain Redis: ready work in the
+              <code>{prefix}:waiting</code> list; delayed jobs in the
+              <code>{prefix}:delayed</code> sorted set scored by readiness time;
+              repeats in <code>{prefix}:repeat</code> (a sorted set of names)
+              plus a <code>{prefix}:repeat:data</code> hash; counters at
+              <code>{prefix}:completed</code> and <code>{prefix}:failed</code>.
+              The default prefix is <code>rhythm:queue</code>; through the
+              module it composes as
+              <code
+                >{options.prefix ?? &quot;rhythm&quot;}:{options.name ??
+                &quot;queue&quot;}</code
+              >.
+            </p>
+            <p>
+              Every claim goes through an atomic <code>ZREM</code>: whichever
+              worker removes the member owns it, so concurrent workers never
+              double-take a delayed job or a due repeat.
+            </p>
+          </section>
+          <section aria-labelledby="repeatable-schedules">
+            <h2 id="repeatable-schedules">
+              <a href="#repeatable-schedules"
+                >Repeatable schedules<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <figure class="code-block">
+              <pre><code>await queueService.schedule(&quot;order.process&quot;, { pattern: &quot;0 3 * * *&quot;, timezone: &quot;UTC&quot; }, { orderId: &quot;nightly&quot; });
+await queueService.schedule(&quot;email.send&quot;, { every: 60_000, limit: 10 }, { to: &quot;digest@x&quot;, subject: &quot;digest&quot; });
+await queueService.unschedule(&quot;order.process&quot;);</code></pre>
+            </figure>
+            <p>
+              <code>every</code> repeats on a fixed interval;
+              <code>pattern</code> runs through
+              <a href="../schedule/cron.html"
+                >@rhythmjs/schedule's cron engine</a
+              >
+              with full timezone and DST semantics; one of the two is required
+              (otherwise <code>schedule</code> throws).
+              <code>limit</code> counts down and the schedule retires at zero.
+              Each firing enqueues an ordinary job that inherits
+              <code>defaultJobOptions</code> plus the options you scheduled
+              with.
+            </p>
+            <p>
+              On the redis engine, due repeats are claimed with the same atomic
+              <code>ZREM</code> before being re-armed — a schedule fires
+              <strong>once across any number of app replicas</strong>.
+            </p>
+          </section>
+          <section aria-labelledby="the-engine-contract">
+            <h2 id="the-engine-contract">
+              <a href="#the-engine-contract"
+                >The engine contract<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              Both engines implement the structural
+              <code>QueueEngine</code> interface — <code>add</code>,
+              <code>addBulk</code>, <code>take(now)</code> (the engine promotes
+              its own due delayed jobs), <code>requeue(job, readyAt)</code> for
+              retries,
+              <code>record(&quot;completed&quot; | &quot;failed&quot;)</code>,
+              <code>setRepeat</code
+              >/<code>clearRepeat</code>/<code>claimDueRepeats(now)</code>,
+              <code>counts</code>, and <code>close</code> — over the
+              <code>StoredJob</code> and <code>RepeatSpec</code> shapes. Tests
+              can substitute a recording engine wholesale.
+            </p>
+          </section>
+          <section aria-labelledby="queue-or-bullmq">
+            <h2 id="queue-or-bullmq">
+              <a href="#queue-or-bullmq"
+                >Queue or BullMQ?<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              This package trades BullMQ's machinery for zero queue
+              dependencies. What it does not have: stalled-job recovery (a job
+              popped by a worker that crashes mid-run is lost), Lua-scripted
+              atomic state transitions, per-job history, pause/resume, rate
+              limiting, and the Bull Board ecosystem. If you want those,
+              <a href="../bullmq/index.html">@rhythmjs/bullmq</a> serves the
+              same typed service shape on full BullMQ — switching is a one-line
+              change at the registration site. See the
+              <a href="api.html">API reference</a> for every export.
+            </p>
+          </section>
+        </div>
+        <nav class="pagination" aria-label="Previous and next pages">
+          <a href="index.html"
+            ><span>← Previous</span
+            ><strong>Producing &amp; processing</strong></a
+          ><a href="api.html"
+            ><span>Next →</span><strong>API reference</strong></a
+          >
+        </nav>
+        <footer class="page-footer">
+          <span>RhythmJS documentation · v0.0.11</span
+          ><a href="https://github.com/rhythmjs/tasks"
+            >github.com/rhythmjs/tasks</a
+          >
+        </footer>
+      </main>
+      <aside class="toc">
+        <nav aria-label="On this page">
+          <p>ON THIS PAGE</p>
+          <a href="#choosing-an-engine">Choosing an engine</a>
+          <a href="#the-memory-engine">The memory engine</a>
+          <a href="#the-redis-engine">The redis engine</a>
+          <a href="#repeatable-schedules">Repeatable schedules</a>
+          <a href="#the-engine-contract">The engine contract</a>
+          <a href="#queue-or-bullmq">Queue or BullMQ?</a>
+        </nav>
+      </aside>
+    </div>
+  </body>
+</html>

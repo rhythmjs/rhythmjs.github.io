@@ -1,0 +1,446 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="CORS with preflight handling and origin-checked CSRF protection for Rhythm routers."
+    />
+    <meta name="color-scheme" content="light dark" />
+    <title>CORS &amp; CSRF · RhythmJS</title>
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="RhythmJS documentation" />
+    <meta property="og:title" content="CORS &amp; CSRF · RhythmJS" />
+    <meta
+      property="og:description"
+      content="CORS with preflight handling and origin-checked CSRF protection for Rhythm routers."
+    />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="CORS &amp; CSRF · RhythmJS" />
+    <meta
+      name="twitter:description"
+      content="CORS with preflight handling and origin-checked CSRF protection for Rhythm routers."
+    />
+    <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../assets/style.css" />
+    <script defer src="../assets/highlight.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="header">
+      <a
+        class="brand"
+        href="../index.html"
+        aria-label="RhythmJS documentation home"
+        ><svg viewBox="0 0 32 32" aria-hidden="true">
+          <path
+            d="M5.4 25.5V13M9.64 25.5V7.5M13.88 25.5V17M18.12 25.5V6M22.36 25.5V11.5M26.6 25.5V15"
+          /></svg
+        ><span>rhythm<span class="brand-js">js</span></span></a
+      >
+      <span class="version">v0.0.11</span>
+      <nav class="header-tabs" aria-label="Site">
+<a href="../index.html">Guide</a
+><a href="../rhythm/index.html" aria-current="true">Packages</a>
+</nav>
+<nav class="header-links" aria-label="External">
+<a href="https://github.com/rhythmjs">GitHub</a>
+</nav>
+    </header>
+    <details class="mobile-navigation">
+      <summary>Browse documentation</summary>
+      <nav aria-label="Documentation">
+<details class="nav-group package-group">
+<summary>Core</summary>
+<a href="../rhythm/index.html">Overview</a>
+<a href="../rhythm/middleware.html">Middleware &amp; context</a>
+<a href="../rhythm/providers.html">Providers &amp; lifecycle</a>
+<a href="../rhythm/modules.html">Encapsulated modules</a>
+<a href="../rhythm/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Router</summary>
+<a href="../router/index.html">Routing</a>
+<a href="../router/static.html">Serving files</a>
+<a href="../router/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>WebSockets</summary>
+<a href="../ws/index.html">Connection routing</a>
+<a href="../ws/serving.html">Serving &amp; pub/sub</a>
+<a href="../ws/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Middleware</summary>
+<a href="../middleware/index.html">Validate</a>
+<a href="../middleware/intercept.html">Intercept</a>
+<a href="../middleware/filter.html">Filter</a>
+<a href="../middleware/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>HTTP</summary>
+<a href="../http/index.html">Cookies &amp; sessions</a>
+<a href="../http/bodies.html">Bodies &amp; uploads</a>
+<a href="../http/caching.html">Caching &amp; compression</a>
+<a href="../http/streaming.html">Streaming &amp; timeouts</a>
+<a href="../http/proxy.html">Proxy &amp; i18n</a>
+<a href="../http/api.html">API reference</a>
+</details>
+<details class="nav-group package-group" open>
+<summary>Security</summary>
+<a href="index.html">Authentication &amp; authorization</a>
+<a href="protection.html" aria-current="page">CORS &amp; CSRF</a>
+<a href="hardening.html">Rate limiting &amp; headers</a>
+<a href="api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Observability</summary>
+<a href="../observability/index.html">Logging &amp; timing</a>
+<a href="../observability/health.html">Health &amp; shutdown</a>
+<a href="../observability/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>CLI</summary>
+<a href="../cli/index.html">Commands</a>
+<a href="../cli/prompts.html">Interactive prompts</a>
+<a href="../cli/run.html">Running on Bun</a>
+<a href="../cli/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Config</summary>
+<a href="../config/index.html">Defining configuration</a>
+<a href="../config/service.html">The config service</a>
+<a href="../config/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>OpenAPI</summary>
+<a href="../openapi/index.html">Describing routes</a>
+<a href="../openapi/document.html">Documents &amp; UIs</a>
+<a href="../openapi/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Events</summary>
+<a href="../events/index.html">Subscribing</a>
+<a href="../events/emitting.html">Emitting &amp; errors</a>
+<a href="../events/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Schedule</summary>
+<a href="../schedule/index.html">Jobs &amp; scheduling</a>
+<a href="../schedule/cron.html">The cron engine</a>
+<a href="../schedule/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Queue</summary>
+<a href="../queue/index.html">Producing &amp; processing</a>
+<a href="../queue/engines.html">Engines &amp; repeats</a>
+<a href="../queue/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>BullMQ</summary>
+<a href="../bullmq/index.html">The BullMQ module</a>
+<a href="../bullmq/schedulers.html">Schedulers &amp; queue access</a>
+<a href="../bullmq/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Testing</summary>
+<a href="../testing/index.html">Kernel &amp; modules</a>
+<a href="../testing/router.html">The router client</a>
+<a href="../testing/cli.html">The CLI runner</a>
+<a href="../testing/ws.html">The WebSocket harness</a>
+<a href="../testing/api.html">API reference</a>
+</details>
+</nav>
+    </details>
+    <div class="layout">
+      <aside class="sidebar" id="sidebar">
+        <nav aria-label="Documentation">
+<details class="nav-group package-group">
+<summary>Core</summary>
+<a href="../rhythm/index.html">Overview</a>
+<a href="../rhythm/middleware.html">Middleware &amp; context</a>
+<a href="../rhythm/providers.html">Providers &amp; lifecycle</a>
+<a href="../rhythm/modules.html">Encapsulated modules</a>
+<a href="../rhythm/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Router</summary>
+<a href="../router/index.html">Routing</a>
+<a href="../router/static.html">Serving files</a>
+<a href="../router/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>WebSockets</summary>
+<a href="../ws/index.html">Connection routing</a>
+<a href="../ws/serving.html">Serving &amp; pub/sub</a>
+<a href="../ws/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Middleware</summary>
+<a href="../middleware/index.html">Validate</a>
+<a href="../middleware/intercept.html">Intercept</a>
+<a href="../middleware/filter.html">Filter</a>
+<a href="../middleware/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>HTTP</summary>
+<a href="../http/index.html">Cookies &amp; sessions</a>
+<a href="../http/bodies.html">Bodies &amp; uploads</a>
+<a href="../http/caching.html">Caching &amp; compression</a>
+<a href="../http/streaming.html">Streaming &amp; timeouts</a>
+<a href="../http/proxy.html">Proxy &amp; i18n</a>
+<a href="../http/api.html">API reference</a>
+</details>
+<details class="nav-group package-group" open>
+<summary>Security</summary>
+<a href="index.html">Authentication &amp; authorization</a>
+<a href="protection.html" aria-current="page">CORS &amp; CSRF</a>
+<a href="hardening.html">Rate limiting &amp; headers</a>
+<a href="api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Observability</summary>
+<a href="../observability/index.html">Logging &amp; timing</a>
+<a href="../observability/health.html">Health &amp; shutdown</a>
+<a href="../observability/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>CLI</summary>
+<a href="../cli/index.html">Commands</a>
+<a href="../cli/prompts.html">Interactive prompts</a>
+<a href="../cli/run.html">Running on Bun</a>
+<a href="../cli/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Config</summary>
+<a href="../config/index.html">Defining configuration</a>
+<a href="../config/service.html">The config service</a>
+<a href="../config/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>OpenAPI</summary>
+<a href="../openapi/index.html">Describing routes</a>
+<a href="../openapi/document.html">Documents &amp; UIs</a>
+<a href="../openapi/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Events</summary>
+<a href="../events/index.html">Subscribing</a>
+<a href="../events/emitting.html">Emitting &amp; errors</a>
+<a href="../events/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Schedule</summary>
+<a href="../schedule/index.html">Jobs &amp; scheduling</a>
+<a href="../schedule/cron.html">The cron engine</a>
+<a href="../schedule/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Queue</summary>
+<a href="../queue/index.html">Producing &amp; processing</a>
+<a href="../queue/engines.html">Engines &amp; repeats</a>
+<a href="../queue/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>BullMQ</summary>
+<a href="../bullmq/index.html">The BullMQ module</a>
+<a href="../bullmq/schedulers.html">Schedulers &amp; queue access</a>
+<a href="../bullmq/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Testing</summary>
+<a href="../testing/index.html">Kernel &amp; modules</a>
+<a href="../testing/router.html">The router client</a>
+<a href="../testing/cli.html">The CLI runner</a>
+<a href="../testing/ws.html">The WebSocket harness</a>
+<a href="../testing/api.html">API reference</a>
+</details>
+</nav>
+      </aside>
+      <main id="main" tabindex="-1">
+        <div class="breadcrumb">
+          <a href="../index.html">Docs</a> <span>/</span> Security
+          <span>/</span> CORS &amp; CSRF
+        </div>
+        <h1>CORS &amp; CSRF</h1>
+        <p class="lead">
+          Cross-origin resource sharing with preflight handling, and
+          origin-checked CSRF protection for form submissions — no token
+          bookkeeping.
+        </p>
+        <div class="article">
+          <section aria-labelledby="cors-basics">
+            <h2 id="cors-basics">
+              <a href="#cors-basics"
+                >CORS basics<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              <code>@rhythmjs/security/cors</code> sets the
+              <code>Access-Control-*</code> headers on every response and
+              answers preflights before the router runs. The
+              <code>origin</code> option accepts the wildcard
+              <code>&quot;*&quot;</code> (the default), one origin string, an
+              array of origins, or an
+              <code>(origin) =&gt; string | null</code> function for dynamic
+              rules. A non-wildcard origin is echoed back only when the
+              request&#x27;s <code>Origin</code> matches, and
+              <code>Vary: Origin</code> is appended so shared caches keep
+              per-origin responses apart.
+            </p>
+            <figure class="code-block">
+              <pre><code>import { RhythmRouter } from &quot;@rhythmjs/router&quot;;
+import { cors } from &quot;@rhythmjs/security/cors&quot;;
+
+new RhythmRouter()
+  .use(cors({ origin: [&quot;https://app.example.com&quot;], credentials: true, maxAge: 600 }))
+  .get(&quot;/api/data&quot;, (ctx) =&gt; {
+    ctx.json({ ok: true });
+  });</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="preflight-requests">
+            <h2 id="preflight-requests">
+              <a href="#preflight-requests"
+                >Preflight requests<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              An <code>OPTIONS</code> request short-circuits with
+              <code>204 No Content</code> before any handler runs. The preflight
+              answer carries <code>Access-Control-Allow-Methods</code> (default
+              <code>GET, HEAD, PUT, POST, DELETE, PATCH, QUERY</code>),
+              <code>Access-Control-Max-Age</code> when <code>maxAge</code> is
+              set, and <code>Access-Control-Allow-Headers</code>: either your
+              configured <code>allowHeaders</code>, or — when the option is
+              empty — a reflection of the browser&#x27;s
+              <code>Access-Control-Request-Headers</code>, with
+              <code>Vary: Access-Control-Request-Headers</code> appended for
+              caches. Any stray <code>Content-Type</code> and
+              <code>Content-Length</code> headers are stripped from the 204.
+            </p>
+          </section>
+          <section aria-labelledby="credentials-and-exposure">
+            <h2 id="credentials-and-exposure">
+              <a href="#credentials-and-exposure"
+                >Credentials and exposed headers<span aria-hidden="true">
+                  #</span
+                ></a
+              >
+            </h2>
+            <p>
+              <code>credentials: true</code> sets
+              <code>Access-Control-Allow-Credentials</code> so cookies and
+              <code>Authorization</code> headers cross origins — pair it with
+              explicit origins, never the wildcard.
+              <code>exposeHeaders</code> lists response headers scripts may read
+              beyond the CORS-safelisted set (for example <code>ETag</code> or
+              the draft <code>RateLimit-*</code> family from the
+              <a href="hardening.html">rate limiter</a>).
+            </p>
+          </section>
+          <section aria-labelledby="csrf-model">
+            <h2 id="csrf-model">
+              <a href="#csrf-model"
+                >The CSRF model<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              <code>@rhythmjs/security/csrf</code> blocks cross-site form
+              submissions by checking the <code>Origin</code> header instead of
+              managing tokens. A request is rejected only when all three hold:
+              the method is unsafe (anything but <code>GET</code> or
+              <code>HEAD</code>), the content type is form-shaped
+              (<code>application/x-www-form-urlencoded</code>,
+              <code>multipart/form-data</code>, or <code>text/plain</code> —
+              what a plain HTML form can send), and the <code>Origin</code> is
+              missing or not allowed. The rejection is a <code>403</code> with a
+              JSON body of
+              <code
+                >{ success: false, status: 403, message: &quot;Forbidden&quot;
+                }</code
+              >.
+            </p>
+            <p>
+              JSON and other non-form content types pass through untouched,
+              because a cross-site page cannot send them without a CORS
+              preflight — that path is
+              <a href="#cors-basics">CORS&#x27;s</a> job, not CSRF&#x27;s.
+            </p>
+          </section>
+          <section aria-labelledby="csrf-origins">
+            <h2 id="csrf-origins">
+              <a href="#csrf-origins"
+                >Allowed origins<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              By default only same-origin form posts are allowed: the
+              <code>Origin</code> must equal the request URL&#x27;s own origin.
+              The <code>origin</code> option widens that — a string, an array of
+              strings, or an <code>(origin) =&gt; boolean</code> predicate.
+            </p>
+            <figure class="code-block">
+              <pre><code>import { csrf } from &quot;@rhythmjs/security/csrf&quot;;
+
+new RhythmRouter()
+  .use(csrf({ origin: [&quot;https://app.example.com&quot;, &quot;https://admin.example.com&quot;] }))
+  .post(&quot;/submit&quot;, (ctx) =&gt; {
+    ctx.text(&quot;submitted&quot;);
+  });</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="using-both">
+            <h2 id="using-both">
+              <a href="#using-both"
+                >Using both together<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              The two protect different edges: CORS governs what browser scripts
+              may read across origins, CSRF governs what cross-site pages may
+              write. Mount <code>cors()</code> first so preflights are answered
+              before <code>csrf()</code> ever sees them (preflights are
+              <code>OPTIONS</code>, which CSRF ignores anyway), then
+              <code>csrf()</code>, then your routes.
+            </p>
+          </section>
+        </div>
+        <nav class="pagination" aria-label="Previous and next pages">
+          <a href="index.html"
+            ><span>← Previous</span
+            ><strong>Authentication &amp; authorization</strong></a
+          ><a href="hardening.html"
+            ><span>Next →</span><strong>Rate limiting &amp; headers</strong></a
+          >
+        </nav>
+        <footer class="page-footer">
+          <span>RhythmJS documentation · v0.0.11</span
+          ><a href="https://github.com/rhythmjs/security"
+            >github.com/rhythmjs/security</a
+          >
+        </footer>
+      </main>
+      <aside class="toc">
+        <nav aria-label="On this page">
+          <p>ON THIS PAGE</p>
+          <a href="#cors-basics">CORS basics</a>
+          <a href="#preflight-requests">Preflight requests</a>
+          <a href="#credentials-and-exposure"
+            >Credentials and exposed headers</a
+          >
+          <a href="#csrf-model">The CSRF model</a>
+          <a href="#csrf-origins">Allowed origins</a>
+          <a href="#using-both">Using both together</a>
+        </nav>
+      </aside>
+    </div>
+  </body>
+</html>

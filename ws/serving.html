@@ -1,0 +1,447 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Wire RhythmWs into Bun.serve: the three-way upgrade contract, one shared websocket behavior, router integration, and Bun-native pub/sub."
+    />
+    <meta name="color-scheme" content="light dark" />
+    <title>Serving &amp; pub/sub · RhythmJS</title>
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="RhythmJS documentation" />
+    <meta property="og:title" content="Serving &amp; pub/sub · RhythmJS" />
+    <meta
+      property="og:description"
+      content="Wire RhythmWs into Bun.serve: the three-way upgrade contract, one shared websocket behavior, router integration, and Bun-native pub/sub."
+    />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Serving &amp; pub/sub · RhythmJS" />
+    <meta
+      name="twitter:description"
+      content="Wire RhythmWs into Bun.serve: the three-way upgrade contract, one shared websocket behavior, router integration, and Bun-native pub/sub."
+    />
+    <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../assets/style.css" />
+    <script defer src="../assets/highlight.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="header">
+      <a
+        class="brand"
+        href="../index.html"
+        aria-label="RhythmJS documentation home"
+        ><svg viewBox="0 0 32 32" aria-hidden="true">
+          <path
+            d="M5.4 25.5V13M9.64 25.5V7.5M13.88 25.5V17M18.12 25.5V6M22.36 25.5V11.5M26.6 25.5V15"
+          /></svg
+        ><span>rhythm<span class="brand-js">js</span></span></a
+      >
+      <span class="version">v0.0.11</span>
+      <nav class="header-tabs" aria-label="Site">
+<a href="../index.html">Guide</a
+><a href="../rhythm/index.html" aria-current="true">Packages</a>
+</nav>
+<nav class="header-links" aria-label="External">
+<a href="https://github.com/rhythmjs">GitHub</a>
+</nav>
+    </header>
+    <details class="mobile-navigation">
+      <summary>Browse documentation</summary>
+      <nav aria-label="Documentation">
+<details class="nav-group package-group">
+<summary>Core</summary>
+<a href="../rhythm/index.html">Overview</a>
+<a href="../rhythm/middleware.html">Middleware &amp; context</a>
+<a href="../rhythm/providers.html">Providers &amp; lifecycle</a>
+<a href="../rhythm/modules.html">Encapsulated modules</a>
+<a href="../rhythm/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Router</summary>
+<a href="../router/index.html">Routing</a>
+<a href="../router/static.html">Serving files</a>
+<a href="../router/api.html">API reference</a>
+</details>
+<details class="nav-group package-group" open>
+<summary>WebSockets</summary>
+<a href="index.html">Connection routing</a>
+<a href="serving.html" aria-current="page">Serving &amp; pub/sub</a>
+<a href="api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Middleware</summary>
+<a href="../middleware/index.html">Validate</a>
+<a href="../middleware/intercept.html">Intercept</a>
+<a href="../middleware/filter.html">Filter</a>
+<a href="../middleware/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>HTTP</summary>
+<a href="../http/index.html">Cookies &amp; sessions</a>
+<a href="../http/bodies.html">Bodies &amp; uploads</a>
+<a href="../http/caching.html">Caching &amp; compression</a>
+<a href="../http/streaming.html">Streaming &amp; timeouts</a>
+<a href="../http/proxy.html">Proxy &amp; i18n</a>
+<a href="../http/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Security</summary>
+<a href="../security/index.html">Authentication &amp; authorization</a>
+<a href="../security/protection.html">CORS &amp; CSRF</a>
+<a href="../security/hardening.html">Rate limiting &amp; headers</a>
+<a href="../security/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Observability</summary>
+<a href="../observability/index.html">Logging &amp; timing</a>
+<a href="../observability/health.html">Health &amp; shutdown</a>
+<a href="../observability/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>CLI</summary>
+<a href="../cli/index.html">Commands</a>
+<a href="../cli/prompts.html">Interactive prompts</a>
+<a href="../cli/run.html">Running on Bun</a>
+<a href="../cli/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Config</summary>
+<a href="../config/index.html">Defining configuration</a>
+<a href="../config/service.html">The config service</a>
+<a href="../config/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>OpenAPI</summary>
+<a href="../openapi/index.html">Describing routes</a>
+<a href="../openapi/document.html">Documents &amp; UIs</a>
+<a href="../openapi/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Events</summary>
+<a href="../events/index.html">Subscribing</a>
+<a href="../events/emitting.html">Emitting &amp; errors</a>
+<a href="../events/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Schedule</summary>
+<a href="../schedule/index.html">Jobs &amp; scheduling</a>
+<a href="../schedule/cron.html">The cron engine</a>
+<a href="../schedule/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Queue</summary>
+<a href="../queue/index.html">Producing &amp; processing</a>
+<a href="../queue/engines.html">Engines &amp; repeats</a>
+<a href="../queue/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>BullMQ</summary>
+<a href="../bullmq/index.html">The BullMQ module</a>
+<a href="../bullmq/schedulers.html">Schedulers &amp; queue access</a>
+<a href="../bullmq/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Testing</summary>
+<a href="../testing/index.html">Kernel &amp; modules</a>
+<a href="../testing/router.html">The router client</a>
+<a href="../testing/cli.html">The CLI runner</a>
+<a href="../testing/ws.html">The WebSocket harness</a>
+<a href="../testing/api.html">API reference</a>
+</details>
+</nav>
+    </details>
+    <div class="layout">
+      <aside class="sidebar" id="sidebar">
+        <nav aria-label="Documentation">
+<details class="nav-group package-group">
+<summary>Core</summary>
+<a href="../rhythm/index.html">Overview</a>
+<a href="../rhythm/middleware.html">Middleware &amp; context</a>
+<a href="../rhythm/providers.html">Providers &amp; lifecycle</a>
+<a href="../rhythm/modules.html">Encapsulated modules</a>
+<a href="../rhythm/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Router</summary>
+<a href="../router/index.html">Routing</a>
+<a href="../router/static.html">Serving files</a>
+<a href="../router/api.html">API reference</a>
+</details>
+<details class="nav-group package-group" open>
+<summary>WebSockets</summary>
+<a href="index.html">Connection routing</a>
+<a href="serving.html" aria-current="page">Serving &amp; pub/sub</a>
+<a href="api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Middleware</summary>
+<a href="../middleware/index.html">Validate</a>
+<a href="../middleware/intercept.html">Intercept</a>
+<a href="../middleware/filter.html">Filter</a>
+<a href="../middleware/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>HTTP</summary>
+<a href="../http/index.html">Cookies &amp; sessions</a>
+<a href="../http/bodies.html">Bodies &amp; uploads</a>
+<a href="../http/caching.html">Caching &amp; compression</a>
+<a href="../http/streaming.html">Streaming &amp; timeouts</a>
+<a href="../http/proxy.html">Proxy &amp; i18n</a>
+<a href="../http/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Security</summary>
+<a href="../security/index.html">Authentication &amp; authorization</a>
+<a href="../security/protection.html">CORS &amp; CSRF</a>
+<a href="../security/hardening.html">Rate limiting &amp; headers</a>
+<a href="../security/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Observability</summary>
+<a href="../observability/index.html">Logging &amp; timing</a>
+<a href="../observability/health.html">Health &amp; shutdown</a>
+<a href="../observability/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>CLI</summary>
+<a href="../cli/index.html">Commands</a>
+<a href="../cli/prompts.html">Interactive prompts</a>
+<a href="../cli/run.html">Running on Bun</a>
+<a href="../cli/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Config</summary>
+<a href="../config/index.html">Defining configuration</a>
+<a href="../config/service.html">The config service</a>
+<a href="../config/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>OpenAPI</summary>
+<a href="../openapi/index.html">Describing routes</a>
+<a href="../openapi/document.html">Documents &amp; UIs</a>
+<a href="../openapi/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Events</summary>
+<a href="../events/index.html">Subscribing</a>
+<a href="../events/emitting.html">Emitting &amp; errors</a>
+<a href="../events/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Schedule</summary>
+<a href="../schedule/index.html">Jobs &amp; scheduling</a>
+<a href="../schedule/cron.html">The cron engine</a>
+<a href="../schedule/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Queue</summary>
+<a href="../queue/index.html">Producing &amp; processing</a>
+<a href="../queue/engines.html">Engines &amp; repeats</a>
+<a href="../queue/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>BullMQ</summary>
+<a href="../bullmq/index.html">The BullMQ module</a>
+<a href="../bullmq/schedulers.html">Schedulers &amp; queue access</a>
+<a href="../bullmq/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Testing</summary>
+<a href="../testing/index.html">Kernel &amp; modules</a>
+<a href="../testing/router.html">The router client</a>
+<a href="../testing/cli.html">The CLI runner</a>
+<a href="../testing/ws.html">The WebSocket harness</a>
+<a href="../testing/api.html">API reference</a>
+</details>
+</nav>
+      </aside>
+      <main id="main" tabindex="-1">
+        <div class="breadcrumb">
+          <a href="../index.html">Docs</a> <span>/</span> WebSockets
+          <span>/</span> Serving &amp; pub/sub
+        </div>
+        <h1>Serve and fan out</h1>
+        <p class="lead">
+          One <code>fetch</code> expression upgrades matching requests, one
+          <code>websocket</code> behavior dispatches every connection, and
+          fan-out is Bun&#39;s own pub/sub.
+        </p>
+        <div class="article">
+          <section aria-labelledby="the-upgrade-contract">
+            <h2 id="the-upgrade-contract">
+              <a href="#the-upgrade-contract"
+                >The upgrade contract<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              The fetch-side half is <code>upgrade(request, server)</code>,
+              bound so you can pass it around. Its result is three-way: it
+              returns <code>null</code> <em>synchronously</em> when the request
+              is not a websocket upgrade or matches no route — which is what
+              makes single-expression composition with <code>??</code> work —
+              otherwise a promise that resolves to <code>undefined</code> once
+              <code>server.upgrade()</code> has taken the socket, or to the
+              <code>Response</code> that rejects the handshake — from a guard or
+              from the route&#39;s <code>upgrade</code>. A refused
+              <code>server.upgrade()</code> answers
+              <code>500 Upgrade failed</code>, Bun&#39;s own convention.
+            </p>
+            <figure class="code-block">
+              <pre><code>Bun.serve({
+  port: 3000,
+  fetch: (request, server) =&gt; ws.upgrade(request, server) ?? app(request),
+  websocket: ws.websocket,
+});</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="the-websocket-behavior">
+            <h2 id="the-websocket-behavior">
+              <a href="#the-websocket-behavior"
+                >The websocket behavior<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              <code>ws.websocket</code> is the one behavior object
+              <code>Bun.serve</code> accepts. Each event looks up the
+              connection&#39;s route through the shared registry keyed on
+              <code>ws.data</code> identity and forwards to that route&#39;s
+              handler — <code>open</code>, <code>message</code>,
+              <code>drain</code>, <code>close</code>, <code>ping</code>,
+              <code>pong</code>. The getter also carries the constructor&#39;s
+              behavior tuning, passed through to Bun verbatim:
+              <code>idleTimeout</code>, <code>maxPayloadLength</code>,
+              <code>backpressureLimit</code>,
+              <code>closeOnBackpressureLimit</code>, <code>sendPings</code>,
+              <code>publishToSelf</code>, and <code>perMessageDeflate</code>.
+            </p>
+          </section>
+          <section aria-labelledby="multiple-apps-one-server">
+            <h2 id="multiple-apps-one-server">
+              <a href="#multiple-apps-one-server"
+                >Multiple apps, one server<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              Because dispatch is keyed on data identity in a registry shared
+              across instances, one <code>websocket</code> behavior serves
+              connections upgraded by <em>any</em> <code>RhythmWs</code> on the
+              server. Chain the upgrades and pass either instance&#39;s
+              behavior:
+            </p>
+            <figure class="code-block">
+              <pre><code>Bun.serve({
+  fetch: (req, server) =&gt;
+    support.upgrade(req, server) ?? sales.upgrade(req, server) ?? app(req),
+  websocket: support.websocket, // dispatches for sales too
+});</code></pre>
+            </figure>
+            <p>
+              Prefer <code>merge()</code> when the apps share guards or a
+              prefix; prefer chained upgrades when they are independent
+              deployables. Note the behavior tuning comes from whichever
+              instance provides <code>websocket</code>.
+            </p>
+          </section>
+          <section aria-labelledby="with-the-router">
+            <h2 id="with-the-router">
+              <a href="#with-the-router"
+                >With @rhythmjs/router<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              There is no server wrapper anywhere in the ecosystem — the
+              router&#x27;s app is a fetch handler, so both halves plug into the
+              same hand-written <code>Bun.serve</code> call you already own. The
+              sync-<code>null</code> contract keeps it one expression.
+            </p>
+            <figure class="code-block">
+              <pre><code>import { toFetchHandler } from &quot;@rhythmjs/router/fetch&quot;;
+
+const handler = toFetchHandler(app);
+
+Bun.serve({
+  port: 3000,
+  fetch: (request, server) =&gt; ws.upgrade(request, server) ?? handler(request),
+  websocket: ws.websocket,
+});</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="pushing-from-http">
+            <h2 id="pushing-from-http">
+              <a href="#pushing-from-http"
+                >Pushing from HTTP handlers<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              Fan-out is Bun&#39;s native pub/sub. Inside handlers,
+              <code>ws.subscribe(topic)</code> and
+              <code>ws.publish(topic, data)</code> work as Bun documents them
+              (<code>publish</code> excludes the sender unless
+              <code>publishToSelf</code> is set). Outside any socket, the server
+              itself publishes — an ordinary route can announce into a room:
+            </p>
+            <figure class="code-block">
+              <pre><code>router.post(&quot;/api/rooms/:id/announce&quot;, async (ctx) =&gt; {
+  server.publish(`room:${ctx.params.id}`, await ctx.request.text());
+  ctx.json({ ok: true }, 201);
+});</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="scaling-and-testing">
+            <h2 id="scaling-and-testing">
+              <a href="#scaling-and-testing"
+                >Scaling out, testing<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              Bun&#39;s pub/sub is in-process: <code>peer.publish</code> and
+              <code>server.publish</code> reach peers on the same instance. For
+              replicas, relay publishes through a backplane you own — Redis
+              pub/sub via <code>Bun.redis</code>, NATS — by calling
+              <code>server.publish</code> in the subscriber.
+            </p>
+            <p>
+              Guards, upgrades, and handlers all run socketless under the
+              harness in
+              <a href="../testing/ws.html"><code>@rhythmjs/testing/ws</code></a>
+              — <code>upgradeWs</code> exercises this page&#39;s whole contract
+              against a mock server.
+            </p>
+          </section>
+        </div>
+        <nav class="pagination" aria-label="Previous and next pages">
+          <a href="index.html"
+            ><span>← Previous</span><strong>Connection routing</strong></a
+          >
+          <a href="api.html"
+            ><span>Next →</span><strong>API reference</strong></a
+          >
+        </nav>
+        <footer class="page-footer">
+          <span>RhythmJS documentation · v0.0.11</span
+          ><a href="https://github.com/rhythmjs/ws">github.com/rhythmjs/ws</a>
+        </footer>
+      </main>
+      <aside class="toc">
+        <nav aria-label="On this page">
+          <p>ON THIS PAGE</p>
+          <a href="#the-upgrade-contract">The upgrade contract</a>
+          <a href="#the-websocket-behavior">The websocket behavior</a>
+          <a href="#multiple-apps-one-server">Multiple apps, one server</a>
+          <a href="#with-the-router">With @rhythmjs/router</a>
+          <a href="#pushing-from-http">Pushing from HTTP</a>
+          <a href="#scaling-and-testing">Scaling out, testing</a>
+        </nav>
+      </aside>
+    </div>
+  </body>
+</html>

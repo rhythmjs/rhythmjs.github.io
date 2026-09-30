@@ -1,0 +1,438 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="The @rhythmjs/bullmq kernel module: the same typed job map as @rhythmjs/queue on full BullMQ — connection options, JobsOptions passthrough, workers, and lifecycle."
+    />
+    <meta name="color-scheme" content="light dark" />
+    <title>The BullMQ module · RhythmJS</title>
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="RhythmJS documentation" />
+    <meta property="og:title" content="The BullMQ module · RhythmJS" />
+    <meta
+      property="og:description"
+      content="The @rhythmjs/bullmq kernel module: the same typed job map as @rhythmjs/queue on full BullMQ — connection options, JobsOptions passthrough, workers, and lifecycle."
+    />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="The BullMQ module · RhythmJS" />
+    <meta
+      name="twitter:description"
+      content="The @rhythmjs/bullmq kernel module: the same typed job map as @rhythmjs/queue on full BullMQ — connection options, JobsOptions passthrough, workers, and lifecycle."
+    />
+    <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../assets/style.css" />
+    <script defer src="../assets/highlight.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="header">
+      <a
+        class="brand"
+        href="../index.html"
+        aria-label="RhythmJS documentation home"
+        ><svg viewBox="0 0 32 32" aria-hidden="true">
+          <path
+            d="M5.4 25.5V13M9.64 25.5V7.5M13.88 25.5V17M18.12 25.5V6M22.36 25.5V11.5M26.6 25.5V15"
+          /></svg
+        ><span>rhythm<span class="brand-js">js</span></span></a
+      >
+      <span class="version">v0.0.11</span>
+      <nav class="header-tabs" aria-label="Site">
+<a href="../index.html">Guide</a
+><a href="../rhythm/index.html" aria-current="true">Packages</a>
+</nav>
+<nav class="header-links" aria-label="External">
+<a href="https://github.com/rhythmjs">GitHub</a>
+</nav>
+    </header>
+    <details class="mobile-navigation">
+      <summary>Browse documentation</summary>
+      <nav aria-label="Documentation">
+<details class="nav-group package-group">
+<summary>Core</summary>
+<a href="../rhythm/index.html">Overview</a>
+<a href="../rhythm/middleware.html">Middleware &amp; context</a>
+<a href="../rhythm/providers.html">Providers &amp; lifecycle</a>
+<a href="../rhythm/modules.html">Encapsulated modules</a>
+<a href="../rhythm/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Router</summary>
+<a href="../router/index.html">Routing</a>
+<a href="../router/static.html">Serving files</a>
+<a href="../router/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>WebSockets</summary>
+<a href="../ws/index.html">Connection routing</a>
+<a href="../ws/serving.html">Serving &amp; pub/sub</a>
+<a href="../ws/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Middleware</summary>
+<a href="../middleware/index.html">Validate</a>
+<a href="../middleware/intercept.html">Intercept</a>
+<a href="../middleware/filter.html">Filter</a>
+<a href="../middleware/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>HTTP</summary>
+<a href="../http/index.html">Cookies &amp; sessions</a>
+<a href="../http/bodies.html">Bodies &amp; uploads</a>
+<a href="../http/caching.html">Caching &amp; compression</a>
+<a href="../http/streaming.html">Streaming &amp; timeouts</a>
+<a href="../http/proxy.html">Proxy &amp; i18n</a>
+<a href="../http/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Security</summary>
+<a href="../security/index.html">Authentication &amp; authorization</a>
+<a href="../security/protection.html">CORS &amp; CSRF</a>
+<a href="../security/hardening.html">Rate limiting &amp; headers</a>
+<a href="../security/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Observability</summary>
+<a href="../observability/index.html">Logging &amp; timing</a>
+<a href="../observability/health.html">Health &amp; shutdown</a>
+<a href="../observability/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>CLI</summary>
+<a href="../cli/index.html">Commands</a>
+<a href="../cli/prompts.html">Interactive prompts</a>
+<a href="../cli/run.html">Running on Bun</a>
+<a href="../cli/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Config</summary>
+<a href="../config/index.html">Defining configuration</a>
+<a href="../config/service.html">The config service</a>
+<a href="../config/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>OpenAPI</summary>
+<a href="../openapi/index.html">Describing routes</a>
+<a href="../openapi/document.html">Documents &amp; UIs</a>
+<a href="../openapi/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Events</summary>
+<a href="../events/index.html">Subscribing</a>
+<a href="../events/emitting.html">Emitting &amp; errors</a>
+<a href="../events/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Schedule</summary>
+<a href="../schedule/index.html">Jobs &amp; scheduling</a>
+<a href="../schedule/cron.html">The cron engine</a>
+<a href="../schedule/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Queue</summary>
+<a href="../queue/index.html">Producing &amp; processing</a>
+<a href="../queue/engines.html">Engines &amp; repeats</a>
+<a href="../queue/api.html">API reference</a>
+</details>
+<details class="nav-group package-group" open>
+<summary>BullMQ</summary>
+<a href="index.html" aria-current="page">The BullMQ module</a>
+<a href="schedulers.html">Schedulers &amp; queue access</a>
+<a href="api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Testing</summary>
+<a href="../testing/index.html">Kernel &amp; modules</a>
+<a href="../testing/router.html">The router client</a>
+<a href="../testing/cli.html">The CLI runner</a>
+<a href="../testing/ws.html">The WebSocket harness</a>
+<a href="../testing/api.html">API reference</a>
+</details>
+</nav>
+    </details>
+    <div class="layout">
+      <aside class="sidebar" id="sidebar">
+        <nav aria-label="Documentation">
+<details class="nav-group package-group">
+<summary>Core</summary>
+<a href="../rhythm/index.html">Overview</a>
+<a href="../rhythm/middleware.html">Middleware &amp; context</a>
+<a href="../rhythm/providers.html">Providers &amp; lifecycle</a>
+<a href="../rhythm/modules.html">Encapsulated modules</a>
+<a href="../rhythm/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Router</summary>
+<a href="../router/index.html">Routing</a>
+<a href="../router/static.html">Serving files</a>
+<a href="../router/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>WebSockets</summary>
+<a href="../ws/index.html">Connection routing</a>
+<a href="../ws/serving.html">Serving &amp; pub/sub</a>
+<a href="../ws/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Middleware</summary>
+<a href="../middleware/index.html">Validate</a>
+<a href="../middleware/intercept.html">Intercept</a>
+<a href="../middleware/filter.html">Filter</a>
+<a href="../middleware/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>HTTP</summary>
+<a href="../http/index.html">Cookies &amp; sessions</a>
+<a href="../http/bodies.html">Bodies &amp; uploads</a>
+<a href="../http/caching.html">Caching &amp; compression</a>
+<a href="../http/streaming.html">Streaming &amp; timeouts</a>
+<a href="../http/proxy.html">Proxy &amp; i18n</a>
+<a href="../http/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Security</summary>
+<a href="../security/index.html">Authentication &amp; authorization</a>
+<a href="../security/protection.html">CORS &amp; CSRF</a>
+<a href="../security/hardening.html">Rate limiting &amp; headers</a>
+<a href="../security/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Observability</summary>
+<a href="../observability/index.html">Logging &amp; timing</a>
+<a href="../observability/health.html">Health &amp; shutdown</a>
+<a href="../observability/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>CLI</summary>
+<a href="../cli/index.html">Commands</a>
+<a href="../cli/prompts.html">Interactive prompts</a>
+<a href="../cli/run.html">Running on Bun</a>
+<a href="../cli/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Config</summary>
+<a href="../config/index.html">Defining configuration</a>
+<a href="../config/service.html">The config service</a>
+<a href="../config/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>OpenAPI</summary>
+<a href="../openapi/index.html">Describing routes</a>
+<a href="../openapi/document.html">Documents &amp; UIs</a>
+<a href="../openapi/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Events</summary>
+<a href="../events/index.html">Subscribing</a>
+<a href="../events/emitting.html">Emitting &amp; errors</a>
+<a href="../events/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Schedule</summary>
+<a href="../schedule/index.html">Jobs &amp; scheduling</a>
+<a href="../schedule/cron.html">The cron engine</a>
+<a href="../schedule/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Queue</summary>
+<a href="../queue/index.html">Producing &amp; processing</a>
+<a href="../queue/engines.html">Engines &amp; repeats</a>
+<a href="../queue/api.html">API reference</a>
+</details>
+<details class="nav-group package-group" open>
+<summary>BullMQ</summary>
+<a href="index.html" aria-current="page">The BullMQ module</a>
+<a href="schedulers.html">Schedulers &amp; queue access</a>
+<a href="api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Testing</summary>
+<a href="../testing/index.html">Kernel &amp; modules</a>
+<a href="../testing/router.html">The router client</a>
+<a href="../testing/cli.html">The CLI runner</a>
+<a href="../testing/ws.html">The WebSocket harness</a>
+<a href="../testing/api.html">API reference</a>
+</details>
+</nav>
+      </aside>
+      <main id="main" tabindex="-1">
+        <div class="breadcrumb">
+          <a href="../index.html">Docs</a> <span>/</span> BullMQ
+          <span>/</span> The BullMQ module
+        </div>
+        <h1>Full BullMQ, typed</h1>
+        <p class="lead">
+          The same typed job map and kernel module as @rhythmjs/queue, on full
+          BullMQ: stalled-job recovery, Redis-durable work, and every BullMQ
+          option passed through untouched.
+        </p>
+        <div class="article">
+          <section aria-labelledby="install-the-package">
+            <h2 id="install-the-package">
+              <a href="#install-the-package"
+                >Install the package<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              <code>@rhythmjs/bullmq</code> is BullMQ-backed job queues for
+              Rhythm: the same typed job map and kernel-module discipline as
+              <a href="../queue/index.html">@rhythmjs/queue</a>, on full
+              <a href="https://docs.bullmq.io">BullMQ</a>. It requires Redis and
+              brings BullMQ's ioredis dependency with it.
+            </p>
+            <figure class="code-block">
+              <pre><code>bun add @rhythmjs/bullmq @rhythmjs/rhythm
+docker run --rm -p 6379:6379 redis</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="why-bullmq">
+            <h2 id="why-bullmq">
+              <a href="#why-bullmq"
+                >Why BullMQ instead of @rhythmjs/queue<span aria-hidden="true">
+                  #</span
+                ></a
+              >
+            </h2>
+            <p>
+              Choose this package for BullMQ's production machinery:
+              Redis-durable jobs, <strong>stalled-job recovery</strong> with
+              lock renewal (a job whose worker dies is picked up again),
+              Lua-scripted atomic state transitions, replica-coordinated Job
+              Schedulers, per-job history and retention options, and the Bull
+              Board / Taskforce ecosystem. Choose
+              <a href="../queue/index.html">@rhythmjs/queue</a> when you want
+              zero queue dependencies on Bun natives.
+            </p>
+            <p>
+              The two packages provide the same
+              <code>queueService</code> context key with the same method
+              surface, so switching is a one-line change at the registration
+              site; handlers and producers do not move. The honest differences:
+              here job ids are <code>string | undefined</code> (BullMQ's own
+              typing), and job options are BullMQ's
+              <code>JobsOptions</code> passed through untouched.
+            </p>
+          </section>
+          <section aria-labelledby="the-kernel-module">
+            <h2 id="the-kernel-module">
+              <a href="#the-kernel-module"
+                >The kernel module<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <figure class="code-block">
+              <pre><code>import { Rhythm } from &quot;@rhythmjs/rhythm&quot;;
+import { bullmqModule } from &quot;@rhythmjs/bullmq&quot;;
+import type { AppJobs } from &quot;./jobs&quot;;
+
+const app = new Rhythm().register(
+  bullmqModule.forRoot&lt;AppJobs&gt;({
+    name: &quot;app&quot;,
+    connection: { host: &quot;127.0.0.1&quot;, port: 6379 }, // ioredis ConnectionOptions
+    defaultJobOptions: { attempts: 3, backoff: { type: &quot;exponential&quot;, delay: 1000 }, removeOnComplete: 100 },
+  }),
+  ({ queueService }) =&gt; ({ queueService }),
+);</code></pre>
+            </figure>
+            <p>
+              Options: <code>name</code> (queue name, default
+              <code>rhythm</code>), <code>connection</code> (ioredis
+              <code>ConnectionOptions</code> — an options object or an existing
+              instance; default <code>127.0.0.1:6379</code>),
+              <code>prefix</code> (Redis key prefix), and
+              <code>defaultJobOptions</code> (BullMQ defaults for every job).
+              The module owns the BullMQ lifecycle: on the kernel's
+              <code>teardown()</code> every worker closes first, then the queue,
+              in reverse provider order.
+            </p>
+          </section>
+          <section aria-labelledby="produce-and-process">
+            <h2 id="produce-and-process">
+              <a href="#produce-and-process"
+                >Produce and process<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <figure class="code-block">
+              <pre><code>await queueService.add(&quot;email.send&quot;, { to: &quot;a@b.c&quot;, subject: &quot;hi&quot; }, { delay: 5000 });
+await queueService.addBulk([
+  { name: &quot;email.send&quot;, payload: { to: &quot;x@y.z&quot;, subject: &quot;s&quot; } },
+  { name: &quot;order.process&quot;, payload: { orderId: &quot;o1&quot; }, options: { priority: 1 } },
+]);
+
+const worker = queueService.process(
+  {
+    &quot;email.send&quot;: async (payload, job) =&gt; sendMail(payload),
+    &quot;order.process&quot;: async (payload, job) =&gt; fulfil(payload.orderId),
+  },
+  {
+    concurrency: 4,
+    onCompleted: (name, id) =&gt; metrics.increment(`jobs.${name}.ok`),
+    onFailed: (name, id, error) =&gt; log.error(`job ${name}#${id} failed`, error),
+  },
+);
+await worker.close();</code></pre>
+            </figure>
+            <p>
+              Job options are BullMQ's own <code>JobsOptions</code>, passed
+              through untouched — <code>delay</code>, <code>attempts</code>,
+              <code>backoff</code>, <code>priority</code>,
+              <code>removeOnComplete</code>/<code>removeOnFail</code>,
+              <code>jobId</code>, <code>lifo</code>, deduplication, and
+              everything else BullMQ accepts. Each <code>process()</code> call
+              creates one BullMQ <code>Worker</code> on the queue, dispatching
+              to processors by name with a typed payload and
+              <code>JobInfo</code> (<code>{ id, name, attemptsMade }</code>; the
+              id can be <code>undefined</code>).
+            </p>
+            <p>
+              A job with no registered processor throws
+              <code>no processor registered for job &quot;…&quot;</code> and
+              lands in BullMQ's retry/failed flow like any other failure.
+              <code>onCompleted</code> and <code>onFailed</code> wrap the
+              worker's own <code>completed</code>/<code>failed</code> events; a
+              failed event that arrives without a job reports the name as
+              <code>&quot;unknown&quot;</code>. <code>counts()</code> forwards
+              <code>getJobCounts()</code> — waiting, active, delayed, completed,
+              failed, and the rest of BullMQ's states.
+            </p>
+            <p>
+              Replica-safe repeatable schedules and everything the facade does
+              not wrap live on the next page:
+              <a href="schedulers.html">Schedulers &amp; queue access</a>.
+            </p>
+          </section>
+        </div>
+        <nav class="pagination" aria-label="Previous and next pages">
+          <span></span
+          ><a href="schedulers.html"
+            ><span>Next →</span
+            ><strong>Schedulers &amp; queue access</strong></a
+          >
+        </nav>
+        <footer class="page-footer">
+          <span>RhythmJS documentation · v0.0.11</span
+          ><a href="https://github.com/rhythmjs/tasks"
+            >github.com/rhythmjs/tasks</a
+          >
+        </footer>
+      </main>
+      <aside class="toc">
+        <nav aria-label="On this page">
+          <p>ON THIS PAGE</p>
+          <a href="#install-the-package">Install the package</a>
+          <a href="#why-bullmq">Why BullMQ instead of @rhythmjs/queue</a>
+          <a href="#the-kernel-module">The kernel module</a>
+          <a href="#produce-and-process">Produce and process</a>
+        </nav>
+      </aside>
+    </div>
+  </body>
+</html>

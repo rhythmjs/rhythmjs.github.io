@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="toCliHandler and createPrompt on Bun natives: Bun.stdin.stream() for piped input, the console line iterator for prompts."
+    />
+    <meta name="color-scheme" content="light dark" />
+    <title>Running on Bun · RhythmJS</title>
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="RhythmJS documentation" />
+    <meta property="og:title" content="Running on Bun · RhythmJS" />
+    <meta
+      property="og:description"
+      content="toCliHandler and createPrompt on Bun natives: Bun.stdin.stream() for piped input, the console line iterator for prompts."
+    />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Running on Bun · RhythmJS" />
+    <meta
+      name="twitter:description"
+      content="toCliHandler and createPrompt on Bun natives: Bun.stdin.stream() for piped input, the console line iterator for prompts."
+    />
+    <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../assets/style.css" />
+    <script defer src="../assets/highlight.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="header">
+      <a
+        class="brand"
+        href="../index.html"
+        aria-label="RhythmJS documentation home"
+        ><svg viewBox="0 0 32 32" aria-hidden="true">
+          <path
+            d="M5.4 25.5V13M9.64 25.5V7.5M13.88 25.5V17M18.12 25.5V6M22.36 25.5V11.5M26.6 25.5V15"
+          /></svg
+        ><span>rhythm<span class="brand-js">js</span></span></a
+      >
+      <span class="version">v0.0.11</span>
+      <nav class="header-tabs" aria-label="Site">
+<a href="../index.html">Guide</a
+><a href="../rhythm/index.html" aria-current="true">Packages</a>
+</nav>
+<nav class="header-links" aria-label="External">
+<a href="https://github.com/rhythmjs">GitHub</a>
+</nav>
+    </header>
+    <details class="mobile-navigation">
+      <summary>Browse documentation</summary>
+      <nav aria-label="Documentation">
+<details class="nav-group package-group">
+<summary>Core</summary>
+<a href="../rhythm/index.html">Overview</a>
+<a href="../rhythm/middleware.html">Middleware &amp; context</a>
+<a href="../rhythm/providers.html">Providers &amp; lifecycle</a>
+<a href="../rhythm/modules.html">Encapsulated modules</a>
+<a href="../rhythm/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Router</summary>
+<a href="../router/index.html">Routing</a>
+<a href="../router/static.html">Serving files</a>
+<a href="../router/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>WebSockets</summary>
+<a href="../ws/index.html">Connection routing</a>
+<a href="../ws/serving.html">Serving &amp; pub/sub</a>
+<a href="../ws/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Middleware</summary>
+<a href="../middleware/index.html">Validate</a>
+<a href="../middleware/intercept.html">Intercept</a>
+<a href="../middleware/filter.html">Filter</a>
+<a href="../middleware/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>HTTP</summary>
+<a href="../http/index.html">Cookies &amp; sessions</a>
+<a href="../http/bodies.html">Bodies &amp; uploads</a>
+<a href="../http/caching.html">Caching &amp; compression</a>
+<a href="../http/streaming.html">Streaming &amp; timeouts</a>
+<a href="../http/proxy.html">Proxy &amp; i18n</a>
+<a href="../http/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Security</summary>
+<a href="../security/index.html">Authentication &amp; authorization</a>
+<a href="../security/protection.html">CORS &amp; CSRF</a>
+<a href="../security/hardening.html">Rate limiting &amp; headers</a>
+<a href="../security/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Observability</summary>
+<a href="../observability/index.html">Logging &amp; timing</a>
+<a href="../observability/health.html">Health &amp; shutdown</a>
+<a href="../observability/api.html">API reference</a>
+</details>
+<details class="nav-group package-group" open>
+<summary>CLI</summary>
+<a href="index.html">Commands</a>
+<a href="prompts.html">Interactive prompts</a>
+<a href="run.html" aria-current="page">Running on Bun</a>
+<a href="api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Config</summary>
+<a href="../config/index.html">Defining configuration</a>
+<a href="../config/service.html">The config service</a>
+<a href="../config/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>OpenAPI</summary>
+<a href="../openapi/index.html">Describing routes</a>
+<a href="../openapi/document.html">Documents &amp; UIs</a>
+<a href="../openapi/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Events</summary>
+<a href="../events/index.html">Subscribing</a>
+<a href="../events/emitting.html">Emitting &amp; errors</a>
+<a href="../events/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Schedule</summary>
+<a href="../schedule/index.html">Jobs &amp; scheduling</a>
+<a href="../schedule/cron.html">The cron engine</a>
+<a href="../schedule/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Queue</summary>
+<a href="../queue/index.html">Producing &amp; processing</a>
+<a href="../queue/engines.html">Engines &amp; repeats</a>
+<a href="../queue/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>BullMQ</summary>
+<a href="../bullmq/index.html">The BullMQ module</a>
+<a href="../bullmq/schedulers.html">Schedulers &amp; queue access</a>
+<a href="../bullmq/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Testing</summary>
+<a href="../testing/index.html">Kernel &amp; modules</a>
+<a href="../testing/router.html">The router client</a>
+<a href="../testing/cli.html">The CLI runner</a>
+<a href="../testing/ws.html">The WebSocket harness</a>
+<a href="../testing/api.html">API reference</a>
+</details>
+</nav>
+    </details>
+    <div class="layout">
+      <aside class="sidebar" id="sidebar">
+        <nav aria-label="Documentation">
+<details class="nav-group package-group">
+<summary>Core</summary>
+<a href="../rhythm/index.html">Overview</a>
+<a href="../rhythm/middleware.html">Middleware &amp; context</a>
+<a href="../rhythm/providers.html">Providers &amp; lifecycle</a>
+<a href="../rhythm/modules.html">Encapsulated modules</a>
+<a href="../rhythm/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Router</summary>
+<a href="../router/index.html">Routing</a>
+<a href="../router/static.html">Serving files</a>
+<a href="../router/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>WebSockets</summary>
+<a href="../ws/index.html">Connection routing</a>
+<a href="../ws/serving.html">Serving &amp; pub/sub</a>
+<a href="../ws/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Middleware</summary>
+<a href="../middleware/index.html">Validate</a>
+<a href="../middleware/intercept.html">Intercept</a>
+<a href="../middleware/filter.html">Filter</a>
+<a href="../middleware/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>HTTP</summary>
+<a href="../http/index.html">Cookies &amp; sessions</a>
+<a href="../http/bodies.html">Bodies &amp; uploads</a>
+<a href="../http/caching.html">Caching &amp; compression</a>
+<a href="../http/streaming.html">Streaming &amp; timeouts</a>
+<a href="../http/proxy.html">Proxy &amp; i18n</a>
+<a href="../http/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Security</summary>
+<a href="../security/index.html">Authentication &amp; authorization</a>
+<a href="../security/protection.html">CORS &amp; CSRF</a>
+<a href="../security/hardening.html">Rate limiting &amp; headers</a>
+<a href="../security/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Observability</summary>
+<a href="../observability/index.html">Logging &amp; timing</a>
+<a href="../observability/health.html">Health &amp; shutdown</a>
+<a href="../observability/api.html">API reference</a>
+</details>
+<details class="nav-group package-group" open>
+<summary>CLI</summary>
+<a href="index.html">Commands</a>
+<a href="prompts.html">Interactive prompts</a>
+<a href="run.html" aria-current="page">Running on Bun</a>
+<a href="api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Config</summary>
+<a href="../config/index.html">Defining configuration</a>
+<a href="../config/service.html">The config service</a>
+<a href="../config/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>OpenAPI</summary>
+<a href="../openapi/index.html">Describing routes</a>
+<a href="../openapi/document.html">Documents &amp; UIs</a>
+<a href="../openapi/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Events</summary>
+<a href="../events/index.html">Subscribing</a>
+<a href="../events/emitting.html">Emitting &amp; errors</a>
+<a href="../events/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Schedule</summary>
+<a href="../schedule/index.html">Jobs &amp; scheduling</a>
+<a href="../schedule/cron.html">The cron engine</a>
+<a href="../schedule/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Queue</summary>
+<a href="../queue/index.html">Producing &amp; processing</a>
+<a href="../queue/engines.html">Engines &amp; repeats</a>
+<a href="../queue/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>BullMQ</summary>
+<a href="../bullmq/index.html">The BullMQ module</a>
+<a href="../bullmq/schedulers.html">Schedulers &amp; queue access</a>
+<a href="../bullmq/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Testing</summary>
+<a href="../testing/index.html">Kernel &amp; modules</a>
+<a href="../testing/router.html">The router client</a>
+<a href="../testing/cli.html">The CLI runner</a>
+<a href="../testing/ws.html">The WebSocket harness</a>
+<a href="../testing/api.html">API reference</a>
+</details>
+</nav>
+      </aside>
+      <main id="main" tabindex="-1">
+        <div class="breadcrumb">
+          <a href="../index.html">Docs</a> <span>/</span> CLI
+          <span>/</span> Running on Bun
+        </div>
+        <h1>Running on Bun</h1>
+        <p class="lead">
+          toCliHandler and createPrompt on Bun natives: Bun.stdin.stream() for
+          piped input, the console line iterator for prompts.
+        </p>
+        <div class="article">
+          <section aria-labelledby="run-a-cli-app">
+            <h2 id="run-a-cli-app">
+              <a href="#run-a-cli-app"
+                >Run a cli app<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              <code>toCliHandler(app)</code> from
+              <code>@rhythmjs/cli/run</code> takes the Rhythm host app and
+              returns <code>(argv: string[]) =&gt; Promise&lt;number&gt;</code>.
+              It parses flags, seeds the cli context, runs the pipeline once,
+              flushes <code>response.stdout</code> then
+              <code>response.stderr</code> to the console, and resolves with the
+              exit code. Nothing calls <code>process.exit()</code> for you
+              &mdash; set <code>process.exitCode</code> and let teardown run.
+            </p>
+            <figure class="code-block">
+              <pre><code>#!/usr/bin/env bun
+import { toCliHandler } from &quot;@rhythmjs/cli/run&quot;;
+import { app } from &quot;./app&quot;;
+
+try {
+  process.exitCode = await toCliHandler(app)(process.argv.slice(2));
+} finally {
+  await app.teardown();
+}</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="pipe-stdin">
+            <h2 id="pipe-stdin">
+              <a href="#pipe-stdin"
+                >Pipe stdin<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              When input is piped or redirected, <code>ctx.stdin</code> is a
+              <code>ReadableStream&lt;Uint8Array&gt;</code> from
+              <code>Bun.stdin.stream()</code> &mdash; Bun&#39;s native stdin, no
+              Node stream conversion. On a TTY it is <code>null</code>, so
+              handlers can branch on interactivity.
+            </p>
+            <figure class="code-block">
+              <pre><code>cli.command(&quot;import&quot;, async (ctx) =&gt; {
+  if (ctx.stdin === null) {
+    ctx.response.exit(1).printError(&quot;pipe a file: cat data.json | myapp import&quot;);
+    return;
+  }
+  const body = await new Response(ctx.stdin).json();
+  ctx.response.print(`imported ${Object.keys(body).length} records`);
+});</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="prompt-io">
+            <h2 id="prompt-io">
+              <a href="#prompt-io"
+                >Prompt I/O<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              <code>createPrompt()</code> wires the prompt surface to Bun
+              directly: questions write to <code>process.stdout</code>, and
+              answers are read from Bun&#39;s async-iterable
+              <code>console</code> &mdash; one <code>await</code> per line, no
+              readline interface. <code>close()</code> releases the line
+              iterator; tie it to a provider&#39;s dispose so
+              <code>teardown()</code> cleans up. See
+              <a href="prompts.html">interactive prompts</a> for the provider
+              pattern.
+            </p>
+          </section>
+          <section aria-labelledby="compatibility-aliases">
+            <h2 id="compatibility-aliases">
+              <a href="#compatibility-aliases"
+                >Compatibility aliases<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              The package is coupled to Bun on purpose &mdash; there are no Node
+              or Deno builds. Two subpaths from the earlier multi-runtime layout
+              remain as aliases so old imports keep resolving:
+              <code>@rhythmjs/cli/adapters/bun</code> &rarr;
+              <code>./run</code> and
+              <code>@rhythmjs/cli/adapters/context</code> &rarr;
+              <code>./context</code>. New code should import
+              <code>./run</code> and <code>./context</code>.
+            </p>
+          </section>
+        </div>
+        <nav class="pagination" aria-label="Previous and next pages">
+          <a href="prompts.html"
+            ><span>&larr; Previous</span><strong>Interactive prompts</strong></a
+          ><a href="api.html"
+            ><span>Next &rarr;</span><strong>CLI API reference</strong></a
+          >
+        </nav>
+        <footer class="page-footer">
+          <span>RhythmJS documentation &middot; v0.0.11</span
+          ><a href="https://github.com/rhythmjs/rhythm"
+            >github.com/rhythmjs/rhythm</a
+          >
+        </footer>
+      </main>
+      <aside class="toc">
+        <nav aria-label="On this page">
+          <p>ON THIS PAGE</p>
+          <a href="#run-a-cli-app">Run a cli app</a
+          ><a href="#pipe-stdin">Pipe stdin</a
+          ><a href="#prompt-io">Prompt I/O</a
+          ><a href="#compatibility-aliases">Compatibility aliases</a>
+        </nav>
+      </aside>
+    </div>
+  </body>
+</html>

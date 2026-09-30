@@ -40,41 +40,41 @@
         href="index.html"
         aria-label="RhythmJS documentation home"
         ><svg viewBox="0 0 32 32" aria-hidden="true">
-          <path d="M5.4 25.5V13M9.64 25.5V7.5M13.88 25.5V17M18.12 25.5V6M22.36 25.5V11.5M26.6 25.5V15" /></svg
+          <path
+            d="M5.4 25.5V13M9.64 25.5V7.5M13.88 25.5V17M18.12 25.5V6M22.36 25.5V11.5M26.6 25.5V15"
+          /></svg
         ><span>rhythm<span class="brand-js">js</span></span></a
       >
-      <span class="version">v0.0.1</span>
+      <span class="version">v0.0.11</span>
       <nav class="header-tabs" aria-label="Site">
-        <a href="index.html" aria-current="true">Guide</a
-        ><a href="rhythm/index.html">Packages</a>
-      </nav>
-      <nav class="header-links" aria-label="External">
-        <a href="https://github.com/rhythmjs">GitHub</a>
-      </nav>
+<a href="index.html" aria-current="true">Guide</a
+><a href="rhythm/index.html">Packages</a>
+</nav>
+<nav class="header-links" aria-label="External">
+<a href="https://github.com/rhythmjs">GitHub</a>
+</nav>
     </header>
     <details class="mobile-navigation">
       <summary>Browse documentation</summary>
       <nav aria-label="Documentation">
-        <div class="nav-group">
-          <p>Guide</p>
-          <a href="index.html">Introduction</a>
-          <a href="getting-started.html" aria-current="page">Quick start</a>
-          <a href="philosophy.html">Philosophy</a>
-          <a href="template.html">Starter template</a>
-        </div>
-      </nav>
+<div class="nav-group">
+<p>Guide</p>
+<a href="index.html">Introduction</a>
+<a href="getting-started.html" aria-current="page">Quick start</a>
+<a href="philosophy.html">Philosophy</a>
+</div>
+</nav>
     </details>
     <div class="layout">
       <aside class="sidebar" id="sidebar">
         <nav aria-label="Documentation">
-          <div class="nav-group">
-            <p>Guide</p>
-            <a href="index.html">Introduction</a>
-            <a href="getting-started.html" aria-current="page">Quick start</a>
-            <a href="philosophy.html">Philosophy</a>
-            <a href="template.html">Starter template</a>
-          </div>
-        </nav>
+<div class="nav-group">
+<p>Guide</p>
+<a href="index.html">Introduction</a>
+<a href="getting-started.html" aria-current="page">Quick start</a>
+<a href="philosophy.html">Philosophy</a>
+</div>
+</nav>
       </aside>
       <main id="main" tabindex="-1">
         <div class="breadcrumb">
@@ -94,11 +94,12 @@
             </h2>
             <p>
               The kernel and the router are all you need to start. Every package
-              is ESM and requires Node.js 20.19 or newer; Bun and Deno work
-              through their own adapters.
+              is ESM and runs on <a href="https://bun.com">Bun</a>
+              1.2 or newer — the ecosystem is built on Bun's native APIs, with
+              no runtime adapters.
             </p>
             <figure class="code-block">
-              <pre><code>pnpm add @rhythmjs/rhythm @rhythmjs/router</code></pre>
+              <pre><code>bun add @rhythmjs/rhythm @rhythmjs/router</code></pre>
             </figure>
           </section>
           <section aria-labelledby="write-a-pipeline">
@@ -132,26 +133,26 @@ await app.teardown();</code></pre>
               >
             </h2>
             <p>
-              The router registers routes with named parameters and mounts
-              into a Rhythm host app via <code>routes()</code>; the Node
-              adapter turns the host app into an ordinary request listener.
-              Run it with <code>npx tsx server.ts</code>.
+              The router registers routes with named parameters and mounts into
+              a Rhythm host app via <code>middleware()</code>;
+              <code>Bun.serve</code> &mdash; written by you, in your own
+              <code>main.ts</code> &mdash; starts the host app on
+              <code>Bun.serve</code>. Run it with <code>bun server.ts</code>.
             </p>
             <figure class="code-block">
-              <pre><code>import { createServer } from &quot;node:http&quot;;
-import { Rhythm } from &quot;@rhythmjs/rhythm&quot;;
+              <pre><code>import { Rhythm } from &quot;@rhythmjs/rhythm&quot;;
 import { RhythmRouter } from &quot;@rhythmjs/router&quot;;
-import { toNodeHandler } from &quot;@rhythmjs/router/adapters/node&quot;;
-import type { RhythmHttpContext } from &quot;@rhythmjs/router/adapters/context&quot;;
+import { toFetchHandler } from &quot;@rhythmjs/router/fetch&quot;;
+import type { RhythmHttpContext } from &quot;@rhythmjs/router/context&quot;;
 
 const router = new RhythmRouter().get(&quot;/users/:id&quot;, (ctx) =&gt; {
-  ctx.response.headers.set(&quot;content-type&quot;, &quot;application/json&quot;);
-  ctx.response.body = JSON.stringify({ id: ctx.params.id });
+  ctx.json({ id: ctx.params.id });
 });
 
-const app = new Rhythm&lt;RhythmHttpContext&gt;().use(router.routes());
+const app = new Rhythm&lt;RhythmHttpContext&gt;().use(router.middleware());
 
-createServer(toNodeHandler(app)).listen(3000);</code></pre>
+const server = Bun.serve({ port: 3000, fetch: toFetchHandler(app) });
+console.log(`listening on ${server.url}`);</code></pre>
             </figure>
           </section>
           <section aria-labelledby="add-validation">
@@ -181,6 +182,104 @@ router.post&lt;Validated&lt;&quot;body&quot;, typeof CreateUser&gt;&gt;(
 );</code></pre>
             </figure>
           </section>
+          <section aria-labelledby="start-from-the-template">
+            <h2 id="start-from-the-template">
+              <a href="#start-from-the-template"
+                >Start from the template<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              The
+              <a href="https://github.com/rhythmjs/template">template</a>
+              repository is a minimal, runnable application organized the way
+              NestJS organizes its starter, expressed with Rhythm primitives.
+            </p>
+            <figure class="code-block">
+              <pre><code>src/
+  main.ts             your own Bun.serve call over toFetchHandler(appModule)
+  app.module.ts       Rhythm instance: provides the service, mounts the controller
+  app.controller.ts   RhythmRouter instance: routes and handlers
+  app.service.ts      plain object holding the business logic
+  app.controller.spec.ts  bun:test specs for the controller</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="the-pattern">
+            <h2 id="the-pattern">
+              <a href="#the-pattern"
+                >The pattern<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              The service holds business logic and knows nothing about HTTP. The
+              module provides it with <code>provide()</code>, which places it on
+              the request context of everything mounted afterwards. The
+              controller declares that dependency in its context type, so
+              handlers use <code>ctx.appService</code> with full type safety:
+              the type-level equivalent of constructor injection.
+            </p>
+            <figure class="code-block">
+              <pre><code>export const appModule = new Rhythm&lt;RhythmHttpContext&gt;({ name: &quot;app&quot;, type: &quot;module&quot; })
+  .provide(() =&gt; ({ appService }))
+  .use(appController.middleware())
+  .use((ctx) =&gt; {
+    ctx.response.status = 404;
+    ctx.response.headers.set(&quot;content-type&quot;, &quot;application/json&quot;);
+    ctx.response.body = JSON.stringify({ success: false, status: 404, message: &quot;Not Found&quot; });
+  });</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="run-it">
+            <h2 id="run-it">
+              <a href="#run-it">Run it<span aria-hidden="true"> #</span></a>
+            </h2>
+            <p>
+              Clone the repository, or use GitHub's "Use this template" button,
+              then install and start the watcher.
+            </p>
+            <figure class="code-block">
+              <pre><code>bun install
+bun run dev
+
+curl http://localhost:3000/         # Hello World!
+curl http://localhost:3000/missing  # {&quot;success&quot;:false,&quot;status&quot;:404,&quot;message&quot;:&quot;Not Found&quot;}</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="test-it">
+            <h2 id="test-it">
+              <a href="#test-it">Test it<span aria-hidden="true"> #</span></a>
+            </h2>
+            <p>
+              The controller spec builds a small test harness instead of booting
+              the whole application: a fresh Rhythm provides the service, mounts
+              the controller's routes, and is wrapped in a fetch handler.
+              Substituting a stub service proves the controller delegates
+              instead of hardcoding responses.
+            </p>
+            <figure class="code-block">
+              <pre><code>bun test           # bun test runner
+bun run typecheck  # tsc --noEmit
+bun run check      # prettier --check + oxlint + tsc</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="grow-the-app">
+            <h2 id="grow-the-app">
+              <a href="#grow-the-app"
+                >Grow the app<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              Add a feature by repeating the pattern: a
+              <code>users.service.ts</code>, a
+              <code>users.controller.ts</code> router with a
+              <code>prefix</code>, provide the service in the module, and mount
+              the controller before the 404 handler. Validation, sessions,
+              logging, CORS, and friends come from the
+              <a href="middleware/index.html">Middleware</a>,
+              <a href="http/index.html">HTTP</a>,
+              <a href="security/index.html">Security</a>, and
+              <a href="observability/index.html">Observability</a> packages.
+            </p>
+          </section>
           <section aria-labelledby="where-to-go-next">
             <h2 id="where-to-go-next">
               <a href="#where-to-go-next"
@@ -188,8 +287,7 @@ router.post&lt;Validated&lt;&quot;body&quot;, typeof CreateUser&gt;&gt;(
               >
             </h2>
             <p>
-              Clone the <a href="template.html">starter template</a> for a
-              Nest-style skeleton with tests, read the
+              Read the
               <a href="philosophy.html">philosophy</a>, or browse the package
               groups in the sidebar:
               <a href="middleware/index.html">Middleware</a>,
@@ -208,7 +306,7 @@ router.post&lt;Validated&lt;&quot;body&quot;, typeof CreateUser&gt;&gt;(
           >
         </nav>
         <footer class="page-footer">
-          <span>RhythmJS documentation · v0.0.1</span
+          <span>RhythmJS documentation · v0.0.11</span
           ><a href="https://github.com/rhythmjs">github.com/rhythmjs</a>
         </footer>
       </main>
@@ -219,6 +317,11 @@ router.post&lt;Validated&lt;&quot;body&quot;, typeof CreateUser&gt;&gt;(
           <a href="#write-a-pipeline">Write a pipeline</a>
           <a href="#serve-http">Serve HTTP</a>
           <a href="#add-validation">Add validation</a>
+          <a href="#start-from-the-template">Start from the template</a>
+          <a href="#the-pattern">The pattern</a>
+          <a href="#run-it">Run it</a>
+          <a href="#test-it">Test it</a>
+          <a href="#grow-the-app">Grow the app</a>
           <a href="#where-to-go-next">Where to go next</a>
         </nav>
       </aside>

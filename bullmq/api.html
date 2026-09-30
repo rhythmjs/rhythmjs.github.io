@@ -1,0 +1,465 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Every export of @rhythmjs/bullmq: the typed service on full BullMQ, module options, BullMQ's own JobsOptions and RepeatOptions, and the Queue escape hatch."
+    />
+    <meta name="color-scheme" content="light dark" />
+    <title>API reference · RhythmJS</title>
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="RhythmJS documentation" />
+    <meta property="og:title" content="API reference · RhythmJS" />
+    <meta
+      property="og:description"
+      content="Every export of @rhythmjs/bullmq: the typed service on full BullMQ, module options, BullMQ's own JobsOptions and RepeatOptions, and the Queue escape hatch."
+    />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="API reference · RhythmJS" />
+    <meta
+      name="twitter:description"
+      content="Every export of @rhythmjs/bullmq: the typed service on full BullMQ, module options, BullMQ's own JobsOptions and RepeatOptions, and the Queue escape hatch."
+    />
+    <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../assets/style.css" />
+    <script defer src="../assets/highlight.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="header">
+      <a
+        class="brand"
+        href="../index.html"
+        aria-label="RhythmJS documentation home"
+        ><svg viewBox="0 0 32 32" aria-hidden="true">
+          <path
+            d="M5.4 25.5V13M9.64 25.5V7.5M13.88 25.5V17M18.12 25.5V6M22.36 25.5V11.5M26.6 25.5V15"
+          /></svg
+        ><span>rhythm<span class="brand-js">js</span></span></a
+      >
+      <span class="version">v0.0.11</span>
+      <nav class="header-tabs" aria-label="Site">
+<a href="../index.html">Guide</a
+><a href="../rhythm/index.html" aria-current="true">Packages</a>
+</nav>
+<nav class="header-links" aria-label="External">
+<a href="https://github.com/rhythmjs">GitHub</a>
+</nav>
+    </header>
+    <details class="mobile-navigation">
+      <summary>Browse documentation</summary>
+      <nav aria-label="Documentation">
+<details class="nav-group package-group">
+<summary>Core</summary>
+<a href="../rhythm/index.html">Overview</a>
+<a href="../rhythm/middleware.html">Middleware &amp; context</a>
+<a href="../rhythm/providers.html">Providers &amp; lifecycle</a>
+<a href="../rhythm/modules.html">Encapsulated modules</a>
+<a href="../rhythm/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Router</summary>
+<a href="../router/index.html">Routing</a>
+<a href="../router/static.html">Serving files</a>
+<a href="../router/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>WebSockets</summary>
+<a href="../ws/index.html">Connection routing</a>
+<a href="../ws/serving.html">Serving &amp; pub/sub</a>
+<a href="../ws/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Middleware</summary>
+<a href="../middleware/index.html">Validate</a>
+<a href="../middleware/intercept.html">Intercept</a>
+<a href="../middleware/filter.html">Filter</a>
+<a href="../middleware/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>HTTP</summary>
+<a href="../http/index.html">Cookies &amp; sessions</a>
+<a href="../http/bodies.html">Bodies &amp; uploads</a>
+<a href="../http/caching.html">Caching &amp; compression</a>
+<a href="../http/streaming.html">Streaming &amp; timeouts</a>
+<a href="../http/proxy.html">Proxy &amp; i18n</a>
+<a href="../http/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Security</summary>
+<a href="../security/index.html">Authentication &amp; authorization</a>
+<a href="../security/protection.html">CORS &amp; CSRF</a>
+<a href="../security/hardening.html">Rate limiting &amp; headers</a>
+<a href="../security/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Observability</summary>
+<a href="../observability/index.html">Logging &amp; timing</a>
+<a href="../observability/health.html">Health &amp; shutdown</a>
+<a href="../observability/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>CLI</summary>
+<a href="../cli/index.html">Commands</a>
+<a href="../cli/prompts.html">Interactive prompts</a>
+<a href="../cli/run.html">Running on Bun</a>
+<a href="../cli/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Config</summary>
+<a href="../config/index.html">Defining configuration</a>
+<a href="../config/service.html">The config service</a>
+<a href="../config/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>OpenAPI</summary>
+<a href="../openapi/index.html">Describing routes</a>
+<a href="../openapi/document.html">Documents &amp; UIs</a>
+<a href="../openapi/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Events</summary>
+<a href="../events/index.html">Subscribing</a>
+<a href="../events/emitting.html">Emitting &amp; errors</a>
+<a href="../events/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Schedule</summary>
+<a href="../schedule/index.html">Jobs &amp; scheduling</a>
+<a href="../schedule/cron.html">The cron engine</a>
+<a href="../schedule/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Queue</summary>
+<a href="../queue/index.html">Producing &amp; processing</a>
+<a href="../queue/engines.html">Engines &amp; repeats</a>
+<a href="../queue/api.html">API reference</a>
+</details>
+<details class="nav-group package-group" open>
+<summary>BullMQ</summary>
+<a href="index.html">The BullMQ module</a>
+<a href="schedulers.html">Schedulers &amp; queue access</a>
+<a href="api.html" aria-current="page">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Testing</summary>
+<a href="../testing/index.html">Kernel &amp; modules</a>
+<a href="../testing/router.html">The router client</a>
+<a href="../testing/cli.html">The CLI runner</a>
+<a href="../testing/ws.html">The WebSocket harness</a>
+<a href="../testing/api.html">API reference</a>
+</details>
+</nav>
+    </details>
+    <div class="layout">
+      <aside class="sidebar" id="sidebar">
+        <nav aria-label="Documentation">
+<details class="nav-group package-group">
+<summary>Core</summary>
+<a href="../rhythm/index.html">Overview</a>
+<a href="../rhythm/middleware.html">Middleware &amp; context</a>
+<a href="../rhythm/providers.html">Providers &amp; lifecycle</a>
+<a href="../rhythm/modules.html">Encapsulated modules</a>
+<a href="../rhythm/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Router</summary>
+<a href="../router/index.html">Routing</a>
+<a href="../router/static.html">Serving files</a>
+<a href="../router/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>WebSockets</summary>
+<a href="../ws/index.html">Connection routing</a>
+<a href="../ws/serving.html">Serving &amp; pub/sub</a>
+<a href="../ws/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Middleware</summary>
+<a href="../middleware/index.html">Validate</a>
+<a href="../middleware/intercept.html">Intercept</a>
+<a href="../middleware/filter.html">Filter</a>
+<a href="../middleware/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>HTTP</summary>
+<a href="../http/index.html">Cookies &amp; sessions</a>
+<a href="../http/bodies.html">Bodies &amp; uploads</a>
+<a href="../http/caching.html">Caching &amp; compression</a>
+<a href="../http/streaming.html">Streaming &amp; timeouts</a>
+<a href="../http/proxy.html">Proxy &amp; i18n</a>
+<a href="../http/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Security</summary>
+<a href="../security/index.html">Authentication &amp; authorization</a>
+<a href="../security/protection.html">CORS &amp; CSRF</a>
+<a href="../security/hardening.html">Rate limiting &amp; headers</a>
+<a href="../security/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Observability</summary>
+<a href="../observability/index.html">Logging &amp; timing</a>
+<a href="../observability/health.html">Health &amp; shutdown</a>
+<a href="../observability/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>CLI</summary>
+<a href="../cli/index.html">Commands</a>
+<a href="../cli/prompts.html">Interactive prompts</a>
+<a href="../cli/run.html">Running on Bun</a>
+<a href="../cli/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Config</summary>
+<a href="../config/index.html">Defining configuration</a>
+<a href="../config/service.html">The config service</a>
+<a href="../config/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>OpenAPI</summary>
+<a href="../openapi/index.html">Describing routes</a>
+<a href="../openapi/document.html">Documents &amp; UIs</a>
+<a href="../openapi/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Events</summary>
+<a href="../events/index.html">Subscribing</a>
+<a href="../events/emitting.html">Emitting &amp; errors</a>
+<a href="../events/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Schedule</summary>
+<a href="../schedule/index.html">Jobs &amp; scheduling</a>
+<a href="../schedule/cron.html">The cron engine</a>
+<a href="../schedule/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Queue</summary>
+<a href="../queue/index.html">Producing &amp; processing</a>
+<a href="../queue/engines.html">Engines &amp; repeats</a>
+<a href="../queue/api.html">API reference</a>
+</details>
+<details class="nav-group package-group" open>
+<summary>BullMQ</summary>
+<a href="index.html">The BullMQ module</a>
+<a href="schedulers.html">Schedulers &amp; queue access</a>
+<a href="api.html" aria-current="page">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Testing</summary>
+<a href="../testing/index.html">Kernel &amp; modules</a>
+<a href="../testing/router.html">The router client</a>
+<a href="../testing/cli.html">The CLI runner</a>
+<a href="../testing/ws.html">The WebSocket harness</a>
+<a href="../testing/api.html">API reference</a>
+</details>
+</nav>
+      </aside>
+      <main id="main" tabindex="-1">
+        <div class="breadcrumb">
+          <a href="../index.html">Docs</a> <span>/</span> BullMQ
+          <span>/</span> API reference
+        </div>
+        <h1>API reference</h1>
+        <p class="lead">
+          Every export of @rhythmjs/bullmq and @rhythmjs/bullmq/types: the
+          service factory and kernel module, the BullMQ-typed options, and the
+          underlying Queue escape hatch.
+        </p>
+        <div class="article">
+          <section aria-labelledby="create-queue-service">
+            <h2 id="create-queue-service">
+              <a href="#create-queue-service"
+                >createQueueService and bullmqModule<span aria-hidden="true">
+                  #</span
+                ></a
+              >
+            </h2>
+            <figure class="code-block">
+              <pre><code>function createQueueService&lt;TJobs extends JobMap&gt;(
+  options?: BullmqModuleOptions,
+): QueueService&lt;TJobs&gt;;
+
+const bullmqModule: {
+  forRoot&lt;TJobs extends JobMap&gt;(options?: BullmqModuleOptions): Rhythm&lt;...&gt;;
+};</code></pre>
+            </figure>
+            <p>
+              <code>createQueueService</code> constructs one BullMQ
+              <code>Queue</code> from the options; every
+              <code>process()</code> call adds a <code>Worker</code> on the same
+              queue name and shared connection.
+              <code>bullmqModule.forRoot</code> (module name
+              <code>bullmq</code>) provides <code>{ queueService }</code> and
+              disposes it on teardown — workers first, then the queue.
+            </p>
+            <dl>
+              <dt>BullmqModuleOptions</dt>
+              <dd>
+                <code
+                  >{ name?: string; connection?: ConnectionOptions; prefix?:
+                  string; defaultJobOptions?: JobsOptions }</code
+                >. <code>connection</code> defaults to
+                <code>{ host: &quot;127.0.0.1&quot;, port: 6379 }</code>;
+                <code>prefix</code> is BullMQ's Redis key prefix.
+              </dd>
+            </dl>
+          </section>
+          <section aria-labelledby="queue-service">
+            <h2 id="queue-service">
+              <a href="#queue-service"
+                >QueueService&lt;TJobs&gt;<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <figure class="code-block">
+              <pre><code>interface QueueService&lt;TJobs extends JobMap&gt; {
+  add&lt;K extends keyof TJobs &amp; string&gt;(name: K, payload: TJobs[K], options?: JobsOptions): Promise&lt;string | undefined&gt;;
+  addBulk(jobs: BulkJobInput&lt;TJobs&gt;[]): Promise&lt;(string | undefined)[]&gt;;
+  schedule&lt;K extends keyof TJobs &amp; string&gt;(name: K, repeat: RepeatOptions, payload: TJobs[K], options?: JobsOptions): Promise&lt;void&gt;;
+  unschedule(name: keyof TJobs &amp; string): Promise&lt;void&gt;;
+  process(processors: JobProcessors&lt;TJobs&gt;, options?: ProcessOptions): QueueWorkerHandle;
+  counts(): Promise&lt;Record&lt;string, number&gt;&gt;;
+  close(): Promise&lt;void&gt;;
+  readonly queue: Queue;
+}</code></pre>
+            </figure>
+            <dl>
+              <dt>add(name, payload, options?)</dt>
+              <dd>
+                <code>queue.add</code> with the typed payload as job data;
+                resolves to BullMQ's job id (<code>string | undefined</code>).
+              </dd>
+              <dt>addBulk(jobs)</dt>
+              <dd>
+                <code>queue.addBulk</code>, mapping each entry's
+                <code>payload</code> to <code>data</code> and
+                <code>options</code> to <code>opts</code>; resolves to the ids
+                in order.
+              </dd>
+              <dt>schedule(name, repeat, payload, options?)</dt>
+              <dd>
+                <code>queue.upsertJobScheduler(name, repeat, template)</code> —
+                the scheduler id is the job name, and the template carries the
+                payload and options for each spawned job. Calling it again with
+                the same name replaces the schedule.
+              </dd>
+              <dt>unschedule(name)</dt>
+              <dd><code>queue.removeJobScheduler(name)</code>.</dd>
+              <dt>process(processors, options?)</dt>
+              <dd>
+                Creates a BullMQ <code>Worker</code> on the queue name with the
+                shared connection/prefix and <code>options.concurrency</code>.
+                The worker's processor dispatches by <code>job.name</code> to
+                the typed handler, passing
+                <code>(payload, { id, name, attemptsMade })</code>; an
+                unregistered name throws
+                <code>no processor registered for job &quot;name&quot;</code>,
+                which lands in BullMQ's retry/failed flow. Returns a handle
+                whose <code>close()</code> closes the worker and deregisters it.
+              </dd>
+              <dt>counts()</dt>
+              <dd>
+                <code>queue.getJobCounts()</code> — BullMQ's state counts
+                (waiting, active, delayed, completed, failed, …).
+              </dd>
+              <dt>close()</dt>
+              <dd>
+                Closes every open worker, then the queue and its connection.
+              </dd>
+              <dt>queue</dt>
+              <dd>
+                The underlying BullMQ <code>Queue</code> instance, for
+                everything the facade does not cover.
+              </dd>
+            </dl>
+          </section>
+          <section aria-labelledby="options-and-types">
+            <h2 id="options-and-types">
+              <a href="#options-and-types"
+                >Options and types<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <dl>
+              <dt>JobsOptions / RepeatOptions / ConnectionOptions</dt>
+              <dd>
+                Re-exported from <code>bullmq</code> unchanged — the facade adds
+                no translation layer. <code>JobsOptions</code> covers
+                <code>delay</code>, <code>attempts</code>, <code>backoff</code>,
+                <code>priority</code>,
+                <code>removeOnComplete</code>/<code>removeOnFail</code>,
+                <code>jobId</code>, <code>lifo</code>, deduplication, and the
+                rest; <code>RepeatOptions</code> covers <code>pattern</code>,
+                <code>every</code>, <code>tz</code>, <code>limit</code>, …
+              </dd>
+              <dt>ProcessOptions</dt>
+              <dd>
+                <code
+                  >{ concurrency?: number; onCompleted?: (name, jobId) =&gt;
+                  void; onFailed?: (name, jobId, error) =&gt; void }</code
+                >. <code>onCompleted</code> wraps the worker's
+                <code>completed</code> event; <code>onFailed</code> wraps
+                <code>failed</code> — for an event without a job, the name
+                reports as <code>&quot;unknown&quot;</code>.
+              </dd>
+              <dt>JobInfo</dt>
+              <dd>
+                <code
+                  >{ id: string | undefined; name: string; attemptsMade: number
+                  }</code
+                >
+                — the second processor argument.
+              </dd>
+              <dt>
+                JobMap / JobProcessors&lt;TJobs&gt; / BulkJobInput&lt;TJobs&gt;
+              </dt>
+              <dd>
+                The job-map constraint (<code>object</code>); the per-name
+                handler record; and the <code>addBulk</code> entry union
+                <code>{ name; payload; options? }</code>.
+              </dd>
+              <dt>QueueWorkerHandle / QueueContext&lt;TJobs&gt;</dt>
+              <dd>
+                <code>{ close(): Promise&lt;void&gt; }</code>, and
+                <code>{ queueService: QueueService&lt;TJobs&gt; }</code> — the
+                context slice the module provides. Note it is the same context
+                key as @rhythmjs/queue's, which is what makes the two modules
+                drop-in swappable.
+              </dd>
+            </dl>
+          </section>
+        </div>
+        <nav class="pagination" aria-label="Previous and next pages">
+          <a href="schedulers.html"
+            ><span>← Previous</span
+            ><strong>Schedulers &amp; queue access</strong></a
+          ><span></span>
+        </nav>
+        <footer class="page-footer">
+          <span>RhythmJS documentation · v0.0.11</span
+          ><a href="https://github.com/rhythmjs/tasks"
+            >github.com/rhythmjs/tasks</a
+          >
+        </footer>
+      </main>
+      <aside class="toc">
+        <nav aria-label="On this page">
+          <p>ON THIS PAGE</p>
+          <a href="#create-queue-service"
+            >createQueueService and bullmqModule</a
+          >
+          <a href="#queue-service">QueueService&lt;TJobs&gt;</a>
+          <a href="#options-and-types">Options and types</a>
+        </nav>
+      </aside>
+    </div>
+  </body>
+</html>

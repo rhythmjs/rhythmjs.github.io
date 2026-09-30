@@ -5,22 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="Route arguments through the same middleware model."
+      content="Route arguments through the same middleware model, running on Bun."
     />
     <meta name="color-scheme" content="light dark" />
-    <title>CLI commands · @rhythmjs/cli</title>
+    <title>Commands · RhythmJS</title>
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="RhythmJS documentation" />
-    <meta property="og:title" content="CLI commands · @rhythmjs/cli" />
+    <meta property="og:title" content="Commands · RhythmJS" />
     <meta
       property="og:description"
-      content="Route arguments through the same middleware model."
+      content="Route arguments through the same middleware model, running on Bun."
     />
     <meta name="twitter:card" content="summary" />
-    <meta name="twitter:title" content="CLI commands · @rhythmjs/cli" />
+    <meta name="twitter:title" content="Commands · RhythmJS" />
     <meta
       name="twitter:description"
-      content="Route arguments through the same middleware model."
+      content="Route arguments through the same middleware model, running on Bun."
     />
     <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -40,117 +40,239 @@
         href="../index.html"
         aria-label="RhythmJS documentation home"
         ><svg viewBox="0 0 32 32" aria-hidden="true">
-          <path d="M5.4 25.5V13M9.64 25.5V7.5M13.88 25.5V17M18.12 25.5V6M22.36 25.5V11.5M26.6 25.5V15" /></svg
+          <path
+            d="M5.4 25.5V13M9.64 25.5V7.5M13.88 25.5V17M18.12 25.5V6M22.36 25.5V11.5M26.6 25.5V15"
+          /></svg
         ><span>rhythm<span class="brand-js">js</span></span></a
       >
-      <span class="version">v0.0.1</span>
+      <span class="version">v0.0.11</span>
       <nav class="header-tabs" aria-label="Site">
-        <a href="../index.html">Guide</a
-        ><a href="../rhythm/index.html" aria-current="true">Packages</a>
-      </nav>
-      <nav class="header-links" aria-label="External">
-        <a href="https://github.com/rhythmjs">GitHub</a>
-      </nav>
+<a href="../index.html">Guide</a
+><a href="../rhythm/index.html" aria-current="true">Packages</a>
+</nav>
+<nav class="header-links" aria-label="External">
+<a href="https://github.com/rhythmjs">GitHub</a>
+</nav>
     </header>
     <details class="mobile-navigation">
       <summary>Browse documentation</summary>
       <nav aria-label="Documentation">
-        <details class="nav-group package-group">
-          <summary>Core</summary>
-          <a href="../rhythm/index.html">Overview</a>
-          <a href="../rhythm/middleware.html">Middleware &amp; context</a>
-          <a href="../rhythm/providers.html">Providers &amp; lifecycle</a>
-          <a href="../rhythm/modules.html">Encapsulated modules</a>
-          <a href="../rhythm/api.html">API reference</a>
-        </details>
-        <details class="nav-group package-group">
-          <summary>Router</summary>
-          <a href="../router/index.html">Overview</a>
-          <a href="../router/adapters.html">Runtime adapters</a>
-          <a href="../router/api.html">API reference</a>
-        </details>
-        <details class="nav-group package-group" open>
-          <summary>CLI</summary>
-          <a href="index.html" aria-current="page">Overview</a>
-          <a href="prompts.html">Interactive prompts</a>
-          <a href="adapters.html">Runtime adapters</a>
-          <a href="api.html">API reference</a>
-        </details>
-        <details class="nav-group package-group">
-          <summary>Middleware</summary>
-          <a href="../middleware/index.html">Overview</a>
-          <a href="../middleware/api.html">API reference</a>
-        </details>
-        <details class="nav-group package-group">
-          <summary>HTTP</summary>
-          <a href="../http/index.html">Overview</a>
-          <a href="../http/api.html">API reference</a>
-        </details>
-        <details class="nav-group package-group">
-          <summary>Security</summary>
-          <a href="../security/index.html">Overview</a>
-          <a href="../security/api.html">API reference</a>
-        </details>
-        <details class="nav-group package-group">
-          <summary>Observability</summary>
-          <a href="../observability/index.html">Overview</a>
-          <a href="../observability/api.html">API reference</a>
-        </details>
-      </nav>
+<details class="nav-group package-group">
+<summary>Core</summary>
+<a href="../rhythm/index.html">Overview</a>
+<a href="../rhythm/middleware.html">Middleware &amp; context</a>
+<a href="../rhythm/providers.html">Providers &amp; lifecycle</a>
+<a href="../rhythm/modules.html">Encapsulated modules</a>
+<a href="../rhythm/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Router</summary>
+<a href="../router/index.html">Routing</a>
+<a href="../router/static.html">Serving files</a>
+<a href="../router/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>WebSockets</summary>
+<a href="../ws/index.html">Connection routing</a>
+<a href="../ws/serving.html">Serving &amp; pub/sub</a>
+<a href="../ws/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Middleware</summary>
+<a href="../middleware/index.html">Validate</a>
+<a href="../middleware/intercept.html">Intercept</a>
+<a href="../middleware/filter.html">Filter</a>
+<a href="../middleware/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>HTTP</summary>
+<a href="../http/index.html">Cookies &amp; sessions</a>
+<a href="../http/bodies.html">Bodies &amp; uploads</a>
+<a href="../http/caching.html">Caching &amp; compression</a>
+<a href="../http/streaming.html">Streaming &amp; timeouts</a>
+<a href="../http/proxy.html">Proxy &amp; i18n</a>
+<a href="../http/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Security</summary>
+<a href="../security/index.html">Authentication &amp; authorization</a>
+<a href="../security/protection.html">CORS &amp; CSRF</a>
+<a href="../security/hardening.html">Rate limiting &amp; headers</a>
+<a href="../security/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Observability</summary>
+<a href="../observability/index.html">Logging &amp; timing</a>
+<a href="../observability/health.html">Health &amp; shutdown</a>
+<a href="../observability/api.html">API reference</a>
+</details>
+<details class="nav-group package-group" open>
+<summary>CLI</summary>
+<a href="index.html" aria-current="page">Commands</a>
+<a href="prompts.html">Interactive prompts</a>
+<a href="run.html">Running on Bun</a>
+<a href="api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Config</summary>
+<a href="../config/index.html">Defining configuration</a>
+<a href="../config/service.html">The config service</a>
+<a href="../config/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>OpenAPI</summary>
+<a href="../openapi/index.html">Describing routes</a>
+<a href="../openapi/document.html">Documents &amp; UIs</a>
+<a href="../openapi/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Events</summary>
+<a href="../events/index.html">Subscribing</a>
+<a href="../events/emitting.html">Emitting &amp; errors</a>
+<a href="../events/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Schedule</summary>
+<a href="../schedule/index.html">Jobs &amp; scheduling</a>
+<a href="../schedule/cron.html">The cron engine</a>
+<a href="../schedule/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Queue</summary>
+<a href="../queue/index.html">Producing &amp; processing</a>
+<a href="../queue/engines.html">Engines &amp; repeats</a>
+<a href="../queue/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>BullMQ</summary>
+<a href="../bullmq/index.html">The BullMQ module</a>
+<a href="../bullmq/schedulers.html">Schedulers &amp; queue access</a>
+<a href="../bullmq/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Testing</summary>
+<a href="../testing/index.html">Kernel &amp; modules</a>
+<a href="../testing/router.html">The router client</a>
+<a href="../testing/cli.html">The CLI runner</a>
+<a href="../testing/ws.html">The WebSocket harness</a>
+<a href="../testing/api.html">API reference</a>
+</details>
+</nav>
     </details>
     <div class="layout">
       <aside class="sidebar" id="sidebar">
         <nav aria-label="Documentation">
-          <details class="nav-group package-group">
-            <summary>Core</summary>
-            <a href="../rhythm/index.html">Overview</a>
-            <a href="../rhythm/middleware.html">Middleware &amp; context</a>
-            <a href="../rhythm/providers.html">Providers &amp; lifecycle</a>
-            <a href="../rhythm/modules.html">Encapsulated modules</a>
-            <a href="../rhythm/api.html">API reference</a>
-          </details>
-          <details class="nav-group package-group">
-            <summary>Router</summary>
-            <a href="../router/index.html">Overview</a>
-            <a href="../router/adapters.html">Runtime adapters</a>
-            <a href="../router/api.html">API reference</a>
-          </details>
-          <details class="nav-group package-group" open>
-            <summary>CLI</summary>
-            <a href="index.html" aria-current="page">Overview</a>
-            <a href="prompts.html">Interactive prompts</a>
-            <a href="adapters.html">Runtime adapters</a>
-            <a href="api.html">API reference</a>
-          </details>
-          <details class="nav-group package-group">
-            <summary>Middleware</summary>
-            <a href="../middleware/index.html">Overview</a>
-            <a href="../middleware/api.html">API reference</a>
-          </details>
-          <details class="nav-group package-group">
-            <summary>HTTP</summary>
-            <a href="../http/index.html">Overview</a>
-            <a href="../http/api.html">API reference</a>
-          </details>
-          <details class="nav-group package-group">
-            <summary>Security</summary>
-            <a href="../security/index.html">Overview</a>
-            <a href="../security/api.html">API reference</a>
-          </details>
-          <details class="nav-group package-group">
-            <summary>Observability</summary>
-            <a href="../observability/index.html">Overview</a>
-            <a href="../observability/api.html">API reference</a>
-          </details>
-        </nav>
+<details class="nav-group package-group">
+<summary>Core</summary>
+<a href="../rhythm/index.html">Overview</a>
+<a href="../rhythm/middleware.html">Middleware &amp; context</a>
+<a href="../rhythm/providers.html">Providers &amp; lifecycle</a>
+<a href="../rhythm/modules.html">Encapsulated modules</a>
+<a href="../rhythm/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Router</summary>
+<a href="../router/index.html">Routing</a>
+<a href="../router/static.html">Serving files</a>
+<a href="../router/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>WebSockets</summary>
+<a href="../ws/index.html">Connection routing</a>
+<a href="../ws/serving.html">Serving &amp; pub/sub</a>
+<a href="../ws/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Middleware</summary>
+<a href="../middleware/index.html">Validate</a>
+<a href="../middleware/intercept.html">Intercept</a>
+<a href="../middleware/filter.html">Filter</a>
+<a href="../middleware/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>HTTP</summary>
+<a href="../http/index.html">Cookies &amp; sessions</a>
+<a href="../http/bodies.html">Bodies &amp; uploads</a>
+<a href="../http/caching.html">Caching &amp; compression</a>
+<a href="../http/streaming.html">Streaming &amp; timeouts</a>
+<a href="../http/proxy.html">Proxy &amp; i18n</a>
+<a href="../http/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Security</summary>
+<a href="../security/index.html">Authentication &amp; authorization</a>
+<a href="../security/protection.html">CORS &amp; CSRF</a>
+<a href="../security/hardening.html">Rate limiting &amp; headers</a>
+<a href="../security/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Observability</summary>
+<a href="../observability/index.html">Logging &amp; timing</a>
+<a href="../observability/health.html">Health &amp; shutdown</a>
+<a href="../observability/api.html">API reference</a>
+</details>
+<details class="nav-group package-group" open>
+<summary>CLI</summary>
+<a href="index.html" aria-current="page">Commands</a>
+<a href="prompts.html">Interactive prompts</a>
+<a href="run.html">Running on Bun</a>
+<a href="api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Config</summary>
+<a href="../config/index.html">Defining configuration</a>
+<a href="../config/service.html">The config service</a>
+<a href="../config/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>OpenAPI</summary>
+<a href="../openapi/index.html">Describing routes</a>
+<a href="../openapi/document.html">Documents &amp; UIs</a>
+<a href="../openapi/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Events</summary>
+<a href="../events/index.html">Subscribing</a>
+<a href="../events/emitting.html">Emitting &amp; errors</a>
+<a href="../events/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Schedule</summary>
+<a href="../schedule/index.html">Jobs &amp; scheduling</a>
+<a href="../schedule/cron.html">The cron engine</a>
+<a href="../schedule/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Queue</summary>
+<a href="../queue/index.html">Producing &amp; processing</a>
+<a href="../queue/engines.html">Engines &amp; repeats</a>
+<a href="../queue/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>BullMQ</summary>
+<a href="../bullmq/index.html">The BullMQ module</a>
+<a href="../bullmq/schedulers.html">Schedulers &amp; queue access</a>
+<a href="../bullmq/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Testing</summary>
+<a href="../testing/index.html">Kernel &amp; modules</a>
+<a href="../testing/router.html">The router client</a>
+<a href="../testing/cli.html">The CLI runner</a>
+<a href="../testing/ws.html">The WebSocket harness</a>
+<a href="../testing/api.html">API reference</a>
+</details>
+</nav>
       </aside>
       <main id="main" tabindex="-1">
         <div class="breadcrumb">
-          <a href="../index.html">Docs</a> <span>/</span> Cli <span>/</span> CLI
-          commands
+          <a href="../index.html">Docs</a> <span>/</span> CLI
+          <span>/</span> Commands
         </div>
         <h1>CLI commands</h1>
-        <p class="lead">Route arguments through the same middleware model.</p>
+        <p class="lead">
+          Route arguments through the same middleware model, running on Bun.
+        </p>
         <div class="article">
           <section aria-labelledby="define-a-command">
             <h2 id="define-a-command">
@@ -159,27 +281,30 @@
               >
             </h2>
             <p>
-              Command patterns are space-separated tokens. Named tokens populate
-              <code>ctx.args</code>. The first registered matching command wins,
-              and its token count must match the positional arguments exactly.
+              Command patterns are space-separated tokens. Named
+              <code>:tokens</code> populate <code>ctx.args</code>. The first
+              registered matching command wins, and its token count must match
+              the positional arguments exactly.
             </p>
             <p>
               A cli is a controller, not an app of its own: it compiles down to
-              a single middleware via <code>commands()</code>, and a
-              <code>Rhythm</code> host app owns the lifecycle and the adapter.
+              a single middleware via <code>middleware()</code>, and a
+              <code>Rhythm</code> host app owns the lifecycle.
+              <code>toCliHandler</code> from <code>@rhythmjs/cli/run</code> runs
+              it on Bun.
             </p>
             <figure class="code-block">
               <pre><code>import { Rhythm } from &quot;@rhythmjs/rhythm&quot;;
 import { RhythmCli } from &quot;@rhythmjs/cli&quot;;
-import { toCliHandler } from &quot;@rhythmjs/cli/adapters/bun&quot;;
-import type { RhythmCliContext } from &quot;@rhythmjs/cli/adapters/context&quot;;
+import { toCliHandler } from &quot;@rhythmjs/cli/run&quot;;
+import type { RhythmCliContext } from &quot;@rhythmjs/cli/context&quot;;
 
 const cli = new RhythmCli().command(&quot;deploy :environment&quot;, (ctx) =&gt; {
   ctx.response.print(`Deploying to ${ctx.args.environment}`);
 });
 
 const app = new Rhythm&lt;RhythmCliContext&gt;()
-  .use(cli.commands())
+  .use(cli.middleware())
   .use((ctx) =&gt; {
     ctx.response.exit(1).printError(&quot;Unknown command&quot;);
   });
@@ -211,7 +336,8 @@ try {
             </p>
             <p>
               <code>ctx.stdin</code> is a readable byte stream when input is
-              piped, or null when stdin is a TTY.
+              piped &mdash; <code>Bun.stdin.stream()</code>, Bun&#39;s native
+              stdin &mdash; or null when stdin is a TTY.
             </p>
           </section>
           <section aria-labelledby="nest-command-groups">
@@ -221,12 +347,12 @@ try {
               >
             </h2>
             <p>
-              Mount a child cli into a parent cli with <code>use(child)</code>;
-              prefixes compose. Mounting copies the child&#39;s commands and
-              middleware at that moment, so complete the child before mounting
-              it. <code>commands()</code> is only for mounting into a
-              <code>Rhythm</code> app &mdash; an opaque middleware can&#39;t
-              have the parent&#39;s prefix applied to its commands.
+              <code>use()</code> takes only functions, so a nested cli mounts as
+              <code>use(child.middleware())</code>. The compiled form is opaque
+              &mdash; the mounting cli&#39;s prefix is <em>not</em> applied to
+              it &mdash; so give the child its full prefix. Mounting compiles
+              the child at that moment, so complete the child before mounting
+              it.
             </p>
             <figure class="code-block">
               <pre><code>const remote = new RhythmCli({ prefix: &quot;remote&quot; })
@@ -234,7 +360,7 @@ try {
     ctx.response.print(`Added ${ctx.args.name}: ${ctx.args.url}`);
   });
 
-const root = new RhythmCli().use(remote);</code></pre>
+const root = new RhythmCli().use(remote.middleware()); // matches &quot;remote add origin https://…&quot;</code></pre>
             </figure>
           </section>
           <section aria-labelledby="write-output">
@@ -246,9 +372,9 @@ const root = new RhythmCli().use(remote);</code></pre>
             <p>
               <code>print(line)</code>, <code>printError(line)</code>, and
               <code>exit(code)</code> are chainable. They buffer stdout, stderr,
-              and the exit code. The adapter flushes stdout then stderr after
-              the pipeline completes and returns the exit code (zero by
-              default).
+              and the exit code. <code>toCliHandler</code> flushes stdout then
+              stderr after the pipeline completes and returns the exit code
+              (zero by default).
             </p>
             <p>
               <code>exit()</code> sets a value; it does not terminate the
@@ -262,11 +388,11 @@ const root = new RhythmCli().use(remote);</code></pre>
         <nav class="pagination" aria-label="Previous and next pages">
           <span></span
           ><a href="prompts.html"
-            ><span>Next →</span><strong>Interactive prompts</strong></a
+            ><span>Next &rarr;</span><strong>Interactive prompts</strong></a
           >
         </nav>
         <footer class="page-footer">
-          <span>RhythmJS documentation · v0.0.1</span
+          <span>RhythmJS documentation &middot; v0.0.11</span
           ><a href="https://github.com/rhythmjs/rhythm"
             >github.com/rhythmjs/rhythm</a
           >
@@ -275,10 +401,10 @@ const root = new RhythmCli().use(remote);</code></pre>
       <aside class="toc">
         <nav aria-label="On this page">
           <p>ON THIS PAGE</p>
-          <a href="#define-a-command">Define a command</a>
-          <a href="#read-flags-and-stdin">Read flags and stdin</a>
-          <a href="#nest-command-groups">Nest command groups</a>
-          <a href="#write-output">Write output</a>
+          <a href="#define-a-command">Define a command</a
+          ><a href="#read-flags-and-stdin">Read flags and stdin</a
+          ><a href="#nest-command-groups">Nest command groups</a
+          ><a href="#write-output">Write output</a>
         </nav>
       </aside>
     </div>

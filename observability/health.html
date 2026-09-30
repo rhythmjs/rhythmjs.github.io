@@ -1,0 +1,448 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Health indicators, liveness and readiness probes, and graceful shutdown for Rhythm apps."
+    />
+    <meta name="color-scheme" content="light dark" />
+    <title>Health &amp; shutdown · RhythmJS</title>
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="RhythmJS documentation" />
+    <meta property="og:title" content="Health &amp; shutdown · RhythmJS" />
+    <meta
+      property="og:description"
+      content="Health indicators, liveness and readiness probes, and graceful shutdown for Rhythm apps."
+    />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Health &amp; shutdown · RhythmJS" />
+    <meta
+      name="twitter:description"
+      content="Health indicators, liveness and readiness probes, and graceful shutdown for Rhythm apps."
+    />
+    <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../assets/style.css" />
+    <script defer src="../assets/highlight.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="header">
+      <a
+        class="brand"
+        href="../index.html"
+        aria-label="RhythmJS documentation home"
+        ><svg viewBox="0 0 32 32" aria-hidden="true">
+          <path
+            d="M5.4 25.5V13M9.64 25.5V7.5M13.88 25.5V17M18.12 25.5V6M22.36 25.5V11.5M26.6 25.5V15"
+          /></svg
+        ><span>rhythm<span class="brand-js">js</span></span></a
+      >
+      <span class="version">v0.0.11</span>
+      <nav class="header-tabs" aria-label="Site">
+<a href="../index.html">Guide</a
+><a href="../rhythm/index.html" aria-current="true">Packages</a>
+</nav>
+<nav class="header-links" aria-label="External">
+<a href="https://github.com/rhythmjs">GitHub</a>
+</nav>
+    </header>
+    <details class="mobile-navigation">
+      <summary>Browse documentation</summary>
+      <nav aria-label="Documentation">
+<details class="nav-group package-group">
+<summary>Core</summary>
+<a href="../rhythm/index.html">Overview</a>
+<a href="../rhythm/middleware.html">Middleware &amp; context</a>
+<a href="../rhythm/providers.html">Providers &amp; lifecycle</a>
+<a href="../rhythm/modules.html">Encapsulated modules</a>
+<a href="../rhythm/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Router</summary>
+<a href="../router/index.html">Routing</a>
+<a href="../router/static.html">Serving files</a>
+<a href="../router/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>WebSockets</summary>
+<a href="../ws/index.html">Connection routing</a>
+<a href="../ws/serving.html">Serving &amp; pub/sub</a>
+<a href="../ws/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Middleware</summary>
+<a href="../middleware/index.html">Validate</a>
+<a href="../middleware/intercept.html">Intercept</a>
+<a href="../middleware/filter.html">Filter</a>
+<a href="../middleware/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>HTTP</summary>
+<a href="../http/index.html">Cookies &amp; sessions</a>
+<a href="../http/bodies.html">Bodies &amp; uploads</a>
+<a href="../http/caching.html">Caching &amp; compression</a>
+<a href="../http/streaming.html">Streaming &amp; timeouts</a>
+<a href="../http/proxy.html">Proxy &amp; i18n</a>
+<a href="../http/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Security</summary>
+<a href="../security/index.html">Authentication &amp; authorization</a>
+<a href="../security/protection.html">CORS &amp; CSRF</a>
+<a href="../security/hardening.html">Rate limiting &amp; headers</a>
+<a href="../security/api.html">API reference</a>
+</details>
+<details class="nav-group package-group" open>
+<summary>Observability</summary>
+<a href="index.html">Logging &amp; timing</a>
+<a href="health.html" aria-current="page">Health &amp; shutdown</a>
+<a href="api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>CLI</summary>
+<a href="../cli/index.html">Commands</a>
+<a href="../cli/prompts.html">Interactive prompts</a>
+<a href="../cli/run.html">Running on Bun</a>
+<a href="../cli/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Config</summary>
+<a href="../config/index.html">Defining configuration</a>
+<a href="../config/service.html">The config service</a>
+<a href="../config/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>OpenAPI</summary>
+<a href="../openapi/index.html">Describing routes</a>
+<a href="../openapi/document.html">Documents &amp; UIs</a>
+<a href="../openapi/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Events</summary>
+<a href="../events/index.html">Subscribing</a>
+<a href="../events/emitting.html">Emitting &amp; errors</a>
+<a href="../events/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Schedule</summary>
+<a href="../schedule/index.html">Jobs &amp; scheduling</a>
+<a href="../schedule/cron.html">The cron engine</a>
+<a href="../schedule/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Queue</summary>
+<a href="../queue/index.html">Producing &amp; processing</a>
+<a href="../queue/engines.html">Engines &amp; repeats</a>
+<a href="../queue/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>BullMQ</summary>
+<a href="../bullmq/index.html">The BullMQ module</a>
+<a href="../bullmq/schedulers.html">Schedulers &amp; queue access</a>
+<a href="../bullmq/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Testing</summary>
+<a href="../testing/index.html">Kernel &amp; modules</a>
+<a href="../testing/router.html">The router client</a>
+<a href="../testing/cli.html">The CLI runner</a>
+<a href="../testing/ws.html">The WebSocket harness</a>
+<a href="../testing/api.html">API reference</a>
+</details>
+</nav>
+    </details>
+    <div class="layout">
+      <aside class="sidebar" id="sidebar">
+        <nav aria-label="Documentation">
+<details class="nav-group package-group">
+<summary>Core</summary>
+<a href="../rhythm/index.html">Overview</a>
+<a href="../rhythm/middleware.html">Middleware &amp; context</a>
+<a href="../rhythm/providers.html">Providers &amp; lifecycle</a>
+<a href="../rhythm/modules.html">Encapsulated modules</a>
+<a href="../rhythm/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Router</summary>
+<a href="../router/index.html">Routing</a>
+<a href="../router/static.html">Serving files</a>
+<a href="../router/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>WebSockets</summary>
+<a href="../ws/index.html">Connection routing</a>
+<a href="../ws/serving.html">Serving &amp; pub/sub</a>
+<a href="../ws/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Middleware</summary>
+<a href="../middleware/index.html">Validate</a>
+<a href="../middleware/intercept.html">Intercept</a>
+<a href="../middleware/filter.html">Filter</a>
+<a href="../middleware/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>HTTP</summary>
+<a href="../http/index.html">Cookies &amp; sessions</a>
+<a href="../http/bodies.html">Bodies &amp; uploads</a>
+<a href="../http/caching.html">Caching &amp; compression</a>
+<a href="../http/streaming.html">Streaming &amp; timeouts</a>
+<a href="../http/proxy.html">Proxy &amp; i18n</a>
+<a href="../http/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Security</summary>
+<a href="../security/index.html">Authentication &amp; authorization</a>
+<a href="../security/protection.html">CORS &amp; CSRF</a>
+<a href="../security/hardening.html">Rate limiting &amp; headers</a>
+<a href="../security/api.html">API reference</a>
+</details>
+<details class="nav-group package-group" open>
+<summary>Observability</summary>
+<a href="index.html">Logging &amp; timing</a>
+<a href="health.html" aria-current="page">Health &amp; shutdown</a>
+<a href="api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>CLI</summary>
+<a href="../cli/index.html">Commands</a>
+<a href="../cli/prompts.html">Interactive prompts</a>
+<a href="../cli/run.html">Running on Bun</a>
+<a href="../cli/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Config</summary>
+<a href="../config/index.html">Defining configuration</a>
+<a href="../config/service.html">The config service</a>
+<a href="../config/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>OpenAPI</summary>
+<a href="../openapi/index.html">Describing routes</a>
+<a href="../openapi/document.html">Documents &amp; UIs</a>
+<a href="../openapi/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Events</summary>
+<a href="../events/index.html">Subscribing</a>
+<a href="../events/emitting.html">Emitting &amp; errors</a>
+<a href="../events/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Schedule</summary>
+<a href="../schedule/index.html">Jobs &amp; scheduling</a>
+<a href="../schedule/cron.html">The cron engine</a>
+<a href="../schedule/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Queue</summary>
+<a href="../queue/index.html">Producing &amp; processing</a>
+<a href="../queue/engines.html">Engines &amp; repeats</a>
+<a href="../queue/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>BullMQ</summary>
+<a href="../bullmq/index.html">The BullMQ module</a>
+<a href="../bullmq/schedulers.html">Schedulers &amp; queue access</a>
+<a href="../bullmq/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Testing</summary>
+<a href="../testing/index.html">Kernel &amp; modules</a>
+<a href="../testing/router.html">The router client</a>
+<a href="../testing/cli.html">The CLI runner</a>
+<a href="../testing/ws.html">The WebSocket harness</a>
+<a href="../testing/api.html">API reference</a>
+</details>
+</nav>
+      </aside>
+      <main id="main" tabindex="-1">
+        <div class="breadcrumb">
+          <a href="../index.html">Docs</a> <span>/</span> Observability
+          <span>/</span> Health &amp; shutdown
+        </div>
+        <h1>Health &amp; shutdown</h1>
+        <p class="lead">
+          Concurrent health indicators behind cached liveness and readiness
+          probes, and a graceful-shutdown sequence that drains before it tears
+          down.
+        </p>
+        <div class="article">
+          <section aria-labelledby="the-health-module">
+            <h2 id="the-health-module">
+              <a href="#the-health-module"
+                >The health module<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              <code>@rhythmjs/observability/health</code> is a kernel module
+              rather than a middleware.
+              <code>healthModule.forRoot(options)</code> provides a
+              <code>healthService</code>; the options are
+              <code>indicators</code> (the checks below),
+              <code>timeout</code> (per-indicator default,
+              <code>5000</code>&#8239;ms), and <code>cacheTtl</code> (readiness
+              report cache, <code>1000</code>&#8239;ms).
+            </p>
+            <figure class="code-block">
+              <pre><code>import { Rhythm } from &quot;@rhythmjs/rhythm&quot;;
+import { healthModule } from &quot;@rhythmjs/observability/health&quot;;
+
+const app = new Rhythm().register(
+  healthModule.forRoot({
+    indicators: [
+      { name: &quot;db&quot;, check: async () =&gt; ({ status: (await db.ping()) ? &quot;up&quot; : &quot;down&quot; }) },
+      { name: &quot;search&quot;, critical: false, timeout: 1000, check: () =&gt; search.health() },
+    ],
+  }),
+  ({ healthService }) =&gt; ({ healthService }),
+);</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="indicators">
+            <h2 id="indicators">
+              <a href="#indicators"
+                >Indicators<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              A <code>HealthIndicator</code> is
+              <code>{ name, check, critical?, timeout? }</code>.
+              <code>check()</code> returns (or resolves to)
+              <code
+                >{ status: &quot;up&quot; | &quot;down&quot;, details? }</code
+              >. All indicators run <em>concurrently</em>; each races its own
+              timeout (its <code>timeout</code>, else the module default), and a
+              throw or timeout becomes
+              <code>status: &quot;down&quot;</code> with the error message under
+              <code>details.error</code> — a broken check never breaks the
+              endpoint. Every check reports its <code>durationMs</code>.
+            </p>
+            <p>
+              <code>critical</code> defaults to <code>true</code>: a down
+              critical indicator marks the whole report down. Mark best-effort
+              dependencies <code>critical: false</code> — their status still
+              shows in the report without failing readiness.
+            </p>
+          </section>
+          <section aria-labelledby="liveness-and-readiness">
+            <h2 id="liveness-and-readiness">
+              <a href="#liveness-and-readiness"
+                >Liveness and readiness<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              The service exposes the two probe questions separately.
+              <code>live()</code> is synchronous and cannot fail —
+              <code>{ status: &quot;up&quot;, uptime, timestamp }</code> with
+              uptime in whole seconds — answering &quot;is the process
+              running?&quot;. <code>ready()</code> answers &quot;should traffic
+              come here?&quot;: it runs the indicators and returns a
+              <code>HealthReport</code> —
+              <code>{ status, shuttingDown, checks }</code> keyed by indicator
+              name. Reports are cached for <code>cacheTtl</code> so probe storms
+              and dashboard polling stay cheap; once <code>shutdown()</code> has
+              been called, <code>ready()</code> short-circuits to
+              <code>down</code> with <code>shuttingDown: true</code> and no
+              checks run.
+            </p>
+          </section>
+          <section aria-labelledby="serving-probes">
+            <h2 id="serving-probes">
+              <a href="#serving-probes"
+                >Serving the probes<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              <code>healthRoutes(service, { path? })</code> returns a
+              <code>RhythmRouter</code> mounted at <code>/health</code> by
+              default: <code>GET /health/live</code> always answers
+              <code>200</code> with the liveness snapshot, and
+              <code>GET /health/ready</code> answers the report with
+              <code>200</code> when up and <code>503</code> when down — the
+              status code Kubernetes-style readiness probes act on.
+            </p>
+            <figure class="code-block">
+              <pre><code>import { healthRoutes } from &quot;@rhythmjs/observability/health&quot;;
+
+router.use(healthRoutes(healthService).middleware());
+// GET /health/live  -&gt; 200 { status: &quot;up&quot;, uptime, timestamp }
+// GET /health/ready -&gt; 200 | 503 HealthReport</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="graceful-shutdown">
+            <h2 id="graceful-shutdown">
+              <a href="#graceful-shutdown"
+                >Graceful shutdown<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              <code>gracefulShutdown(options)</code> ties the pieces to process
+              signals (<code>SIGTERM</code> and <code>SIGINT</code> by default).
+              On the first signal it runs one ordered sequence: flip the
+              <code>healthService</code> to shutting-down (readiness starts
+              failing, so load balancers drain the instance), wait
+              <code>drainMs</code> (default <code>0</code>), run your
+              <code>close</code> hook (stop servers, close sockets), then the
+              app&#x27;s <code>teardown()</code> (providers dispose in reverse
+              order), then exit <code>0</code>. A force timer —
+              <code>timeoutMs</code>, default
+              <code>10&#8239;000</code>&#8239;ms, unref&#x27;d so it never keeps
+              the process alive — exits <code>1</code> if the sequence hangs.
+              Repeated signals are ignored once shutdown has started.
+            </p>
+            <figure class="code-block">
+              <pre><code>import { gracefulShutdown } from &quot;@rhythmjs/observability/health&quot;;
+
+const shutdown = gracefulShutdown({
+  healthService,
+  app,
+  close: () =&gt; server.stop(),
+  drainMs: 5000,
+});
+
+// the returned function triggers the same sequence manually:
+process.on(&quot;uncaughtException&quot;, () =&gt; void shutdown());</code></pre>
+            </figure>
+            <p>
+              Set <code>exit: false</code> to run the sequence without exiting
+              the process — useful under test runners, where the returned
+              trigger function replaces the signal.
+            </p>
+          </section>
+        </div>
+        <nav class="pagination" aria-label="Previous and next pages">
+          <a href="index.html"
+            ><span>← Previous</span><strong>Logging &amp; timing</strong></a
+          ><a href="api.html"
+            ><span>Next →</span><strong>API reference</strong></a
+          >
+        </nav>
+        <footer class="page-footer">
+          <span>RhythmJS documentation · v0.0.11</span
+          ><a href="https://github.com/rhythmjs/observability"
+            >github.com/rhythmjs/observability</a
+          >
+        </footer>
+      </main>
+      <aside class="toc">
+        <nav aria-label="On this page">
+          <p>ON THIS PAGE</p>
+          <a href="#the-health-module">The health module</a>
+          <a href="#indicators">Indicators</a>
+          <a href="#liveness-and-readiness">Liveness and readiness</a>
+          <a href="#serving-probes">Serving the probes</a>
+          <a href="#graceful-shutdown">Graceful shutdown</a>
+        </nav>
+      </aside>
+    </div>
+  </body>
+</html>

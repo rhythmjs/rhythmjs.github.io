@@ -1,0 +1,442 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="ETag revalidation, Cache-Control helpers, a server-side response cache, and zstd/gzip compression on Bun's native codecs."
+    />
+    <meta name="color-scheme" content="light dark" />
+    <title>Caching & compression · RhythmJS</title>
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="RhythmJS documentation" />
+    <meta property="og:title" content="Caching & compression · RhythmJS" />
+    <meta
+      property="og:description"
+      content="ETag revalidation, Cache-Control helpers, a server-side response cache, and zstd/gzip compression on Bun's native codecs."
+    />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Caching & compression · RhythmJS" />
+    <meta
+      name="twitter:description"
+      content="ETag revalidation, Cache-Control helpers, a server-side response cache, and zstd/gzip compression on Bun's native codecs."
+    />
+    <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../assets/style.css" />
+    <script defer src="../assets/highlight.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="header">
+      <a
+        class="brand"
+        href="../index.html"
+        aria-label="RhythmJS documentation home"
+        ><svg viewBox="0 0 32 32" aria-hidden="true">
+          <path
+            d="M5.4 25.5V13M9.64 25.5V7.5M13.88 25.5V17M18.12 25.5V6M22.36 25.5V11.5M26.6 25.5V15"
+          /></svg
+        ><span>rhythm<span class="brand-js">js</span></span></a
+      >
+      <span class="version">v0.0.11</span>
+      <nav class="header-tabs" aria-label="Site">
+<a href="../index.html">Guide</a
+><a href="../rhythm/index.html" aria-current="true">Packages</a>
+</nav>
+<nav class="header-links" aria-label="External">
+<a href="https://github.com/rhythmjs">GitHub</a>
+</nav>
+    </header>
+    <details class="mobile-navigation">
+      <summary>Browse documentation</summary>
+      <nav aria-label="Documentation">
+<details class="nav-group package-group">
+<summary>Core</summary>
+<a href="../rhythm/index.html">Overview</a>
+<a href="../rhythm/middleware.html">Middleware &amp; context</a>
+<a href="../rhythm/providers.html">Providers &amp; lifecycle</a>
+<a href="../rhythm/modules.html">Encapsulated modules</a>
+<a href="../rhythm/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Router</summary>
+<a href="../router/index.html">Routing</a>
+<a href="../router/static.html">Serving files</a>
+<a href="../router/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>WebSockets</summary>
+<a href="../ws/index.html">Connection routing</a>
+<a href="../ws/serving.html">Serving &amp; pub/sub</a>
+<a href="../ws/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Middleware</summary>
+<a href="../middleware/index.html">Validate</a>
+<a href="../middleware/intercept.html">Intercept</a>
+<a href="../middleware/filter.html">Filter</a>
+<a href="../middleware/api.html">API reference</a>
+</details>
+<details class="nav-group package-group" open>
+<summary>HTTP</summary>
+<a href="index.html">Cookies &amp; sessions</a>
+<a href="bodies.html">Bodies &amp; uploads</a>
+<a href="caching.html" aria-current="page">Caching &amp; compression</a>
+<a href="streaming.html">Streaming &amp; timeouts</a>
+<a href="proxy.html">Proxy &amp; i18n</a>
+<a href="api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Security</summary>
+<a href="../security/index.html">Authentication &amp; authorization</a>
+<a href="../security/protection.html">CORS &amp; CSRF</a>
+<a href="../security/hardening.html">Rate limiting &amp; headers</a>
+<a href="../security/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Observability</summary>
+<a href="../observability/index.html">Logging &amp; timing</a>
+<a href="../observability/health.html">Health &amp; shutdown</a>
+<a href="../observability/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>CLI</summary>
+<a href="../cli/index.html">Commands</a>
+<a href="../cli/prompts.html">Interactive prompts</a>
+<a href="../cli/run.html">Running on Bun</a>
+<a href="../cli/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Config</summary>
+<a href="../config/index.html">Defining configuration</a>
+<a href="../config/service.html">The config service</a>
+<a href="../config/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>OpenAPI</summary>
+<a href="../openapi/index.html">Describing routes</a>
+<a href="../openapi/document.html">Documents &amp; UIs</a>
+<a href="../openapi/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Events</summary>
+<a href="../events/index.html">Subscribing</a>
+<a href="../events/emitting.html">Emitting &amp; errors</a>
+<a href="../events/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Schedule</summary>
+<a href="../schedule/index.html">Jobs &amp; scheduling</a>
+<a href="../schedule/cron.html">The cron engine</a>
+<a href="../schedule/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Queue</summary>
+<a href="../queue/index.html">Producing &amp; processing</a>
+<a href="../queue/engines.html">Engines &amp; repeats</a>
+<a href="../queue/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>BullMQ</summary>
+<a href="../bullmq/index.html">The BullMQ module</a>
+<a href="../bullmq/schedulers.html">Schedulers &amp; queue access</a>
+<a href="../bullmq/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Testing</summary>
+<a href="../testing/index.html">Kernel &amp; modules</a>
+<a href="../testing/router.html">The router client</a>
+<a href="../testing/cli.html">The CLI runner</a>
+<a href="../testing/ws.html">The WebSocket harness</a>
+<a href="../testing/api.html">API reference</a>
+</details>
+</nav>
+    </details>
+    <div class="layout">
+      <aside class="sidebar" id="sidebar">
+        <nav aria-label="Documentation">
+<details class="nav-group package-group">
+<summary>Core</summary>
+<a href="../rhythm/index.html">Overview</a>
+<a href="../rhythm/middleware.html">Middleware &amp; context</a>
+<a href="../rhythm/providers.html">Providers &amp; lifecycle</a>
+<a href="../rhythm/modules.html">Encapsulated modules</a>
+<a href="../rhythm/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Router</summary>
+<a href="../router/index.html">Routing</a>
+<a href="../router/static.html">Serving files</a>
+<a href="../router/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>WebSockets</summary>
+<a href="../ws/index.html">Connection routing</a>
+<a href="../ws/serving.html">Serving &amp; pub/sub</a>
+<a href="../ws/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Middleware</summary>
+<a href="../middleware/index.html">Validate</a>
+<a href="../middleware/intercept.html">Intercept</a>
+<a href="../middleware/filter.html">Filter</a>
+<a href="../middleware/api.html">API reference</a>
+</details>
+<details class="nav-group package-group" open>
+<summary>HTTP</summary>
+<a href="index.html">Cookies &amp; sessions</a>
+<a href="bodies.html">Bodies &amp; uploads</a>
+<a href="caching.html" aria-current="page">Caching &amp; compression</a>
+<a href="streaming.html">Streaming &amp; timeouts</a>
+<a href="proxy.html">Proxy &amp; i18n</a>
+<a href="api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Security</summary>
+<a href="../security/index.html">Authentication &amp; authorization</a>
+<a href="../security/protection.html">CORS &amp; CSRF</a>
+<a href="../security/hardening.html">Rate limiting &amp; headers</a>
+<a href="../security/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Observability</summary>
+<a href="../observability/index.html">Logging &amp; timing</a>
+<a href="../observability/health.html">Health &amp; shutdown</a>
+<a href="../observability/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>CLI</summary>
+<a href="../cli/index.html">Commands</a>
+<a href="../cli/prompts.html">Interactive prompts</a>
+<a href="../cli/run.html">Running on Bun</a>
+<a href="../cli/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Config</summary>
+<a href="../config/index.html">Defining configuration</a>
+<a href="../config/service.html">The config service</a>
+<a href="../config/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>OpenAPI</summary>
+<a href="../openapi/index.html">Describing routes</a>
+<a href="../openapi/document.html">Documents &amp; UIs</a>
+<a href="../openapi/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Events</summary>
+<a href="../events/index.html">Subscribing</a>
+<a href="../events/emitting.html">Emitting &amp; errors</a>
+<a href="../events/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Schedule</summary>
+<a href="../schedule/index.html">Jobs &amp; scheduling</a>
+<a href="../schedule/cron.html">The cron engine</a>
+<a href="../schedule/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Queue</summary>
+<a href="../queue/index.html">Producing &amp; processing</a>
+<a href="../queue/engines.html">Engines &amp; repeats</a>
+<a href="../queue/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>BullMQ</summary>
+<a href="../bullmq/index.html">The BullMQ module</a>
+<a href="../bullmq/schedulers.html">Schedulers &amp; queue access</a>
+<a href="../bullmq/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Testing</summary>
+<a href="../testing/index.html">Kernel &amp; modules</a>
+<a href="../testing/router.html">The router client</a>
+<a href="../testing/cli.html">The CLI runner</a>
+<a href="../testing/ws.html">The WebSocket harness</a>
+<a href="../testing/api.html">API reference</a>
+</details>
+</nav>
+      </aside>
+      <main id="main" tabindex="-1">
+        <div class="breadcrumb">
+          <a href="../index.html">Docs</a> <span>/</span> HTTP
+          <span>/</span> Caching &amp; compression
+        </div>
+        <h1>Caching &amp; compression</h1>
+        <p class="lead">
+          Make responses cheap to repeat: ETags with 304s, declarative
+          <code>Cache-Control</code>, a keyed server-side cache, and negotiated
+          compression on Bun’s native codecs.
+        </p>
+        <div class="article">
+          <section aria-labelledby="etags">
+            <h2 id="etags">
+              <a href="#etags"
+                >ETags and revalidation<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              <code>etag(options?)</code> hashes successful string bodies with a
+              synchronous <code>Bun.CryptoHasher</code> SHA-1 and sets the
+              <code>ETag</code> header (<code>weak: true</code> prefixes
+              <code>W/</code>). When the request’s
+              <code>If-None-Match</code> list contains the computed tag, the
+              response collapses to <code>304 Not Modified</code> with the body
+              cleared. Non-2xx responses, non-string bodies, and responses that
+              already carry an <code>ETag</code> pass through untouched.
+            </p>
+            <figure class="code-block">
+              <pre><code>import { etag } from &quot;@rhythmjs/http/etag&quot;;
+
+router.use(etag()).get(&quot;/report&quot;, (ctx) =&gt; {
+  ctx.json(buildReport()); // second fetch with If-None-Match =&gt; 304, no body
+});</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="cache-control">
+            <h2 id="cache-control">
+              <a href="#cache-control"
+                >Declaring cache policy<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              <code>cacheControl(options)</code> sets a
+              <code>Cache-Control</code> header from typed directives —
+              <code>maxAge</code>, <code>sMaxAge</code>,
+              <code>staleWhileRevalidate</code>, <code>staleIfError</code>,
+              <code>public</code>, <code>private</code>, <code>noCache</code>,
+              <code>noStore</code>, <code>mustRevalidate</code>,
+              <code>immutable</code> — and never overwrites a header a handler
+              already set. <code>formatCacheControl(options)</code> exposes the
+              formatter on its own.
+            </p>
+            <figure class="code-block">
+              <pre><code>import { cacheControl } from &quot;@rhythmjs/http/cache&quot;;
+
+router.use(cacheControl({ public: true, maxAge: 60, staleWhileRevalidate: 600 }));
+// =&gt; cache-control: public, max-age=60, stale-while-revalidate=600</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="server-cache">
+            <h2 id="server-cache">
+              <a href="#server-cache"
+                >The server-side cache<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              <code>cache(options?)</code> memoizes whole responses. Only
+              <code>GET</code> and <code>HEAD</code> pass through it; the
+              default key is <code>method + pathname + search</code>, and
+              <code>vary: ["accept-language"]</code> folds chosen request
+              headers into the key. A hit replays the stored status, headers,
+              and body with <code>Age</code> and <code>x-cache: HIT</code>; a
+              miss runs the chain, tags <code>x-cache: MISS</code>, and stores
+              the response for <code>ttl</code> seconds (default 60).
+            </p>
+            <figure class="code-block">
+              <pre><code>import { cache } from &quot;@rhythmjs/http/cache&quot;;
+
+router.use(cache({ ttl: 30, vary: [&quot;accept-language&quot;] })).get(&quot;/pricing&quot;, (ctx) =&gt; {
+  ctx.json(computeExpensivePricing()); // once per language per 30s
+});</code></pre>
+            </figure>
+            <p>
+              Responses are skipped when they are not <code>200</code>, have no
+              body, say <code>no-store</code> or <code>private</code>, are
+              server-sent events, carry <code>Vary: *</code>, or when your
+              <code>filter(ctx)</code> hook returns false. Streams are buffered
+              once on store and replayed as bytes. The
+              <code>CacheStore</code> contract
+              (<code>get</code>/<code>set</code>/<code>delete</code>) is
+              async-friendly; the bundled <code>memoryCacheStore()</code> sweeps
+              expired entries opportunistically.
+            </p>
+          </section>
+          <section aria-labelledby="compression">
+            <h2 id="compression">
+              <a href="#compression"
+                >Compression on Bun’s native codecs<span aria-hidden="true">
+                  #</span
+                ></a
+              >
+            </h2>
+            <p>
+              <code>compress(options?)</code> negotiates <code>zstd</code>,
+              <code>gzip</code>, and <code>deflate</code> against
+              <code>Accept-Encoding</code> (respecting <code>;q=0</code>) in
+              that default preference order. Buffered bodies are compressed
+              <em>synchronously</em> with <code>Bun.zstdCompressSync</code> /
+              <code>Bun.gzipSync</code>; streaming bodies pipe through
+              <code>CompressionStream</code> — which cannot speak zstd, so a
+              streaming response falls to gzip. HTTP <code>deflate</code> means
+              zlib-wrapped, which <code>Bun.deflateSync</code> does not produce,
+              so deflate always takes the stream path too.
+            </p>
+            <figure class="code-block">
+              <pre><code>import { compress } from &quot;@rhythmjs/http/compress&quot;;
+
+router.use(compress({ threshold: 2048 })).get(&quot;/api/data&quot;, (ctx) =&gt; {
+  ctx.json(bigPayload); // zstd for modern clients, gzip otherwise
+});</code></pre>
+            </figure>
+            <p>
+              Guardrails: bodies under <code>threshold</code> bytes (default
+              1024; streams always compress since their size is unknown),
+              <code>204</code>/<code>304</code>, already-encoded responses,
+              <code>text/event-stream</code>, and non-compressible content types
+              are all left alone; the default type filter covers text, JSON,
+              JavaScript, XML, SVG, and wasm and is replaceable with
+              <code>filter(contentType)</code>.
+              <code>Vary: Accept-Encoding</code> is appended wherever
+              negotiation applies.
+            </p>
+          </section>
+          <section aria-labelledby="stack-order">
+            <h2 id="stack-order">
+              <a href="#stack-order"
+                >Stacking the three<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              Register <code>compress</code> before <code>etag</code> so the tag
+              is computed over the uncompressed body and stays stable across
+              encodings; put <code>cache</code> outside both to store the
+              original response and let each client negotiate its own encoding
+              on replay.
+            </p>
+          </section>
+        </div>
+        <nav class="pagination" aria-label="Previous and next pages">
+          <a href="bodies.html"
+            ><span>← Previous</span><strong>Bodies &amp; uploads</strong></a
+          ><a href="streaming.html"
+            ><span>Next →</span><strong>Streaming &amp; timeouts</strong></a
+          >
+        </nav>
+        <footer class="page-footer">
+          <span>RhythmJS documentation · v0.0.11</span
+          ><a href="https://github.com/rhythmjs/http"
+            >github.com/rhythmjs/http</a
+          >
+        </footer>
+      </main>
+      <aside class="toc">
+        <nav aria-label="On this page">
+          <p>ON THIS PAGE</p>
+          <a href="#etags">ETags and revalidation</a
+          ><a href="#cache-control">Declaring cache policy</a
+          ><a href="#server-cache">The server-side cache</a
+          ><a href="#compression">Compression on Bun’s native codecs</a
+          ><a href="#stack-order">Stacking the three</a>
+        </nav>
+      </aside>
+    </div>
+  </body>
+</html>

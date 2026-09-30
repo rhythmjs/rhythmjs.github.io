@@ -1,0 +1,442 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Emitting on the Rhythm event bus: dispatch ordering, error isolation with the onError hook, emitAsync with AggregateError, and the kernel module."
+    />
+    <meta name="color-scheme" content="light dark" />
+    <title>Emitting &amp; errors · RhythmJS</title>
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="RhythmJS documentation" />
+    <meta property="og:title" content="Emitting &amp; errors · RhythmJS" />
+    <meta
+      property="og:description"
+      content="Emitting on the Rhythm event bus: dispatch ordering, error isolation with the onError hook, emitAsync with AggregateError, and the kernel module."
+    />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Emitting &amp; errors · RhythmJS" />
+    <meta
+      name="twitter:description"
+      content="Emitting on the Rhythm event bus: dispatch ordering, error isolation with the onError hook, emitAsync with AggregateError, and the kernel module."
+    />
+    <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../assets/style.css" />
+    <script defer src="../assets/highlight.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="header">
+      <a
+        class="brand"
+        href="../index.html"
+        aria-label="RhythmJS documentation home"
+        ><svg viewBox="0 0 32 32" aria-hidden="true">
+          <path
+            d="M5.4 25.5V13M9.64 25.5V7.5M13.88 25.5V17M18.12 25.5V6M22.36 25.5V11.5M26.6 25.5V15"
+          /></svg
+        ><span>rhythm<span class="brand-js">js</span></span></a
+      >
+      <span class="version">v0.0.11</span>
+      <nav class="header-tabs" aria-label="Site">
+<a href="../index.html">Guide</a
+><a href="../rhythm/index.html" aria-current="true">Packages</a>
+</nav>
+<nav class="header-links" aria-label="External">
+<a href="https://github.com/rhythmjs">GitHub</a>
+</nav>
+    </header>
+    <details class="mobile-navigation">
+      <summary>Browse documentation</summary>
+      <nav aria-label="Documentation">
+<details class="nav-group package-group">
+<summary>Core</summary>
+<a href="../rhythm/index.html">Overview</a>
+<a href="../rhythm/middleware.html">Middleware &amp; context</a>
+<a href="../rhythm/providers.html">Providers &amp; lifecycle</a>
+<a href="../rhythm/modules.html">Encapsulated modules</a>
+<a href="../rhythm/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Router</summary>
+<a href="../router/index.html">Routing</a>
+<a href="../router/static.html">Serving files</a>
+<a href="../router/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>WebSockets</summary>
+<a href="../ws/index.html">Connection routing</a>
+<a href="../ws/serving.html">Serving &amp; pub/sub</a>
+<a href="../ws/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Middleware</summary>
+<a href="../middleware/index.html">Validate</a>
+<a href="../middleware/intercept.html">Intercept</a>
+<a href="../middleware/filter.html">Filter</a>
+<a href="../middleware/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>HTTP</summary>
+<a href="../http/index.html">Cookies &amp; sessions</a>
+<a href="../http/bodies.html">Bodies &amp; uploads</a>
+<a href="../http/caching.html">Caching &amp; compression</a>
+<a href="../http/streaming.html">Streaming &amp; timeouts</a>
+<a href="../http/proxy.html">Proxy &amp; i18n</a>
+<a href="../http/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Security</summary>
+<a href="../security/index.html">Authentication &amp; authorization</a>
+<a href="../security/protection.html">CORS &amp; CSRF</a>
+<a href="../security/hardening.html">Rate limiting &amp; headers</a>
+<a href="../security/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Observability</summary>
+<a href="../observability/index.html">Logging &amp; timing</a>
+<a href="../observability/health.html">Health &amp; shutdown</a>
+<a href="../observability/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>CLI</summary>
+<a href="../cli/index.html">Commands</a>
+<a href="../cli/prompts.html">Interactive prompts</a>
+<a href="../cli/run.html">Running on Bun</a>
+<a href="../cli/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Config</summary>
+<a href="../config/index.html">Defining configuration</a>
+<a href="../config/service.html">The config service</a>
+<a href="../config/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>OpenAPI</summary>
+<a href="../openapi/index.html">Describing routes</a>
+<a href="../openapi/document.html">Documents &amp; UIs</a>
+<a href="../openapi/api.html">API reference</a>
+</details>
+<details class="nav-group package-group" open>
+<summary>Events</summary>
+<a href="index.html">Subscribing</a>
+<a href="emitting.html" aria-current="page">Emitting &amp; errors</a>
+<a href="api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Schedule</summary>
+<a href="../schedule/index.html">Jobs &amp; scheduling</a>
+<a href="../schedule/cron.html">The cron engine</a>
+<a href="../schedule/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Queue</summary>
+<a href="../queue/index.html">Producing &amp; processing</a>
+<a href="../queue/engines.html">Engines &amp; repeats</a>
+<a href="../queue/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>BullMQ</summary>
+<a href="../bullmq/index.html">The BullMQ module</a>
+<a href="../bullmq/schedulers.html">Schedulers &amp; queue access</a>
+<a href="../bullmq/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Testing</summary>
+<a href="../testing/index.html">Kernel &amp; modules</a>
+<a href="../testing/router.html">The router client</a>
+<a href="../testing/cli.html">The CLI runner</a>
+<a href="../testing/ws.html">The WebSocket harness</a>
+<a href="../testing/api.html">API reference</a>
+</details>
+</nav>
+    </details>
+    <div class="layout">
+      <aside class="sidebar" id="sidebar">
+        <nav aria-label="Documentation">
+<details class="nav-group package-group">
+<summary>Core</summary>
+<a href="../rhythm/index.html">Overview</a>
+<a href="../rhythm/middleware.html">Middleware &amp; context</a>
+<a href="../rhythm/providers.html">Providers &amp; lifecycle</a>
+<a href="../rhythm/modules.html">Encapsulated modules</a>
+<a href="../rhythm/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Router</summary>
+<a href="../router/index.html">Routing</a>
+<a href="../router/static.html">Serving files</a>
+<a href="../router/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>WebSockets</summary>
+<a href="../ws/index.html">Connection routing</a>
+<a href="../ws/serving.html">Serving &amp; pub/sub</a>
+<a href="../ws/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Middleware</summary>
+<a href="../middleware/index.html">Validate</a>
+<a href="../middleware/intercept.html">Intercept</a>
+<a href="../middleware/filter.html">Filter</a>
+<a href="../middleware/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>HTTP</summary>
+<a href="../http/index.html">Cookies &amp; sessions</a>
+<a href="../http/bodies.html">Bodies &amp; uploads</a>
+<a href="../http/caching.html">Caching &amp; compression</a>
+<a href="../http/streaming.html">Streaming &amp; timeouts</a>
+<a href="../http/proxy.html">Proxy &amp; i18n</a>
+<a href="../http/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Security</summary>
+<a href="../security/index.html">Authentication &amp; authorization</a>
+<a href="../security/protection.html">CORS &amp; CSRF</a>
+<a href="../security/hardening.html">Rate limiting &amp; headers</a>
+<a href="../security/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Observability</summary>
+<a href="../observability/index.html">Logging &amp; timing</a>
+<a href="../observability/health.html">Health &amp; shutdown</a>
+<a href="../observability/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>CLI</summary>
+<a href="../cli/index.html">Commands</a>
+<a href="../cli/prompts.html">Interactive prompts</a>
+<a href="../cli/run.html">Running on Bun</a>
+<a href="../cli/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Config</summary>
+<a href="../config/index.html">Defining configuration</a>
+<a href="../config/service.html">The config service</a>
+<a href="../config/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>OpenAPI</summary>
+<a href="../openapi/index.html">Describing routes</a>
+<a href="../openapi/document.html">Documents &amp; UIs</a>
+<a href="../openapi/api.html">API reference</a>
+</details>
+<details class="nav-group package-group" open>
+<summary>Events</summary>
+<a href="index.html">Subscribing</a>
+<a href="emitting.html" aria-current="page">Emitting &amp; errors</a>
+<a href="api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Schedule</summary>
+<a href="../schedule/index.html">Jobs &amp; scheduling</a>
+<a href="../schedule/cron.html">The cron engine</a>
+<a href="../schedule/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Queue</summary>
+<a href="../queue/index.html">Producing &amp; processing</a>
+<a href="../queue/engines.html">Engines &amp; repeats</a>
+<a href="../queue/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>BullMQ</summary>
+<a href="../bullmq/index.html">The BullMQ module</a>
+<a href="../bullmq/schedulers.html">Schedulers &amp; queue access</a>
+<a href="../bullmq/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Testing</summary>
+<a href="../testing/index.html">Kernel &amp; modules</a>
+<a href="../testing/router.html">The router client</a>
+<a href="../testing/cli.html">The CLI runner</a>
+<a href="../testing/ws.html">The WebSocket harness</a>
+<a href="../testing/api.html">API reference</a>
+</details>
+</nav>
+      </aside>
+      <main id="main" tabindex="-1">
+        <div class="breadcrumb">
+          <a href="../index.html">Docs</a> <span>/</span> Events
+          <span>/</span> Emitting &amp; errors
+        </div>
+        <h1>Emit, and survive failures</h1>
+        <p class="lead">
+          The emitting half of the bus: synchronous dispatch with
+          exact-then-wildcard ordering, listener errors that never cross into
+          siblings, emitAsync for callers that need the outcome, and the kernel
+          module.
+        </p>
+        <div class="article">
+          <section aria-labelledby="emit-and-ordering">
+            <h2 id="emit-and-ordering">
+              <a href="#emit-and-ordering"
+                >emit() and dispatch order<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              <code>emit(event, payload)</code> dispatches synchronously.
+              Exact-name subscribers run first, then wildcard patterns in the
+              order their pattern first appeared in the registry. Every handler
+              receives <code>(payload, event)</code>, where
+              <code>event</code> is always the concrete emitted name — a
+              <code>&quot;order.*&quot;</code> subscriber sees
+              <code>&quot;order.created&quot;</code>, not the pattern.
+            </p>
+            <figure class="code-block">
+              <pre><code>eventBus.on(&quot;order.created&quot;, audit);   // runs first (exact)
+eventBus.on(&quot;order.*&quot;, project);        // then wildcards, registration order
+eventBus.on(&quot;order.**&quot;, replicate);
+
+eventBus.emit(&quot;order.created&quot;, { orderId: &quot;o1&quot;, total: 99 });</code></pre>
+            </figure>
+            <p>
+              Dispatch snapshots the registry per pattern, so a handler may
+              unsubscribe itself or its siblings mid-emit without skipping
+              anyone already snapshotted. Once-subscriptions are removed
+              <em>before</em> their handler runs.
+            </p>
+          </section>
+          <section aria-labelledby="error-isolation">
+            <h2 id="error-isolation">
+              <a href="#error-isolation"
+                >Errors never cross listeners<span aria-hidden="true">
+                  #</span
+                ></a
+              >
+            </h2>
+            <p>
+              A listener that throws never stops its siblings. With
+              <code>emit</code>, a synchronous throw is caught on the spot and a
+              returned promise gets a rejection handler — both route to the
+              bus's <code>onError(error, event, payload)</code> hook. The
+              default hook rethrows on a microtask, so failures surface as
+              unhandled errors instead of vanishing.
+            </p>
+            <figure class="code-block">
+              <pre><code>import { createEventBus } from &quot;@rhythmjs/events&quot;;
+
+const bus = createEventBus&lt;AppEvents&gt;({
+  onError: (error, event, payload) =&gt;
+    log.error(`listener failed for ${event}`, { error, payload }),
+});</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="emitasync">
+            <h2 id="emitasync">
+              <a href="#emitasync"
+                >emitAsync(): await every listener<span aria-hidden="true">
+                  #</span
+                ></a
+              >
+            </h2>
+            <p>
+              <code>emitAsync(event, payload)</code> is for emitters that need
+              the outcome. It collects every matching handler (removing
+              once-subscriptions first), awaits them all with
+              <code>Promise.allSettled</code> — so every listener runs to
+              completion regardless of failures — and then, if any rejected,
+              throws an <code>AggregateError</code> whose
+              <code>errors</code> array holds every rejection reason, with the
+              message <code>N listener(s) failed for event &quot;…&quot;</code>.
+            </p>
+            <figure class="code-block">
+              <pre><code>try {
+  await bus.emitAsync(&quot;order.created&quot;, { orderId: &quot;o1&quot;, total: 99 });
+} catch (error) {
+  // AggregateError: every listener rejection, none skipped
+  for (const cause of (error as AggregateError).errors) report(cause);
+}</code></pre>
+            </figure>
+            <p>
+              Note the difference: <code>emit</code> is fire-and-forget with
+              errors funneled to <code>onError</code>;
+              <code>emitAsync</code> bypasses <code>onError</code> and hands
+              failures back to the caller.
+            </p>
+          </section>
+          <section aria-labelledby="the-kernel-module">
+            <h2 id="the-kernel-module">
+              <a href="#the-kernel-module"
+                >The kernel module<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              <code>eventsModule.forRoot&lt;TEvents&gt;(options?)</code> wraps
+              <code>createEventBus</code> in an encapsulated Rhythm module that
+              provides <code>eventBus</code>; <code>options.onError</code> is
+              the same hook.
+            </p>
+            <figure class="code-block">
+              <pre><code>import { Rhythm } from &quot;@rhythmjs/rhythm&quot;;
+import { eventsModule } from &quot;@rhythmjs/events&quot;;
+
+const app = new Rhythm().register(
+  eventsModule.forRoot&lt;AppEvents&gt;(),
+  ({ eventBus }) =&gt; ({ eventBus }),
+);
+await app.setup();
+const { eventBus } = await app.run({});</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="announce-vs-obligate">
+            <h2 id="announce-vs-obligate">
+              <a href="#announce-vs-obligate"
+                >Announce, then obligate<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              Events pair naturally with
+              <a href="../queue/index.html">@rhythmjs/queue</a>: an event
+              <em>announces</em> (ephemeral, every current listener), a queue
+              job <em>obligates</em> (at-least-once, exactly one worker).
+              Bridging one into the other is one line — and because both are
+              typed by name-to-payload maps, the bridge type-checks end to end.
+            </p>
+            <figure class="code-block">
+              <pre><code>eventBus.on(&quot;order.**&quot;, (payload, event) =&gt; {
+  void queueService.add(event, payload); // fan announcements into durable work
+});</code></pre>
+            </figure>
+            <p>
+              See the <a href="api.html">API reference</a> for every export and
+              type.
+            </p>
+          </section>
+        </div>
+        <nav class="pagination" aria-label="Previous and next pages">
+          <a href="index.html"
+            ><span>← Previous</span><strong>Subscribing</strong></a
+          ><a href="api.html"
+            ><span>Next →</span><strong>API reference</strong></a
+          >
+        </nav>
+        <footer class="page-footer">
+          <span>RhythmJS documentation · v0.0.11</span
+          ><a href="https://github.com/rhythmjs/tasks"
+            >github.com/rhythmjs/tasks</a
+          >
+        </footer>
+      </main>
+      <aside class="toc">
+        <nav aria-label="On this page">
+          <p>ON THIS PAGE</p>
+          <a href="#emit-and-ordering">emit() and dispatch order</a>
+          <a href="#error-isolation">Errors never cross listeners</a>
+          <a href="#emitasync">emitAsync(): await every listener</a>
+          <a href="#the-kernel-module">The kernel module</a>
+          <a href="#announce-vs-obligate">Announce, then obligate</a>
+        </nav>
+      </aside>
+    </div>
+  </body>
+</html>

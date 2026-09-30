@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="configModule.forRoot, deep-merged trees, aggregated ConfigError reports, and the dot-path-typed ConfigService."
+    />
+    <meta name="color-scheme" content="light dark" />
+    <title>The config service · RhythmJS</title>
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="RhythmJS documentation" />
+    <meta property="og:title" content="The config service · RhythmJS" />
+    <meta
+      property="og:description"
+      content="configModule.forRoot, deep-merged trees, aggregated ConfigError reports, and the dot-path-typed ConfigService."
+    />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="The config service · RhythmJS" />
+    <meta
+      name="twitter:description"
+      content="configModule.forRoot, deep-merged trees, aggregated ConfigError reports, and the dot-path-typed ConfigService."
+    />
+    <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../assets/style.css" />
+    <script defer src="../assets/highlight.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="header">
+      <a
+        class="brand"
+        href="../index.html"
+        aria-label="RhythmJS documentation home"
+        ><svg viewBox="0 0 32 32" aria-hidden="true">
+          <path
+            d="M5.4 25.5V13M9.64 25.5V7.5M13.88 25.5V17M18.12 25.5V6M22.36 25.5V11.5M26.6 25.5V15"
+          /></svg
+        ><span>rhythm<span class="brand-js">js</span></span></a
+      >
+      <span class="version">v0.0.11</span>
+      <nav class="header-tabs" aria-label="Site">
+<a href="../index.html">Guide</a
+><a href="../rhythm/index.html" aria-current="true">Packages</a>
+</nav>
+<nav class="header-links" aria-label="External">
+<a href="https://github.com/rhythmjs">GitHub</a>
+</nav>
+    </header>
+    <details class="mobile-navigation">
+      <summary>Browse documentation</summary>
+      <nav aria-label="Documentation">
+<details class="nav-group package-group">
+<summary>Core</summary>
+<a href="../rhythm/index.html">Overview</a>
+<a href="../rhythm/middleware.html">Middleware &amp; context</a>
+<a href="../rhythm/providers.html">Providers &amp; lifecycle</a>
+<a href="../rhythm/modules.html">Encapsulated modules</a>
+<a href="../rhythm/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Router</summary>
+<a href="../router/index.html">Routing</a>
+<a href="../router/static.html">Serving files</a>
+<a href="../router/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>WebSockets</summary>
+<a href="../ws/index.html">Connection routing</a>
+<a href="../ws/serving.html">Serving &amp; pub/sub</a>
+<a href="../ws/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Middleware</summary>
+<a href="../middleware/index.html">Validate</a>
+<a href="../middleware/intercept.html">Intercept</a>
+<a href="../middleware/filter.html">Filter</a>
+<a href="../middleware/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>HTTP</summary>
+<a href="../http/index.html">Cookies &amp; sessions</a>
+<a href="../http/bodies.html">Bodies &amp; uploads</a>
+<a href="../http/caching.html">Caching &amp; compression</a>
+<a href="../http/streaming.html">Streaming &amp; timeouts</a>
+<a href="../http/proxy.html">Proxy &amp; i18n</a>
+<a href="../http/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Security</summary>
+<a href="../security/index.html">Authentication &amp; authorization</a>
+<a href="../security/protection.html">CORS &amp; CSRF</a>
+<a href="../security/hardening.html">Rate limiting &amp; headers</a>
+<a href="../security/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Observability</summary>
+<a href="../observability/index.html">Logging &amp; timing</a>
+<a href="../observability/health.html">Health &amp; shutdown</a>
+<a href="../observability/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>CLI</summary>
+<a href="../cli/index.html">Commands</a>
+<a href="../cli/prompts.html">Interactive prompts</a>
+<a href="../cli/run.html">Running on Bun</a>
+<a href="../cli/api.html">API reference</a>
+</details>
+<details class="nav-group package-group" open>
+<summary>Config</summary>
+<a href="index.html">Defining configuration</a>
+<a href="service.html" aria-current="page">The config service</a>
+<a href="api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>OpenAPI</summary>
+<a href="../openapi/index.html">Describing routes</a>
+<a href="../openapi/document.html">Documents &amp; UIs</a>
+<a href="../openapi/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Events</summary>
+<a href="../events/index.html">Subscribing</a>
+<a href="../events/emitting.html">Emitting &amp; errors</a>
+<a href="../events/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Schedule</summary>
+<a href="../schedule/index.html">Jobs &amp; scheduling</a>
+<a href="../schedule/cron.html">The cron engine</a>
+<a href="../schedule/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Queue</summary>
+<a href="../queue/index.html">Producing &amp; processing</a>
+<a href="../queue/engines.html">Engines &amp; repeats</a>
+<a href="../queue/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>BullMQ</summary>
+<a href="../bullmq/index.html">The BullMQ module</a>
+<a href="../bullmq/schedulers.html">Schedulers &amp; queue access</a>
+<a href="../bullmq/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Testing</summary>
+<a href="../testing/index.html">Kernel &amp; modules</a>
+<a href="../testing/router.html">The router client</a>
+<a href="../testing/cli.html">The CLI runner</a>
+<a href="../testing/ws.html">The WebSocket harness</a>
+<a href="../testing/api.html">API reference</a>
+</details>
+</nav>
+    </details>
+    <div class="layout">
+      <aside class="sidebar" id="sidebar">
+        <nav aria-label="Documentation">
+<details class="nav-group package-group">
+<summary>Core</summary>
+<a href="../rhythm/index.html">Overview</a>
+<a href="../rhythm/middleware.html">Middleware &amp; context</a>
+<a href="../rhythm/providers.html">Providers &amp; lifecycle</a>
+<a href="../rhythm/modules.html">Encapsulated modules</a>
+<a href="../rhythm/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Router</summary>
+<a href="../router/index.html">Routing</a>
+<a href="../router/static.html">Serving files</a>
+<a href="../router/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>WebSockets</summary>
+<a href="../ws/index.html">Connection routing</a>
+<a href="../ws/serving.html">Serving &amp; pub/sub</a>
+<a href="../ws/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Middleware</summary>
+<a href="../middleware/index.html">Validate</a>
+<a href="../middleware/intercept.html">Intercept</a>
+<a href="../middleware/filter.html">Filter</a>
+<a href="../middleware/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>HTTP</summary>
+<a href="../http/index.html">Cookies &amp; sessions</a>
+<a href="../http/bodies.html">Bodies &amp; uploads</a>
+<a href="../http/caching.html">Caching &amp; compression</a>
+<a href="../http/streaming.html">Streaming &amp; timeouts</a>
+<a href="../http/proxy.html">Proxy &amp; i18n</a>
+<a href="../http/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Security</summary>
+<a href="../security/index.html">Authentication &amp; authorization</a>
+<a href="../security/protection.html">CORS &amp; CSRF</a>
+<a href="../security/hardening.html">Rate limiting &amp; headers</a>
+<a href="../security/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Observability</summary>
+<a href="../observability/index.html">Logging &amp; timing</a>
+<a href="../observability/health.html">Health &amp; shutdown</a>
+<a href="../observability/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>CLI</summary>
+<a href="../cli/index.html">Commands</a>
+<a href="../cli/prompts.html">Interactive prompts</a>
+<a href="../cli/run.html">Running on Bun</a>
+<a href="../cli/api.html">API reference</a>
+</details>
+<details class="nav-group package-group" open>
+<summary>Config</summary>
+<a href="index.html">Defining configuration</a>
+<a href="service.html" aria-current="page">The config service</a>
+<a href="api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>OpenAPI</summary>
+<a href="../openapi/index.html">Describing routes</a>
+<a href="../openapi/document.html">Documents &amp; UIs</a>
+<a href="../openapi/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Events</summary>
+<a href="../events/index.html">Subscribing</a>
+<a href="../events/emitting.html">Emitting &amp; errors</a>
+<a href="../events/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Schedule</summary>
+<a href="../schedule/index.html">Jobs &amp; scheduling</a>
+<a href="../schedule/cron.html">The cron engine</a>
+<a href="../schedule/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Queue</summary>
+<a href="../queue/index.html">Producing &amp; processing</a>
+<a href="../queue/engines.html">Engines &amp; repeats</a>
+<a href="../queue/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>BullMQ</summary>
+<a href="../bullmq/index.html">The BullMQ module</a>
+<a href="../bullmq/schedulers.html">Schedulers &amp; queue access</a>
+<a href="../bullmq/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Testing</summary>
+<a href="../testing/index.html">Kernel &amp; modules</a>
+<a href="../testing/router.html">The router client</a>
+<a href="../testing/cli.html">The CLI runner</a>
+<a href="../testing/ws.html">The WebSocket harness</a>
+<a href="../testing/api.html">API reference</a>
+</details>
+</nav>
+      </aside>
+      <main id="main" tabindex="-1">
+        <div class="breadcrumb">
+          <a href="../index.html">Docs</a> <span>/</span> Config
+          <span>/</span> The config service
+        </div>
+        <h1>The config service</h1>
+        <p class="lead">
+          One validated tree merged at setup, read through dot paths that the
+          compiler checks — and boot failures that report everything at once.
+        </p>
+        <div class="article">
+          <section aria-labelledby="register-the-module">
+            <h2 id="register-the-module">
+              <a href="#register-the-module"
+                >Register the module<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              <code>configModule.forRoot(...factories)</code> returns a Rhythm
+              module that runs every factory once at <code>setup()</code> — not
+              per run — and deep-merges the outputs into one tree. Plain
+              factories merge at the root; namespaced factories merge under
+              their token; on conflicts, later factories win, with nested plain
+              objects merged key by key (arrays and other values replace
+              wholesale).
+            </p>
+            <figure class="code-block">
+              <pre><code>import { Rhythm } from &quot;@rhythmjs/rhythm&quot;;
+import { configModule } from &quot;@rhythmjs/config&quot;;
+
+const app = new Rhythm().register(
+  configModule.forRoot(appConfig, databaseConfig),
+  (m) =&gt; ({ configService: m.configService }),
+);
+
+await app.setup(); // every factory runs and validates here</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="aggregated-failures">
+            <h2 id="aggregated-failures">
+              <a href="#aggregated-failures"
+                >Aggregated failures<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              Validation does not stop at the first bad file. A factory that
+              throws <code>ConfigError</code> contributes its issues and loading
+              continues; after all factories have run, the collected issues are
+              thrown together as one <code>ConfigError</code> — a single boot
+              failure reports the whole broken environment, namespaced paths
+              included. Only unexpected errors (not <code>ConfigError</code>)
+              abort immediately and propagate as-is.
+            </p>
+            <figure class="code-block">
+              <pre><code>ConfigError: Invalid configuration:
+  - port: Invalid input: expected number, received NaN
+  - database.host: Too small: expected string to have &gt;=1 characters</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="read-with-the-service">
+            <h2 id="read-with-the-service">
+              <a href="#read-with-the-service"
+                >Read with the service<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              The provided <code>configService</code> is typed from the exact
+              factories you passed. <code>get(path)</code> takes a dot path —
+              <code>&quot;database.port&quot;</code> — resolved segment by
+              segment; <code>value</code> is the whole merged tree. The optional
+              second argument is a fallback applied with <code>??</code>, so it
+              kicks in for <code>null</code> as well as
+              <code>undefined</code> and missing paths.
+              <code>getOrThrow(path)</code> throws a
+              <code>ConfigError</code> naming the path when the value is null or
+              missing — reach for it at boot for values the app cannot run
+              without.
+            </p>
+            <figure class="code-block">
+              <pre><code>const port = ctx.configService.get(&quot;database.port&quot;);        // number
+const db = ctx.configService.get(&quot;database&quot;);               // { host: string; port: number }
+const flag = ctx.configService.get(&quot;debug&quot;, false);         // ?? fallback: covers null too
+const host = ctx.configService.getOrThrow(&quot;database.host&quot;); // throws ConfigError when absent</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="typed-paths">
+            <h2 id="typed-paths">
+              <a href="#typed-paths"
+                >Typed paths<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              Both the path and the result are checked at compile time.
+              <code>ConfigPath&lt;T&gt;</code> enumerates every reachable dot
+              path — nested objects recurse, arrays are leaves (you get the
+              array, not indices into it) — and
+              <code>ConfigValue&lt;T, P&gt;</code> resolves the value type at a
+              path. <code>MergedConfig&lt;TLoad&gt;</code> computes the merged
+              tree type from the factory tuple, which is what makes
+              <code>forRoot</code>&#x27;s inference work end to end.
+            </p>
+            <figure class="code-block">
+              <pre><code>ctx.configService.get(&quot;databse.port&quot;); // compile error: not a ConfigPath
+ctx.configService.get(&quot;database.port&quot;, &quot;3000&quot;); // compile error: fallback must be number</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="type-safe-consumers">
+            <h2 id="type-safe-consumers">
+              <a href="#type-safe-consumers"
+                >Type-safe consumers<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              Downstream modules declare what they expect with
+              <code>ConfigContext&lt;typeof load&gt;</code>, where
+              <code>load</code> is the <code>as const</code> tuple of factories
+              the app registers — the module compiles against exactly the
+              configuration shape the host provides.
+              <code>ConfigType&lt;typeof factory&gt;</code> extracts one
+              factory&#x27;s output type for functions that take a config slice
+              directly.
+            </p>
+            <figure class="code-block">
+              <pre><code>import type { ConfigContext, ConfigType } from &quot;@rhythmjs/config&quot;;
+
+const load = [appConfig, databaseConfig] as const;
+
+const apiModule = new Rhythm&lt;ConfigContext&lt;typeof load&gt;&gt;().use(async (ctx, next) =&gt; {
+  const port: number = ctx.configService.get(&quot;database.port&quot;);
+  await next();
+});
+
+type DatabaseConfig = ConfigType&lt;typeof databaseConfig&gt;; // { host: string; port: number }</code></pre>
+            </figure>
+          </section>
+        </div>
+        <nav class="pagination" aria-label="Previous and next pages">
+          <a href="index.html"
+            ><span>← Previous</span><strong>Defining configuration</strong></a
+          ><a href="api.html"
+            ><span>Next →</span><strong>API reference</strong></a
+          >
+        </nav>
+        <footer class="page-footer">
+          <span>RhythmJS documentation · v0.0.11</span
+          ><a href="https://github.com/rhythmjs/config"
+            >github.com/rhythmjs/config</a
+          >
+        </footer>
+      </main>
+      <aside class="toc">
+        <nav aria-label="On this page">
+          <p>ON THIS PAGE</p>
+          <a href="#register-the-module">Register the module</a>
+          <a href="#aggregated-failures">Aggregated failures</a>
+          <a href="#read-with-the-service">Read with the service</a>
+          <a href="#typed-paths">Typed paths</a>
+          <a href="#type-safe-consumers">Type-safe consumers</a>
+        </nav>
+      </aside>
+    </div>
+  </body>
+</html>

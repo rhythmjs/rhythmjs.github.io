@@ -1,0 +1,414 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Turn thrown errors into HTTP responses: HttpError statuses, safe 500s, and custom error mapping."
+    />
+    <meta name="color-scheme" content="light dark" />
+    <title>Filter · RhythmJS</title>
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="RhythmJS documentation" />
+    <meta property="og:title" content="Filter · RhythmJS" />
+    <meta
+      property="og:description"
+      content="Turn thrown errors into HTTP responses: HttpError statuses, safe 500s, and custom error mapping."
+    />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Filter · RhythmJS" />
+    <meta
+      name="twitter:description"
+      content="Turn thrown errors into HTTP responses: HttpError statuses, safe 500s, and custom error mapping."
+    />
+    <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../assets/style.css" />
+    <script defer src="../assets/highlight.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="header">
+      <a
+        class="brand"
+        href="../index.html"
+        aria-label="RhythmJS documentation home"
+        ><svg viewBox="0 0 32 32" aria-hidden="true">
+          <path
+            d="M5.4 25.5V13M9.64 25.5V7.5M13.88 25.5V17M18.12 25.5V6M22.36 25.5V11.5M26.6 25.5V15"
+          /></svg
+        ><span>rhythm<span class="brand-js">js</span></span></a
+      >
+      <span class="version">v0.0.11</span>
+      <nav class="header-tabs" aria-label="Site">
+<a href="../index.html">Guide</a
+><a href="../rhythm/index.html" aria-current="true">Packages</a>
+</nav>
+<nav class="header-links" aria-label="External">
+<a href="https://github.com/rhythmjs">GitHub</a>
+</nav>
+    </header>
+    <details class="mobile-navigation">
+      <summary>Browse documentation</summary>
+      <nav aria-label="Documentation">
+<details class="nav-group package-group">
+<summary>Core</summary>
+<a href="../rhythm/index.html">Overview</a>
+<a href="../rhythm/middleware.html">Middleware &amp; context</a>
+<a href="../rhythm/providers.html">Providers &amp; lifecycle</a>
+<a href="../rhythm/modules.html">Encapsulated modules</a>
+<a href="../rhythm/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Router</summary>
+<a href="../router/index.html">Routing</a>
+<a href="../router/static.html">Serving files</a>
+<a href="../router/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>WebSockets</summary>
+<a href="../ws/index.html">Connection routing</a>
+<a href="../ws/serving.html">Serving &amp; pub/sub</a>
+<a href="../ws/api.html">API reference</a>
+</details>
+<details class="nav-group package-group" open>
+<summary>Middleware</summary>
+<a href="index.html">Validate</a>
+<a href="intercept.html">Intercept</a>
+<a href="filter.html" aria-current="page">Filter</a>
+<a href="api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>HTTP</summary>
+<a href="../http/index.html">Cookies &amp; sessions</a>
+<a href="../http/bodies.html">Bodies &amp; uploads</a>
+<a href="../http/caching.html">Caching &amp; compression</a>
+<a href="../http/streaming.html">Streaming &amp; timeouts</a>
+<a href="../http/proxy.html">Proxy &amp; i18n</a>
+<a href="../http/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Security</summary>
+<a href="../security/index.html">Authentication &amp; authorization</a>
+<a href="../security/protection.html">CORS &amp; CSRF</a>
+<a href="../security/hardening.html">Rate limiting &amp; headers</a>
+<a href="../security/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Observability</summary>
+<a href="../observability/index.html">Logging &amp; timing</a>
+<a href="../observability/health.html">Health &amp; shutdown</a>
+<a href="../observability/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>CLI</summary>
+<a href="../cli/index.html">Commands</a>
+<a href="../cli/prompts.html">Interactive prompts</a>
+<a href="../cli/run.html">Running on Bun</a>
+<a href="../cli/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Config</summary>
+<a href="../config/index.html">Defining configuration</a>
+<a href="../config/service.html">The config service</a>
+<a href="../config/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>OpenAPI</summary>
+<a href="../openapi/index.html">Describing routes</a>
+<a href="../openapi/document.html">Documents &amp; UIs</a>
+<a href="../openapi/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Events</summary>
+<a href="../events/index.html">Subscribing</a>
+<a href="../events/emitting.html">Emitting &amp; errors</a>
+<a href="../events/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Schedule</summary>
+<a href="../schedule/index.html">Jobs &amp; scheduling</a>
+<a href="../schedule/cron.html">The cron engine</a>
+<a href="../schedule/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Queue</summary>
+<a href="../queue/index.html">Producing &amp; processing</a>
+<a href="../queue/engines.html">Engines &amp; repeats</a>
+<a href="../queue/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>BullMQ</summary>
+<a href="../bullmq/index.html">The BullMQ module</a>
+<a href="../bullmq/schedulers.html">Schedulers &amp; queue access</a>
+<a href="../bullmq/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Testing</summary>
+<a href="../testing/index.html">Kernel &amp; modules</a>
+<a href="../testing/router.html">The router client</a>
+<a href="../testing/cli.html">The CLI runner</a>
+<a href="../testing/ws.html">The WebSocket harness</a>
+<a href="../testing/api.html">API reference</a>
+</details>
+</nav>
+    </details>
+    <div class="layout">
+      <aside class="sidebar" id="sidebar">
+        <nav aria-label="Documentation">
+<details class="nav-group package-group">
+<summary>Core</summary>
+<a href="../rhythm/index.html">Overview</a>
+<a href="../rhythm/middleware.html">Middleware &amp; context</a>
+<a href="../rhythm/providers.html">Providers &amp; lifecycle</a>
+<a href="../rhythm/modules.html">Encapsulated modules</a>
+<a href="../rhythm/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Router</summary>
+<a href="../router/index.html">Routing</a>
+<a href="../router/static.html">Serving files</a>
+<a href="../router/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>WebSockets</summary>
+<a href="../ws/index.html">Connection routing</a>
+<a href="../ws/serving.html">Serving &amp; pub/sub</a>
+<a href="../ws/api.html">API reference</a>
+</details>
+<details class="nav-group package-group" open>
+<summary>Middleware</summary>
+<a href="index.html">Validate</a>
+<a href="intercept.html">Intercept</a>
+<a href="filter.html" aria-current="page">Filter</a>
+<a href="api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>HTTP</summary>
+<a href="../http/index.html">Cookies &amp; sessions</a>
+<a href="../http/bodies.html">Bodies &amp; uploads</a>
+<a href="../http/caching.html">Caching &amp; compression</a>
+<a href="../http/streaming.html">Streaming &amp; timeouts</a>
+<a href="../http/proxy.html">Proxy &amp; i18n</a>
+<a href="../http/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Security</summary>
+<a href="../security/index.html">Authentication &amp; authorization</a>
+<a href="../security/protection.html">CORS &amp; CSRF</a>
+<a href="../security/hardening.html">Rate limiting &amp; headers</a>
+<a href="../security/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Observability</summary>
+<a href="../observability/index.html">Logging &amp; timing</a>
+<a href="../observability/health.html">Health &amp; shutdown</a>
+<a href="../observability/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>CLI</summary>
+<a href="../cli/index.html">Commands</a>
+<a href="../cli/prompts.html">Interactive prompts</a>
+<a href="../cli/run.html">Running on Bun</a>
+<a href="../cli/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Config</summary>
+<a href="../config/index.html">Defining configuration</a>
+<a href="../config/service.html">The config service</a>
+<a href="../config/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>OpenAPI</summary>
+<a href="../openapi/index.html">Describing routes</a>
+<a href="../openapi/document.html">Documents &amp; UIs</a>
+<a href="../openapi/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Events</summary>
+<a href="../events/index.html">Subscribing</a>
+<a href="../events/emitting.html">Emitting &amp; errors</a>
+<a href="../events/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Schedule</summary>
+<a href="../schedule/index.html">Jobs &amp; scheduling</a>
+<a href="../schedule/cron.html">The cron engine</a>
+<a href="../schedule/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Queue</summary>
+<a href="../queue/index.html">Producing &amp; processing</a>
+<a href="../queue/engines.html">Engines &amp; repeats</a>
+<a href="../queue/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>BullMQ</summary>
+<a href="../bullmq/index.html">The BullMQ module</a>
+<a href="../bullmq/schedulers.html">Schedulers &amp; queue access</a>
+<a href="../bullmq/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Testing</summary>
+<a href="../testing/index.html">Kernel &amp; modules</a>
+<a href="../testing/router.html">The router client</a>
+<a href="../testing/cli.html">The CLI runner</a>
+<a href="../testing/ws.html">The WebSocket harness</a>
+<a href="../testing/api.html">API reference</a>
+</details>
+</nav>
+      </aside>
+      <main id="main" tabindex="-1">
+        <div class="breadcrumb">
+          <a href="../index.html">Docs</a> <span>/</span> Middleware
+          <span>/</span> Filter
+        </div>
+        <h1>Filter exceptions</h1>
+        <p class="lead">
+          Wrap the chain in a try/catch: thrown <code>HttpError</code>s become
+          their status, everything else becomes a safe 500.
+        </p>
+        <div class="article">
+          <section aria-labelledby="catch-everything">
+            <h2 id="catch-everything">
+              <a href="#catch-everything"
+                >Catch everything downstream<span aria-hidden="true">
+                  #</span
+                ></a
+              >
+            </h2>
+            <p>
+              <code>filter(onError?)</code> wraps the rest of the chain in a
+              try/catch and turns anything thrown downstream into an HTTP
+              response. Register it first, before any routes, so it forms the
+              outermost onion layer and sees every error — including ones thrown
+              by other middleware.
+            </p>
+            <figure class="code-block">
+              <pre><code>import { RhythmRouter } from &quot;@rhythmjs/router&quot;;
+import { filter, HttpError } from &quot;@rhythmjs/middleware/filter&quot;;
+
+const router = new RhythmRouter().use(filter()).get(&quot;/users/:id&quot;, (ctx) =&gt; {
+  throw new HttpError(404, &quot;user not found&quot;);
+});
+// GET /users/1 =&gt; 404 {&quot;success&quot;:false,&quot;status&quot;:404,&quot;message&quot;:&quot;user not found&quot;}</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="httperror">
+            <h2 id="httperror">
+              <a href="#httperror"
+                >HttpError and the default mapping<span aria-hidden="true">
+                  #</span
+                ></a
+              >
+            </h2>
+            <p>
+              A thrown <code>HttpError(status, message, details?)</code> maps to
+              its status with a JSON <code>FilterFailure</code> body;
+              <code>details</code> is included only when defined, so simple
+              errors stay small. Anything else thrown — a plain
+              <code>Error</code>, a string, a rejected promise — maps to a
+              generic 500 with the message
+              <code>&quot;Internal Server Error&quot;</code>: the original
+              message is <em>never</em> leaked to the client.
+            </p>
+            <figure class="code-block">
+              <pre><code>throw new HttpError(422, &quot;cannot ship yet&quot;, { missing: [&quot;address&quot;] });
+// =&gt; 422 {&quot;success&quot;:false,&quot;status&quot;:422,&quot;message&quot;:&quot;cannot ship yet&quot;,&quot;details&quot;:{&quot;missing&quot;:[&quot;address&quot;]}}</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="custom-mapping">
+            <h2 id="custom-mapping">
+              <a href="#custom-mapping"
+                >Custom error mapping<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              Passing an <code>onError(error, ctx)</code> hook replaces the
+              default mapping <em>entirely</em>: the hook is responsible for
+              writing the response (or rethrowing to an outer layer). Use it to
+              log, translate domain errors into statuses, or forward to an error
+              tracker:
+            </p>
+            <figure class="code-block">
+              <pre><code>router.use(
+  filter(async (error, ctx) =&gt; {
+    log.error(error);
+    if (error instanceof NotFoundInDb) {
+      ctx.response.status = 404;
+      ctx.response.headers.set(&quot;content-type&quot;, &quot;application/json&quot;);
+      ctx.response.body = JSON.stringify({ success: false, status: 404, message: &quot;not found&quot; });
+      return;
+    }
+    throw error; // let an outer filter or serve()'s error handler take it
+  }),
+);</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="compose-them">
+            <h2 id="compose-them">
+              <a href="#compose-them"
+                >Composing the three modules<span aria-hidden="true">
+                  #</span
+                ></a
+              >
+            </h2>
+            <p>
+              The modules compose freely on one router. <code>filter</code> goes
+              first so it wraps everything; error responses are non-2xx, so
+              <a href="intercept.html">intercept</a> skips them; and
+              <a href="index.html">validate</a> runs per route ahead of the
+              handler:
+            </p>
+            <figure class="code-block">
+              <pre><code>const router = new RhythmRouter()
+  .use(filter())
+  .use(intercept(PublicUser))
+  .post&lt;Validated&lt;&quot;body&quot;, typeof createUser&gt;&gt;(
+    &quot;/users&quot;,
+    validate(&quot;body&quot;, createUser),
+    async (ctx) =&gt; {
+      const user = await users.create(ctx.valid.body);
+      if (!user) throw new HttpError(409, &quot;user already exists&quot;);
+      ctx.response.body = JSON.stringify(user);
+    },
+  );</code></pre>
+            </figure>
+            <p>
+              See the <a href="api.html">API reference</a> for every export on
+              the three subpaths.
+            </p>
+          </section>
+        </div>
+        <nav class="pagination" aria-label="Previous and next pages">
+          <a href="intercept.html"
+            ><span>← Previous</span><strong>Intercept</strong></a
+          ><a href="api.html"
+            ><span>Next →</span><strong>API reference</strong></a
+          >
+        </nav>
+        <footer class="page-footer">
+          <span>RhythmJS documentation · v0.0.11</span
+          ><a href="https://github.com/rhythmjs/middleware"
+            >github.com/rhythmjs/middleware</a
+          >
+        </footer>
+      </main>
+      <aside class="toc">
+        <nav aria-label="On this page">
+          <p>ON THIS PAGE</p>
+          <a href="#catch-everything">Catch everything downstream</a
+          ><a href="#httperror">HttpError and the default mapping</a
+          ><a href="#custom-mapping">Custom error mapping</a
+          ><a href="#compose-them">Composing the three modules</a>
+        </nav>
+      </aside>
+    </div>
+  </body>
+</html>

@@ -5,22 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="Ask for input and keep the prompt lifecycle under control."
+      content="Ask for input over Bun's console line iterator and keep the prompt lifecycle under control."
     />
     <meta name="color-scheme" content="light dark" />
-    <title>Interactive prompts · @rhythmjs/cli</title>
+    <title>Interactive prompts · RhythmJS</title>
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="RhythmJS documentation" />
-    <meta property="og:title" content="Interactive prompts · @rhythmjs/cli" />
+    <meta property="og:title" content="Interactive prompts · RhythmJS" />
     <meta
       property="og:description"
-      content="Ask for input and keep the prompt lifecycle under control."
+      content="Ask for input over Bun's console line iterator and keep the prompt lifecycle under control."
     />
     <meta name="twitter:card" content="summary" />
-    <meta name="twitter:title" content="Interactive prompts · @rhythmjs/cli" />
+    <meta name="twitter:title" content="Interactive prompts · RhythmJS" />
     <meta
       name="twitter:description"
-      content="Ask for input and keep the prompt lifecycle under control."
+      content="Ask for input over Bun's console line iterator and keep the prompt lifecycle under control."
     />
     <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -40,118 +40,239 @@
         href="../index.html"
         aria-label="RhythmJS documentation home"
         ><svg viewBox="0 0 32 32" aria-hidden="true">
-          <path d="M5.4 25.5V13M9.64 25.5V7.5M13.88 25.5V17M18.12 25.5V6M22.36 25.5V11.5M26.6 25.5V15" /></svg
+          <path
+            d="M5.4 25.5V13M9.64 25.5V7.5M13.88 25.5V17M18.12 25.5V6M22.36 25.5V11.5M26.6 25.5V15"
+          /></svg
         ><span>rhythm<span class="brand-js">js</span></span></a
       >
-      <span class="version">v0.0.1</span>
+      <span class="version">v0.0.11</span>
       <nav class="header-tabs" aria-label="Site">
-        <a href="../index.html">Guide</a
-        ><a href="../rhythm/index.html" aria-current="true">Packages</a>
-      </nav>
-      <nav class="header-links" aria-label="External">
-        <a href="https://github.com/rhythmjs">GitHub</a>
-      </nav>
+<a href="../index.html">Guide</a
+><a href="../rhythm/index.html" aria-current="true">Packages</a>
+</nav>
+<nav class="header-links" aria-label="External">
+<a href="https://github.com/rhythmjs">GitHub</a>
+</nav>
     </header>
     <details class="mobile-navigation">
       <summary>Browse documentation</summary>
       <nav aria-label="Documentation">
-        <details class="nav-group package-group">
-          <summary>Core</summary>
-          <a href="../rhythm/index.html">Overview</a>
-          <a href="../rhythm/middleware.html">Middleware &amp; context</a>
-          <a href="../rhythm/providers.html">Providers &amp; lifecycle</a>
-          <a href="../rhythm/modules.html">Encapsulated modules</a>
-          <a href="../rhythm/api.html">API reference</a>
-        </details>
-        <details class="nav-group package-group">
-          <summary>Router</summary>
-          <a href="../router/index.html">Overview</a>
-          <a href="../router/adapters.html">Runtime adapters</a>
-          <a href="../router/api.html">API reference</a>
-        </details>
-        <details class="nav-group package-group" open>
-          <summary>CLI</summary>
-          <a href="index.html">Overview</a>
-          <a href="prompts.html" aria-current="page">Interactive prompts</a>
-          <a href="adapters.html">Runtime adapters</a>
-          <a href="api.html">API reference</a>
-        </details>
-        <details class="nav-group package-group">
-          <summary>Middleware</summary>
-          <a href="../middleware/index.html">Overview</a>
-          <a href="../middleware/api.html">API reference</a>
-        </details>
-        <details class="nav-group package-group">
-          <summary>HTTP</summary>
-          <a href="../http/index.html">Overview</a>
-          <a href="../http/api.html">API reference</a>
-        </details>
-        <details class="nav-group package-group">
-          <summary>Security</summary>
-          <a href="../security/index.html">Overview</a>
-          <a href="../security/api.html">API reference</a>
-        </details>
-        <details class="nav-group package-group">
-          <summary>Observability</summary>
-          <a href="../observability/index.html">Overview</a>
-          <a href="../observability/api.html">API reference</a>
-        </details>
-      </nav>
+<details class="nav-group package-group">
+<summary>Core</summary>
+<a href="../rhythm/index.html">Overview</a>
+<a href="../rhythm/middleware.html">Middleware &amp; context</a>
+<a href="../rhythm/providers.html">Providers &amp; lifecycle</a>
+<a href="../rhythm/modules.html">Encapsulated modules</a>
+<a href="../rhythm/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Router</summary>
+<a href="../router/index.html">Routing</a>
+<a href="../router/static.html">Serving files</a>
+<a href="../router/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>WebSockets</summary>
+<a href="../ws/index.html">Connection routing</a>
+<a href="../ws/serving.html">Serving &amp; pub/sub</a>
+<a href="../ws/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Middleware</summary>
+<a href="../middleware/index.html">Validate</a>
+<a href="../middleware/intercept.html">Intercept</a>
+<a href="../middleware/filter.html">Filter</a>
+<a href="../middleware/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>HTTP</summary>
+<a href="../http/index.html">Cookies &amp; sessions</a>
+<a href="../http/bodies.html">Bodies &amp; uploads</a>
+<a href="../http/caching.html">Caching &amp; compression</a>
+<a href="../http/streaming.html">Streaming &amp; timeouts</a>
+<a href="../http/proxy.html">Proxy &amp; i18n</a>
+<a href="../http/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Security</summary>
+<a href="../security/index.html">Authentication &amp; authorization</a>
+<a href="../security/protection.html">CORS &amp; CSRF</a>
+<a href="../security/hardening.html">Rate limiting &amp; headers</a>
+<a href="../security/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Observability</summary>
+<a href="../observability/index.html">Logging &amp; timing</a>
+<a href="../observability/health.html">Health &amp; shutdown</a>
+<a href="../observability/api.html">API reference</a>
+</details>
+<details class="nav-group package-group" open>
+<summary>CLI</summary>
+<a href="index.html">Commands</a>
+<a href="prompts.html" aria-current="page">Interactive prompts</a>
+<a href="run.html">Running on Bun</a>
+<a href="api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Config</summary>
+<a href="../config/index.html">Defining configuration</a>
+<a href="../config/service.html">The config service</a>
+<a href="../config/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>OpenAPI</summary>
+<a href="../openapi/index.html">Describing routes</a>
+<a href="../openapi/document.html">Documents &amp; UIs</a>
+<a href="../openapi/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Events</summary>
+<a href="../events/index.html">Subscribing</a>
+<a href="../events/emitting.html">Emitting &amp; errors</a>
+<a href="../events/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Schedule</summary>
+<a href="../schedule/index.html">Jobs &amp; scheduling</a>
+<a href="../schedule/cron.html">The cron engine</a>
+<a href="../schedule/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Queue</summary>
+<a href="../queue/index.html">Producing &amp; processing</a>
+<a href="../queue/engines.html">Engines &amp; repeats</a>
+<a href="../queue/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>BullMQ</summary>
+<a href="../bullmq/index.html">The BullMQ module</a>
+<a href="../bullmq/schedulers.html">Schedulers &amp; queue access</a>
+<a href="../bullmq/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Testing</summary>
+<a href="../testing/index.html">Kernel &amp; modules</a>
+<a href="../testing/router.html">The router client</a>
+<a href="../testing/cli.html">The CLI runner</a>
+<a href="../testing/ws.html">The WebSocket harness</a>
+<a href="../testing/api.html">API reference</a>
+</details>
+</nav>
     </details>
     <div class="layout">
       <aside class="sidebar" id="sidebar">
         <nav aria-label="Documentation">
-          <details class="nav-group package-group">
-            <summary>Core</summary>
-            <a href="../rhythm/index.html">Overview</a>
-            <a href="../rhythm/middleware.html">Middleware &amp; context</a>
-            <a href="../rhythm/providers.html">Providers &amp; lifecycle</a>
-            <a href="../rhythm/modules.html">Encapsulated modules</a>
-            <a href="../rhythm/api.html">API reference</a>
-          </details>
-          <details class="nav-group package-group">
-            <summary>Router</summary>
-            <a href="../router/index.html">Overview</a>
-            <a href="../router/adapters.html">Runtime adapters</a>
-            <a href="../router/api.html">API reference</a>
-          </details>
-          <details class="nav-group package-group" open>
-            <summary>CLI</summary>
-            <a href="index.html">Overview</a>
-            <a href="prompts.html" aria-current="page">Interactive prompts</a>
-            <a href="adapters.html">Runtime adapters</a>
-            <a href="api.html">API reference</a>
-          </details>
-          <details class="nav-group package-group">
-            <summary>Middleware</summary>
-            <a href="../middleware/index.html">Overview</a>
-            <a href="../middleware/api.html">API reference</a>
-          </details>
-          <details class="nav-group package-group">
-            <summary>HTTP</summary>
-            <a href="../http/index.html">Overview</a>
-            <a href="../http/api.html">API reference</a>
-          </details>
-          <details class="nav-group package-group">
-            <summary>Security</summary>
-            <a href="../security/index.html">Overview</a>
-            <a href="../security/api.html">API reference</a>
-          </details>
-          <details class="nav-group package-group">
-            <summary>Observability</summary>
-            <a href="../observability/index.html">Overview</a>
-            <a href="../observability/api.html">API reference</a>
-          </details>
-        </nav>
+<details class="nav-group package-group">
+<summary>Core</summary>
+<a href="../rhythm/index.html">Overview</a>
+<a href="../rhythm/middleware.html">Middleware &amp; context</a>
+<a href="../rhythm/providers.html">Providers &amp; lifecycle</a>
+<a href="../rhythm/modules.html">Encapsulated modules</a>
+<a href="../rhythm/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Router</summary>
+<a href="../router/index.html">Routing</a>
+<a href="../router/static.html">Serving files</a>
+<a href="../router/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>WebSockets</summary>
+<a href="../ws/index.html">Connection routing</a>
+<a href="../ws/serving.html">Serving &amp; pub/sub</a>
+<a href="../ws/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Middleware</summary>
+<a href="../middleware/index.html">Validate</a>
+<a href="../middleware/intercept.html">Intercept</a>
+<a href="../middleware/filter.html">Filter</a>
+<a href="../middleware/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>HTTP</summary>
+<a href="../http/index.html">Cookies &amp; sessions</a>
+<a href="../http/bodies.html">Bodies &amp; uploads</a>
+<a href="../http/caching.html">Caching &amp; compression</a>
+<a href="../http/streaming.html">Streaming &amp; timeouts</a>
+<a href="../http/proxy.html">Proxy &amp; i18n</a>
+<a href="../http/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Security</summary>
+<a href="../security/index.html">Authentication &amp; authorization</a>
+<a href="../security/protection.html">CORS &amp; CSRF</a>
+<a href="../security/hardening.html">Rate limiting &amp; headers</a>
+<a href="../security/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Observability</summary>
+<a href="../observability/index.html">Logging &amp; timing</a>
+<a href="../observability/health.html">Health &amp; shutdown</a>
+<a href="../observability/api.html">API reference</a>
+</details>
+<details class="nav-group package-group" open>
+<summary>CLI</summary>
+<a href="index.html">Commands</a>
+<a href="prompts.html" aria-current="page">Interactive prompts</a>
+<a href="run.html">Running on Bun</a>
+<a href="api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Config</summary>
+<a href="../config/index.html">Defining configuration</a>
+<a href="../config/service.html">The config service</a>
+<a href="../config/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>OpenAPI</summary>
+<a href="../openapi/index.html">Describing routes</a>
+<a href="../openapi/document.html">Documents &amp; UIs</a>
+<a href="../openapi/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Events</summary>
+<a href="../events/index.html">Subscribing</a>
+<a href="../events/emitting.html">Emitting &amp; errors</a>
+<a href="../events/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Schedule</summary>
+<a href="../schedule/index.html">Jobs &amp; scheduling</a>
+<a href="../schedule/cron.html">The cron engine</a>
+<a href="../schedule/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Queue</summary>
+<a href="../queue/index.html">Producing &amp; processing</a>
+<a href="../queue/engines.html">Engines &amp; repeats</a>
+<a href="../queue/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>BullMQ</summary>
+<a href="../bullmq/index.html">The BullMQ module</a>
+<a href="../bullmq/schedulers.html">Schedulers &amp; queue access</a>
+<a href="../bullmq/api.html">API reference</a>
+</details>
+<details class="nav-group package-group">
+<summary>Testing</summary>
+<a href="../testing/index.html">Kernel &amp; modules</a>
+<a href="../testing/router.html">The router client</a>
+<a href="../testing/cli.html">The CLI runner</a>
+<a href="../testing/ws.html">The WebSocket harness</a>
+<a href="../testing/api.html">API reference</a>
+</details>
+</nav>
       </aside>
       <main id="main" tabindex="-1">
         <div class="breadcrumb">
-          <a href="../index.html">Docs</a> <span>/</span> Cli
+          <a href="../index.html">Docs</a> <span>/</span> CLI
           <span>/</span> Interactive prompts
         </div>
         <h1>Interactive prompts</h1>
         <p class="lead">
-          Ask for input and keep the prompt lifecycle under control.
+          Ask for input over Bun's console line iterator and keep the prompt
+          lifecycle under control.
         </p>
         <div class="article">
           <section aria-labelledby="provide-a-prompt">
@@ -161,19 +282,21 @@
               >
             </h2>
             <p>
-              The runtime adapter’s <code>createPrompt()</code> returns
-              <code>{ prompt, close }</code>. Providers live on the host
-              <code>Rhythm</code> app, not on the cli: keep the close function
-              in a private provider field there, provide it before mounting
-              <code>commands()</code>, and dispose it via the app’s
-              <code>teardown()</code>. The cli declares that its handlers
-              expect the prompt through its context generic.
+              <code>createPrompt()</code> from
+              <code>@rhythmjs/cli/run</code> returns
+              <code>{ prompt, close }</code>, reading answer lines through
+              Bun&#39;s async-iterable <code>console</code>. Providers live on
+              the host <code>Rhythm</code> app, not on the cli: keep the close
+              function in a private provider field there, provide it before
+              mounting <code>middleware()</code>, and dispose it via the
+              app&#39;s <code>teardown()</code>. The cli declares that its
+              handlers expect the prompt through its context generic.
             </p>
             <figure class="code-block">
               <pre><code>import { Rhythm } from &quot;@rhythmjs/rhythm&quot;;
 import { RhythmCli } from &quot;@rhythmjs/cli&quot;;
-import { createPrompt, toCliHandler } from &quot;@rhythmjs/cli/adapters/bun&quot;;
-import type { RhythmCliContext } from &quot;@rhythmjs/cli/adapters/context&quot;;
+import { createPrompt, toCliHandler } from &quot;@rhythmjs/cli/run&quot;;
+import type { RhythmCliContext } from &quot;@rhythmjs/cli/context&quot;;
 import type { RhythmPrompt } from &quot;@rhythmjs/cli/prompt&quot;;
 
 const cli = new RhythmCli&lt;RhythmCliContext &amp; { prompt: RhythmPrompt }&gt;()
@@ -191,7 +314,7 @@ const app = new Rhythm&lt;RhythmCliContext&gt;()
     },
     (value) =&gt; value[&quot;#close&quot;](),
   )
-  .use(cli.commands());
+  .use(cli.middleware());
 
 try {
   process.exitCode = await toCliHandler(app)(process.argv.slice(2));
@@ -224,8 +347,9 @@ try {
               </li>
             </ul>
             <p>
-              Allowing custom values adds an “Other” choice and a follow-up text
-              prompt. Selection results may therefore be arbitrary strings.
+              Allowing custom values adds an &ldquo;Other&rdquo; choice and a
+              follow-up text prompt. Selection results may therefore be
+              arbitrary strings.
             </p>
           </section>
           <section aria-labelledby="supply-custom-i-o">
@@ -239,19 +363,21 @@ try {
               <code>createPrompt</code> from
               <code>@rhythmjs/cli/prompt</code> instead. This lower-level
               function requires an I/O object with <code>ask(query)</code>,
-              <code>write(text)</code>, and optional <code>close()</code>.
+              <code>write(text)</code>, and optional
+              <code>close()</code> &mdash; it is exactly what the Bun runner
+              wires to <code>console</code> and <code>process.stdout</code>.
             </p>
           </section>
         </div>
         <nav class="pagination" aria-label="Previous and next pages">
           <a href="index.html"
-            ><span>← Previous</span><strong>CLI commands</strong></a
-          ><a href="adapters.html"
-            ><span>Next →</span><strong>CLI runtime adapters</strong></a
+            ><span>&larr; Previous</span><strong>Commands</strong></a
+          ><a href="run.html"
+            ><span>Next &rarr;</span><strong>Running on Bun</strong></a
           >
         </nav>
         <footer class="page-footer">
-          <span>RhythmJS documentation · v0.0.1</span
+          <span>RhythmJS documentation &middot; v0.0.11</span
           ><a href="https://github.com/rhythmjs/rhythm"
             >github.com/rhythmjs/rhythm</a
           >
@@ -260,9 +386,9 @@ try {
       <aside class="toc">
         <nav aria-label="On this page">
           <p>ON THIS PAGE</p>
-          <a href="#provide-a-prompt">Provide a prompt</a>
-          <a href="#choose-an-input-type">Choose an input type</a>
-          <a href="#supply-custom-i-o">Supply custom I/O</a>
+          <a href="#provide-a-prompt">Provide a prompt</a
+          ><a href="#choose-an-input-type">Choose an input type</a
+          ><a href="#supply-custom-i-o">Supply custom I/O</a>
         </nav>
       </aside>
     </div>
