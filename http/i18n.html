@@ -5,22 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="A streaming reverse proxy with header hygiene, redirect and cookie rewriting, and i18next-based language negotiation."
+      content="Per-request language negotiation over any i18next instance."
     />
     <meta name="color-scheme" content="light dark" />
-    <title>Proxy & i18n · RhythmJS</title>
+    <title>i18n · RhythmJS</title>
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="RhythmJS documentation" />
-    <meta property="og:title" content="Proxy & i18n · RhythmJS" />
+    <meta property="og:title" content="i18n · RhythmJS" />
     <meta
       property="og:description"
-      content="A streaming reverse proxy with header hygiene, redirect and cookie rewriting, and i18next-based language negotiation."
+      content="Per-request language negotiation over any i18next instance."
     />
     <meta name="twitter:card" content="summary" />
-    <meta name="twitter:title" content="Proxy & i18n · RhythmJS" />
+    <meta name="twitter:title" content="i18n · RhythmJS" />
     <meta
       name="twitter:description"
-      content="A streaming reverse proxy with header hygiene, redirect and cookie rewriting, and i18next-based language negotiation."
+      content="Per-request language negotiation over any i18next instance."
     />
     <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -90,7 +90,7 @@
           <a href="bodies.html">Bodies &amp; uploads</a>
           <a href="caching.html">Caching &amp; compression</a>
           <a href="streaming.html">Streaming &amp; timeouts</a>
-          <a href="proxy.html" aria-current="page">Proxy &amp; i18n</a>
+          <a href="i18n.html" aria-current="page">i18n</a>
           <a href="api.html">API reference</a>
         </details>
         <details class="nav-group package-group">
@@ -205,7 +205,7 @@
             <a href="bodies.html">Bodies &amp; uploads</a>
             <a href="caching.html">Caching &amp; compression</a>
             <a href="streaming.html">Streaming &amp; timeouts</a>
-            <a href="proxy.html" aria-current="page">Proxy &amp; i18n</a>
+            <a href="i18n.html" aria-current="page">i18n</a>
             <a href="api.html">API reference</a>
           </details>
           <details class="nav-group package-group">
@@ -289,109 +289,14 @@
       <main id="main" tabindex="-1">
         <div class="breadcrumb">
           <a href="../index.html">Docs</a> <span>/</span> HTTP
-          <span>/</span> Proxy &amp; i18n
+          <span>/</span> i18n
         </div>
-        <h1>Proxy &amp; i18n</h1>
+        <h1>i18n</h1>
         <p class="lead">
-          Talk to upstreams and users in their own terms: a fetch-based reverse
-          proxy with careful header hygiene, and per-request language
-          negotiation over any i18next.
+          Talk to users in their own terms: per-request language negotiation
+          over any i18next.
         </p>
         <div class="article">
-          <section aria-labelledby="reverse-proxy">
-            <h2 id="reverse-proxy">
-              <a href="#reverse-proxy"
-                >A reverse proxy on fetch<span aria-hidden="true"> #</span></a
-              >
-            </h2>
-            <p>
-              <code>proxy(options)</code> relays the request to
-              <code>target</code> on plain <code>fetch</code> and web streams -
-              request and response bodies stream without buffering (the outgoing
-              request uses <code>duplex: &quot;half&quot;</code>;
-              <code>GET</code>/<code>HEAD</code> go bodiless). It is a terminal
-              middleware: it writes the upstream response and does not call
-              downstream handlers.
-            </p>
-            <figure class="code-block">
-              <pre><code>import { proxy } from &quot;@rhythmjs/http/proxy&quot;;
-
-router.use(
-  proxy({
-    target: &quot;http://localhost:4000/api&quot;,
-    rewrite: (path) =&gt; path.replace(/^\/api/, &quot;&quot;),
-    timeout: 10_000,
-  }),
-);</code></pre>
-            </figure>
-          </section>
-          <section aria-labelledby="header-hygiene">
-            <h2 id="header-hygiene">
-              <a href="#header-hygiene"
-                >Header hygiene and x-forwarded-*<span aria-hidden="true">
-                  #</span
-                ></a
-              >
-            </h2>
-            <p>
-              Hop-by-hop and framing headers (<code>connection</code> and
-              everything it names, <code>transfer-encoding</code>,
-              <code>upgrade</code>, …) are stripped in both directions, along
-              with <code>host</code>, <code>accept-encoding</code>, and proxy
-              credentials; <code>forwardHeaders</code> re-allows specific
-              ignored request headers and <code>filterHeaders</code> drops extra
-              ones. <code>headers</code> sets fixed values on every upstream
-              request.
-            </p>
-            <p>
-              With <code>xfwd</code> (on by default) the client IP,
-              <code>request.ip</code> when your <code>Bun.serve</code> fetch
-              exposes it via <code>server.requestIP()</code>, is
-              <em>appended</em> to the inbound
-              <code>x-forwarded-for</code> chain, while
-              <code>x-forwarded-proto</code>/<code>-host</code>/<code
-                >-port</code
-              >
-              are overwritten with server-resolved values, so a client-supplied
-              value never reaches the upstream.
-            </p>
-          </section>
-          <section aria-labelledby="redirects-and-cookies">
-            <h2 id="redirects-and-cookies">
-              <a href="#redirects-and-cookies"
-                >Redirects and cookies<span aria-hidden="true"> #</span></a
-              >
-            </h2>
-            <p>
-              Redirects are <code>manual</code> by default and rewritten on the
-              way back: with <code>locationRewrite: true</code> (default), a
-              <code>Location</code> or <code>Refresh</code> pointing at the
-              target origin is mapped onto the request origin; a
-              <code>{ prefix: replacement }</code> map rewrites by prefix;
-              <code>false</code> passes through. Upstream
-              <code>Set-Cookie</code> headers are appended verbatim unless
-              <code>cookieDomainRewrite</code> /
-              <code>cookiePathRewrite</code> remap them: a string rewrites
-              everything, a map matches exact values with a
-              <code>&quot;*&quot;</code> wildcard, and an empty replacement
-              removes the attribute.
-            </p>
-          </section>
-          <section aria-labelledby="failure-modes">
-            <h2 id="failure-modes">
-              <a href="#failure-modes"
-                >Failure modes<span aria-hidden="true"> #</span></a
-              >
-            </h2>
-            <p>
-              Upstream failures map to JSON error responses: an exceeded
-              <code>timeout</code> aborts the fetch and answers
-              <code>504</code>; a client disconnect answers <code>499</code>;
-              any other network error answers <code>502</code>. The
-              <code>fetch</code> option injects a custom fetch, the seam tests
-              and service meshes use.
-            </p>
-          </section>
           <section aria-labelledby="i18n">
             <h2 id="i18n">
               <a href="#i18n"
@@ -473,11 +378,7 @@ router.use&lt;I18nContext&gt;(i18n({ i18next, cacheCookie: true })).get(&quot;/&
       <aside class="toc">
         <nav aria-label="On this page">
           <p>ON THIS PAGE</p>
-          <a href="#reverse-proxy">A reverse proxy on fetch</a
-          ><a href="#header-hygiene">Header hygiene and x-forwarded-*</a
-          ><a href="#redirects-and-cookies">Redirects and cookies</a
-          ><a href="#failure-modes">Failure modes</a
-          ><a href="#i18n">Language negotiation with i18next</a
+          <a href="#i18n">Language negotiation with i18next</a
           ><a href="#detection-order">Detection order and matching</a>
         </nav>
       </aside>

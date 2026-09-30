@@ -20,7 +20,7 @@ Each package group has one page per topic plus an API reference; there are no ge
 - **@rhythmjs/router**: [Routing](router/index.html) · [Serving files](router/static.html) · [API](router/api.html)
 - **@rhythmjs/ws (WebSockets)**: [Connection routing](ws/index.html) · [Serving & pub/sub](ws/serving.html) · [API](ws/api.html)
 - **@rhythmjs/middleware**: [Validate](middleware/index.html) · [Intercept](middleware/intercept.html) · [Filter](middleware/filter.html) · [API](middleware/api.html)
-- **@rhythmjs/http**: [Cookies & sessions](http/index.html) · [Bodies & uploads](http/bodies.html) · [Caching & compression](http/caching.html) · [Streaming & timeouts](http/streaming.html) · [Proxy & i18n](http/proxy.html) · [API](http/api.html)
+- **@rhythmjs/http**: [Cookies & sessions](http/index.html) · [Bodies & uploads](http/bodies.html) · [Caching & compression](http/caching.html) · [Streaming & timeouts](http/streaming.html) · [i18n](http/i18n.html) · [API](http/api.html)
 - **@rhythmjs/security**: [Authentication & authorization](security/index.html) · [CORS & CSRF](security/protection.html) · [Rate limiting & headers](security/hardening.html) · [API](security/api.html)
 - **@rhythmjs/observability**: [Logging & timing](observability/index.html) · [Health & shutdown](observability/health.html) · [API](observability/api.html)
 - **@rhythmjs/cli**: [Commands](cli/index.html) · [Interactive prompts](cli/prompts.html) · [Running on Bun](cli/run.html) · [API](cli/api.html)

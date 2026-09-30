@@ -90,7 +90,7 @@
           <a href="bodies.html">Bodies &amp; uploads</a>
           <a href="caching.html">Caching &amp; compression</a>
           <a href="streaming.html">Streaming &amp; timeouts</a>
-          <a href="proxy.html">Proxy &amp; i18n</a>
+          <a href="i18n.html">i18n</a>
           <a href="api.html" aria-current="page">API reference</a>
         </details>
         <details class="nav-group package-group">
@@ -205,7 +205,7 @@
             <a href="bodies.html">Bodies &amp; uploads</a>
             <a href="caching.html">Caching &amp; compression</a>
             <a href="streaming.html">Streaming &amp; timeouts</a>
-            <a href="proxy.html">Proxy &amp; i18n</a>
+            <a href="i18n.html">i18n</a>
             <a href="api.html" aria-current="page">API reference</a>
           </details>
           <details class="nav-group package-group">
@@ -293,9 +293,9 @@
         </div>
         <h1>API reference</h1>
         <p class="lead">
-          Every export of the thirteen @rhythmjs/http subpath modules, from
-          cookies and sessions to compression, uploads, proxying, and
-          request-scoped storage.
+          Every export of the twelve @rhythmjs/http subpath modules, from
+          cookies and sessions to compression, uploads, and request-scoped
+          storage.
         </p>
         <div class="article">
           <section aria-labelledby="cookies">
@@ -661,52 +661,6 @@ type FormFile = Exclude&lt;ReturnType&lt;RequestFormData[&quot;get&quot;]&gt;, s
               </dd>
             </dl>
           </section>
-          <section aria-labelledby="proxy">
-            <h2 id="proxy">
-              <a href="#proxy"
-                >@rhythmjs/http/proxy<span aria-hidden="true"> #</span></a
-              >
-            </h2>
-            <figure class="code-block">
-              <pre><code>function proxy(options: ProxyOptions): Middleware&lt;RhythmHttpContext&gt;</code></pre>
-            </figure>
-            <dl>
-              <dt>ProxyOptions.target</dt>
-              <dd>Upstream origin the request path is appended to.</dd>
-              <dt>rewrite / headers / forwardHeaders / filterHeaders</dt>
-              <dd>
-                Map the path, add fixed headers, force-forward normally-ignored
-                headers, or drop named headers. Hop-by-hop and framing headers
-                are always stripped.
-              </dd>
-              <dt>xfwd</dt>
-              <dd>
-                Default true: appends the client IP (<code>request.ip</code>,
-                when your <code>Bun.serve</code> fetch exposes it via
-                <code>server.requestIP()</code>) to the inbound
-                <code>X-Forwarded-For</code> chain and overwrites
-                <code>proto</code>/<code>host</code>/<code>port</code> with
-                server-resolved values.
-              </dd>
-              <dt>cookieDomainRewrite / cookiePathRewrite / locationRewrite</dt>
-              <dd>
-                Rewrite upstream <code>Set-Cookie</code> domains and paths
-                (string or map; <code>&quot;*&quot;</code> as wildcard) and
-                <code>Location</code> redirects (<code>true</code> maps the
-                target origin back to the request origin; a record maps
-                prefixes).
-              </dd>
-              <dt>timeout / redirect / fetch</dt>
-              <dd>
-                Upstream deadline (answers <code>504</code>; a client disconnect
-                answers <code>499</code>), redirect mode (<code
-                  >&quot;manual&quot;</code
-                >
-                default), and a replacement <code>fetch</code> implementation
-                for testing.
-              </dd>
-            </dl>
-          </section>
           <section aria-labelledby="sse-stream">
             <h2 id="sse-stream">
               <a href="#sse-stream"
@@ -812,8 +766,8 @@ interface RequestScopeStore {} // augment to type keys</code></pre>
           </section>
         </div>
         <nav class="pagination" aria-label="Previous and next pages">
-          <a href="proxy.html"
-            ><span>← Previous</span><strong>Proxy &amp; i18n</strong></a
+          <a href="i18n.html"
+            ><span>← Previous</span><strong>i18n</strong></a
           ><span></span>
         </nav>
         <footer class="page-footer">
@@ -834,7 +788,6 @@ interface RequestScopeStore {} // augment to type keys</code></pre>
           <a href="#compress">@rhythmjs/http/compress</a>
           <a href="#cache">@rhythmjs/http/cache</a>
           <a href="#multipart">@rhythmjs/http/multipart</a>
-          <a href="#proxy">@rhythmjs/http/proxy</a>
           <a href="#sse-stream">@rhythmjs/http/sse and /stream</a>
           <a href="#i18n">@rhythmjs/http/i18n</a>
           <a href="#request-scope">@rhythmjs/http/request-scope</a>

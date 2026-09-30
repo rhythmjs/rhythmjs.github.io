@@ -92,7 +92,7 @@
           <a href="streaming.html" aria-current="page"
             >Streaming &amp; timeouts</a
           >
-          <a href="proxy.html">Proxy &amp; i18n</a>
+          <a href="i18n.html">i18n</a>
           <a href="api.html">API reference</a>
         </details>
         <details class="nav-group package-group">
@@ -209,7 +209,7 @@
             <a href="streaming.html" aria-current="page"
               >Streaming &amp; timeouts</a
             >
-            <a href="proxy.html">Proxy &amp; i18n</a>
+            <a href="i18n.html">i18n</a>
             <a href="api.html">API reference</a>
           </details>
           <details class="nav-group package-group">
@@ -368,7 +368,7 @@ router.use(sse()).get(&quot;/ticker&quot;, (ctx) =&gt; {
               <code>504 Gateway Timeout</code> (JSON body); note the downstream
               work is <em>not</em> aborted; its eventual result is discarded and
               its rejection swallowed. Put it outside slow handlers or around
-              <code>proxy</code> targets you do not control:
+              upstream calls you do not control:
             </p>
             <figure class="code-block">
               <pre><code>import { timeout } from &quot;@rhythmjs/http/timeout&quot;;
@@ -378,9 +378,10 @@ router.use(timeout(5000)).get(&quot;/slow-upstream&quot;, async (ctx) =&gt; {
 });</code></pre>
             </figure>
             <p>
-              For upstream calls that should be truly cancelled, prefer
-              <code>proxy({ timeout })</code>, which aborts the outgoing fetch
-              with an <code>AbortController</code>.
+              For upstream calls that should be truly cancelled, pass an
+              <code>AbortSignal</code> (e.g.
+              <code>AbortSignal.timeout(ms)</code>) to the outgoing fetch so
+              the work is aborted, not just outraced.
             </p>
           </section>
         </div>
@@ -388,8 +389,8 @@ router.use(timeout(5000)).get(&quot;/slow-upstream&quot;, async (ctx) =&gt; {
           <a href="caching.html"
             ><span>← Previous</span
             ><strong>Caching &amp; compression</strong></a
-          ><a href="proxy.html"
-            ><span>Next →</span><strong>Proxy &amp; i18n</strong></a
+          ><a href="i18n.html"
+            ><span>Next →</span><strong>i18n</strong></a
           >
         </nav>
         <footer class="page-footer">
