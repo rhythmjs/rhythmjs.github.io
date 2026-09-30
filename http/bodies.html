@@ -306,12 +306,13 @@
             <p>
               <code>bodyLimit(maxBytes)</code> rejects oversized payloads with
               <code>413 Payload Too Large</code> (a JSON error body) before your
-              handler runs. When the client sends <code>Content-Length</code>,
-              the check is free; without one, the middleware measures a
-              <em>clone</em> of the body, so the handler can still read the
-              original. Measuring a clone buffers it in memory; for large
-              uploads prefer <code>multipart</code>’s streaming
-              <code>maxBytes</code>.
+              handler runs. When the client sends a valid
+              <code>Content-Length</code>, the check is free; without one (a
+              chunked body), the stream is counted and cancelled the moment it
+              crosses the limit, so at most <code>maxBytes</code> plus one
+              chunk is ever held in memory. Bodies that pass are re-exposed on
+              <code>ctx.request</code> already buffered, so the handler reads
+              them as usual.
             </p>
             <figure class="code-block">
               <pre><code>import { bodyLimit } from &quot;@rhythmjs/http/body-limit&quot;;

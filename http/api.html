@@ -527,13 +527,15 @@
             </figure>
             <ul>
               <li>
-                When a <code>Content-Length</code> header is present, its value
-                is compared against the limit without reading the body.
+                When a valid <code>Content-Length</code> header is present, its
+                value is compared against the limit without reading the body.
               </li>
               <li>
-                Otherwise, when the request has a body, a clone of the request
-                is buffered and its byte length is measured. The original body
-                stays readable by downstream handlers.
+                Otherwise, when the request has a body, the stream is counted
+                and cancelled as soon as it exceeds the limit (never holding
+                more than the limit plus one chunk); accepted bodies are
+                re-exposed buffered on <code>ctx.request</code> for downstream
+                handlers.
               </li>
             </ul>
           </section>
