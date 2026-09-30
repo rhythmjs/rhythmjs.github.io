@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Logs, request ids, health checks, and graceful shutdown."
+    />
+    <meta name="color-scheme" content="light dark" />
+    <title>Observability &amp; production · RhythmJS</title>
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="RhythmJS documentation" />
+    <meta property="og:title" content="Observability &amp; production · RhythmJS" />
+    <meta
+      property="og:description"
+      content="Logs, request ids, health checks, and graceful shutdown."
+    />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Observability &amp; production · RhythmJS" />
+    <meta
+      name="twitter:description"
+      content="Logs, request ids, health checks, and graceful shutdown."
+    />
+    <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../assets/style.css" />
+    <script defer src="../assets/highlight.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="header">
+      <a
+        class="brand"
+        href="../index.html"
+        aria-label="RhythmJS documentation home"
+        ><svg viewBox="0 0 32 32" aria-hidden="true">
+          <path
+            d="M5.4 25.5V13M9.64 25.5V7.5M13.88 25.5V17M18.12 25.5V6M22.36 25.5V11.5M26.6 25.5V15"
+          /></svg
+        ><span>rhythm<span class="brand-js">js</span></span></a
+      >
+      <span class="version">v0.0.11</span>
+      <nav class="header-tabs" aria-label="Site">
+        <a href="../index.html" aria-current="true">Guide</a
+        ><a href="../rhythm/index.html">Packages</a>
+      </nav>
+      <nav class="header-links" aria-label="External">
+        <a href="https://github.com/rhythmjs">GitHub</a>
+      </nav>
+    </header>
+    <details class="mobile-navigation">
+      <summary>Browse documentation</summary>
+      <nav aria-label="Documentation">
+        <div class="nav-group">
+          <p>Guide</p>
+          <a href="../index.html">Introduction</a>
+          <a href="../getting-started.html">Quick start</a>
+          <a href="../philosophy.html">Philosophy</a>
+        </div>
+        <div class="nav-group">
+          <p>Tutorial</p>
+          <a href="index.html">1. First steps</a>
+          <a href="controllers.html">2. Controllers &amp; routing</a>
+          <a href="services.html">3. Services &amp; providers</a>
+          <a href="modules.html">4. Modules</a>
+          <a href="custom-modules.html">5. Custom modules</a>
+          <a href="validation.html">6. Validation &amp; errors</a>
+          <a href="configuration.html">7. Configuration</a>
+          <a href="persistence.html">8. Persistence</a>
+          <a href="security.html">9. Security</a>
+          <a href="websockets.html">10. WebSockets</a>
+          <a href="background-jobs.html">11. Background jobs</a>
+          <a href="openapi.html">12. OpenAPI</a>
+          <a href="observability.html" aria-current="page">13. Observability &amp; production</a>
+          <a href="testing.html">14. Testing</a>
+        </div>
+      </nav>
+    </details>
+    <div class="layout">
+      <aside class="sidebar" id="sidebar">
+        <nav aria-label="Documentation">
+        <div class="nav-group">
+          <p>Guide</p>
+          <a href="../index.html">Introduction</a>
+          <a href="../getting-started.html">Quick start</a>
+          <a href="../philosophy.html">Philosophy</a>
+        </div>
+        <div class="nav-group">
+          <p>Tutorial</p>
+          <a href="index.html">1. First steps</a>
+          <a href="controllers.html">2. Controllers &amp; routing</a>
+          <a href="services.html">3. Services &amp; providers</a>
+          <a href="modules.html">4. Modules</a>
+          <a href="custom-modules.html">5. Custom modules</a>
+          <a href="validation.html">6. Validation &amp; errors</a>
+          <a href="configuration.html">7. Configuration</a>
+          <a href="persistence.html">8. Persistence</a>
+          <a href="security.html">9. Security</a>
+          <a href="websockets.html">10. WebSockets</a>
+          <a href="background-jobs.html">11. Background jobs</a>
+          <a href="openapi.html">12. OpenAPI</a>
+          <a href="observability.html" aria-current="page">13. Observability &amp; production</a>
+          <a href="testing.html">14. Testing</a>
+        </div>
+        </nav>
+      </aside>
+      <main id="main" tabindex="-1">
+        <div class="breadcrumb">
+          <a href="../index.html">Docs</a> <span>/</span> Tutorial
+          <span>/</span> Observability &amp; production
+        </div>
+        <h1>Observability &amp; production</h1>
+        <p class="lead">Logs, request ids, health endpoints, and a shutdown that drains cleanly.</p>
+        <div class="article">
+          <section aria-labelledby="see-every-request">
+            <h2 id="see-every-request">
+              <a href="#see-every-request"
+                >See every request<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              Three middleware from
+              <a href="../observability/index.html">@rhythmjs/observability</a>
+              cover the request path: <code>requestId()</code> puts an id on
+              the context and response, <code>log()</code> writes one line per
+              request (method, path, status, duration — never headers or
+              bodies), and <code>timing()</code> adds a
+              <code>Server-Timing</code> header. Order them first so they wrap
+              everything:
+            </p>
+            <figure class="code-block">
+              <pre><code>import { log } from &quot;@rhythmjs/observability/log&quot;;
+import { requestId } from &quot;@rhythmjs/observability/request-id&quot;;
+import { timing } from &quot;@rhythmjs/observability/timing&quot;;
+
+export const appModule = new Rhythm&lt;RhythmHttpContext&gt;({ name: &quot;app&quot;, type: &quot;module&quot; })
+  .use(requestId())
+  .use(log())
+  .use(process.env.NODE_ENV === &quot;production&quot; ? (ctx, next) =&gt; next() : timing())
+  .use(filter())
+  /* ... */</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="health-checks">
+            <h2 id="health-checks">
+              <a href="#health-checks"
+                >Health checks<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              The health module separates liveness (the process is up) from
+              readiness (its dependencies answer). Indicators are small
+              objects with a <code>check()</code>; results are cached briefly
+              so load balancers cannot hammer your database through the
+              endpoint:
+            </p>
+            <figure class="code-block">
+              <pre><code>import { healthModule, healthRoutes } from &quot;@rhythmjs/observability/health&quot;;
+
+const health = healthModule.forRoot({
+  indicators: [
+    {
+      name: &quot;postgres&quot;,
+      critical: true,
+      timeout: 2_000,
+      check: async () =&gt; {
+        await db.execute(sql`select 1`);
+        return { status: &quot;up&quot; };
+      },
+    },
+    {
+      name: &quot;queue&quot;,
+      check: async () =&gt; ({ status: &quot;up&quot;, details: await queueService.counts() }),
+    },
+  ],
+});
+
+appModule
+  .register(health, ({ healthService }) =&gt; ({ healthService }))
+  .use(healthRoutes(healthService).middleware()); // GET /health/live, GET /health/ready</code></pre>
+            </figure>
+            <aside class="note">
+              <strong>Readiness detail exposure</strong>
+              <p>Indicator <code>details</code> and failure messages appear in
+              the readiness body. Keep them free of connection strings, or
+              mount <code>healthRoutes</code> behind auth / an internal
+              listener.</p>
+            </aside>
+          </section>
+          <section aria-labelledby="graceful-shutdown">
+            <h2 id="graceful-shutdown">
+              <a href="#graceful-shutdown"
+                >Graceful shutdown<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              Production <code>main.ts</code> ties it together: an error
+              boundary around the handler, signal-driven shutdown that flips
+              readiness, drains, stops the server, and tears the module tree
+              down in reverse:
+            </p>
+            <figure class="code-block">
+              <pre><code>// src/main.ts
+import { errorToResponse, toFetchHandler } from &quot;@rhythmjs/router/fetch&quot;;
+import { gracefulShutdown } from &quot;@rhythmjs/observability/health&quot;;
+import { appModule } from &quot;./app.module&quot;;
+
+const handler = toFetchHandler(appModule);
+
+const server = Bun.serve({
+  port: Number(process.env.PORT ?? 3000),
+  async fetch(request, srv) {
+    try {
+      return (await notesWs.upgrade(request, srv)) ?? (await handler(request));
+    } catch (error) {
+      return errorToResponse(error); // 5xx bodies are generic; details stay in server logs
+    }
+  },
+  websocket: notesWs.websocket,
+});
+
+gracefulShutdown({
+  healthService,                       // readiness flips down first
+  app: appModule,                      // teardown(): dispose providers in reverse
+  close: () =&gt; server.stop(),
+  drainMs: 5_000,
+  timeoutMs: 15_000,
+});
+
+console.log(`listening on ${server.url}`);</code></pre>
+            </figure>
+            <p>
+              With that, deploys are boring: the balancer sees
+              <code>/health/ready</code> go down, traffic drains, in-flight
+              requests finish, the pool closes last. Which leaves exactly one
+              thing to prove — that all of it works.
+            </p>
+          </section>
+        </div>
+        <nav class="pagination" aria-label="Previous and next pages">
+          <a href="openapi.html"
+            ><span>← Previous</span><strong>12. OpenAPI</strong></a
+          ><a href="testing.html"
+            ><span>Next →</span><strong>14. Testing</strong></a
+          >
+        </nav>
+        <footer class="page-footer">
+          <span>RhythmJS documentation · v0.0.11</span
+          ><a href="https://github.com/rhythmjs/rhythm"
+            >github.com/rhythmjs/rhythm</a
+          >
+        </footer>
+      </main>
+      <aside class="toc">
+        <nav aria-label="On this page">
+          <p>ON THIS PAGE</p>
+          <a href="#see-every-request">See every request</a>
+          <a href="#health-checks">Health checks</a>
+          <a href="#graceful-shutdown">Graceful shutdown</a>
+        </nav>
+      </aside>
+    </div>
+  </body>
+</html>

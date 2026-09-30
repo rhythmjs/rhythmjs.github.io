@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="A real database as a disposable provider, from pool to CRUD."
+    />
+    <meta name="color-scheme" content="light dark" />
+    <title>Persistence · RhythmJS</title>
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="RhythmJS documentation" />
+    <meta property="og:title" content="Persistence · RhythmJS" />
+    <meta
+      property="og:description"
+      content="A real database as a disposable provider, from pool to CRUD."
+    />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Persistence · RhythmJS" />
+    <meta
+      name="twitter:description"
+      content="A real database as a disposable provider, from pool to CRUD."
+    />
+    <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../assets/style.css" />
+    <script defer src="../assets/highlight.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="header">
+      <a
+        class="brand"
+        href="../index.html"
+        aria-label="RhythmJS documentation home"
+        ><svg viewBox="0 0 32 32" aria-hidden="true">
+          <path
+            d="M5.4 25.5V13M9.64 25.5V7.5M13.88 25.5V17M18.12 25.5V6M22.36 25.5V11.5M26.6 25.5V15"
+          /></svg
+        ><span>rhythm<span class="brand-js">js</span></span></a
+      >
+      <span class="version">v0.0.11</span>
+      <nav class="header-tabs" aria-label="Site">
+        <a href="../index.html" aria-current="true">Guide</a
+        ><a href="../rhythm/index.html">Packages</a>
+      </nav>
+      <nav class="header-links" aria-label="External">
+        <a href="https://github.com/rhythmjs">GitHub</a>
+      </nav>
+    </header>
+    <details class="mobile-navigation">
+      <summary>Browse documentation</summary>
+      <nav aria-label="Documentation">
+        <div class="nav-group">
+          <p>Guide</p>
+          <a href="../index.html">Introduction</a>
+          <a href="../getting-started.html">Quick start</a>
+          <a href="../philosophy.html">Philosophy</a>
+        </div>
+        <div class="nav-group">
+          <p>Tutorial</p>
+          <a href="index.html">1. First steps</a>
+          <a href="controllers.html">2. Controllers &amp; routing</a>
+          <a href="services.html">3. Services &amp; providers</a>
+          <a href="modules.html">4. Modules</a>
+          <a href="custom-modules.html">5. Custom modules</a>
+          <a href="validation.html">6. Validation &amp; errors</a>
+          <a href="configuration.html">7. Configuration</a>
+          <a href="persistence.html" aria-current="page">8. Persistence</a>
+          <a href="security.html">9. Security</a>
+          <a href="websockets.html">10. WebSockets</a>
+          <a href="background-jobs.html">11. Background jobs</a>
+          <a href="openapi.html">12. OpenAPI</a>
+          <a href="observability.html">13. Observability &amp; production</a>
+          <a href="testing.html">14. Testing</a>
+        </div>
+      </nav>
+    </details>
+    <div class="layout">
+      <aside class="sidebar" id="sidebar">
+        <nav aria-label="Documentation">
+        <div class="nav-group">
+          <p>Guide</p>
+          <a href="../index.html">Introduction</a>
+          <a href="../getting-started.html">Quick start</a>
+          <a href="../philosophy.html">Philosophy</a>
+        </div>
+        <div class="nav-group">
+          <p>Tutorial</p>
+          <a href="index.html">1. First steps</a>
+          <a href="controllers.html">2. Controllers &amp; routing</a>
+          <a href="services.html">3. Services &amp; providers</a>
+          <a href="modules.html">4. Modules</a>
+          <a href="custom-modules.html">5. Custom modules</a>
+          <a href="validation.html">6. Validation &amp; errors</a>
+          <a href="configuration.html">7. Configuration</a>
+          <a href="persistence.html" aria-current="page">8. Persistence</a>
+          <a href="security.html">9. Security</a>
+          <a href="websockets.html">10. WebSockets</a>
+          <a href="background-jobs.html">11. Background jobs</a>
+          <a href="openapi.html">12. OpenAPI</a>
+          <a href="observability.html">13. Observability &amp; production</a>
+          <a href="testing.html">14. Testing</a>
+        </div>
+        </nav>
+      </aside>
+      <main id="main" tabindex="-1">
+        <div class="breadcrumb">
+          <a href="../index.html">Docs</a> <span>/</span> Tutorial
+          <span>/</span> Persistence
+        </div>
+        <h1>Persistence</h1>
+        <p class="lead">A real database as a disposable provider — pool, schema, service, CRUD.</p>
+        <div class="article">
+          <section aria-labelledby="the-database-as-a-provider">
+            <h2 id="the-database-as-a-provider">
+              <a href="#the-database-as-a-provider"
+                >The database as a provider<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              A database is the canonical disposable provider: open the pool in
+              the factory, close it in the dispose function, and hide the raw
+              client behind a <code>#</code> key. This example uses
+              <a href="../data/drizzle.html">Drizzle on Bun's native SQL
+              driver</a>; the <a href="../data/index.html">data recipes</a>
+              cover Prisma, MikroORM, and MongoDB with the same shape:
+            </p>
+            <figure class="code-block">
+              <pre><code>// src/database.ts
+import { SQL } from &quot;bun&quot;;
+import { drizzle, type BunSQLDatabase } from &quot;drizzle-orm/bun-sql&quot;;
+import * as schema from &quot;./notes/notes.table&quot;;
+
+export type Database = BunSQLDatabase&lt;typeof schema&gt;;
+
+export interface DatabaseValue {
+  db: Database;
+  &quot;#client&quot;: SQL;
+}
+
+export function createDatabase(url: string): () =&gt; DatabaseValue {
+  return () =&gt; {
+    const client = new SQL(url);
+    return { db: drizzle({ client, schema }), &quot;#client&quot;: client };
+  };
+}
+
+export async function closeDatabase(value: DatabaseValue): Promise&lt;void&gt; {
+  await value[&quot;#client&quot;].close();
+}</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="schema-and-service">
+            <h2 id="schema-and-service">
+              <a href="#schema-and-service"
+                >Schema and service<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              The table definition is plain Drizzle, and the service factory
+              from step 3 now takes the database instead of a Map — the
+              controller does not change at all:
+            </p>
+            <figure class="code-block">
+              <pre><code>// src/notes/notes.table.ts
+import { pgTable, text, timestamp, uuid } from &quot;drizzle-orm/pg-core&quot;;
+
+export const notes = pgTable(&quot;notes&quot;, {
+  id: uuid(&quot;id&quot;).primaryKey().defaultRandom(),
+  title: text(&quot;title&quot;).notNull(),
+  content: text(&quot;content&quot;).notNull().default(&quot;&quot;),
+  createdAt: timestamp(&quot;created_at&quot;).notNull().defaultNow(),
+  updatedAt: timestamp(&quot;updated_at&quot;).notNull().defaultNow(),
+});
+
+export type Note = typeof notes.$inferSelect;</code></pre>
+            </figure>
+            <figure class="code-block">
+              <pre><code>// src/notes/notes.service.ts
+import { desc, eq } from &quot;drizzle-orm&quot;;
+import type { Database } from &quot;../database&quot;;
+import { notes, type Note } from &quot;./notes.table&quot;;
+import type { CreateNoteInput, UpdateNoteInput } from &quot;./notes.schema&quot;;
+
+export function createNotesService(db: Database) {
+  return {
+    list(): Promise&lt;Note[]&gt; {
+      return db.select().from(notes).orderBy(desc(notes.createdAt));
+    },
+    async get(id: string): Promise&lt;Note | undefined&gt; {
+      const [note] = await db.select().from(notes).where(eq(notes.id, id));
+      return note;
+    },
+    async create(input: CreateNoteInput): Promise&lt;Note&gt; {
+      const [note] = await db.insert(notes).values(input).returning();
+      return note;
+    },
+    async update(id: string, patch: UpdateNoteInput): Promise&lt;Note | undefined&gt; {
+      const [note] = await db
+        .update(notes)
+        .set({ ...patch, updatedAt: new Date() })
+        .where(eq(notes.id, id))
+        .returning();
+      return note;
+    },
+    async remove(id: string): Promise&lt;boolean&gt; {
+      const deleted = await db.delete(notes).where(eq(notes.id, id)).returning({ id: notes.id });
+      return deleted.length &gt; 0;
+    },
+  };
+}
+
+export type NotesService = ReturnType&lt;typeof createNotesService&gt;;</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="wire-it-together">
+            <h2 id="wire-it-together">
+              <a href="#wire-it-together"
+                >Wire it together<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              The module chain now reads as a dependency graph: config first,
+              then the pool (consuming config), then the service (consuming
+              the pool), then the controller (consuming the service). Teardown
+              walks it backwards:
+            </p>
+            <figure class="code-block">
+              <pre><code>export const appModule = new Rhythm&lt;RhythmHttpContext&gt;({ name: &quot;app&quot;, type: &quot;module&quot; })
+  .use(filter())
+  .register(configModule.forRoot(databaseConfig), (v) =&gt; v)
+  .provide(createDatabase(database.url), closeDatabase)
+  .provide(({ db }) =&gt; ({ notesService: createNotesService(db) }))
+  .use(notesController.middleware())
+  .use(() =&gt; {
+    throw new HttpError(404, &quot;Route not found&quot;);
+  });</code></pre>
+            </figure>
+            <p>
+              For local development, run Postgres from a compose file bound to
+              loopback only — never publish a dev database on all
+              interfaces:
+            </p>
+            <figure class="code-block">
+              <pre><code># compose.yaml
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: notes
+    ports:
+      - &quot;127.0.0.1:5432:5432&quot; </code></pre>
+            </figure>
+          </section>
+        </div>
+        <nav class="pagination" aria-label="Previous and next pages">
+          <a href="configuration.html"
+            ><span>← Previous</span><strong>7. Configuration</strong></a
+          ><a href="security.html"
+            ><span>Next →</span><strong>9. Security</strong></a
+          >
+        </nav>
+        <footer class="page-footer">
+          <span>RhythmJS documentation · v0.0.11</span
+          ><a href="https://github.com/rhythmjs/rhythm"
+            >github.com/rhythmjs/rhythm</a
+          >
+        </footer>
+      </main>
+      <aside class="toc">
+        <nav aria-label="On this page">
+          <p>ON THIS PAGE</p>
+          <a href="#the-database-as-a-provider">The database as a provider</a>
+          <a href="#schema-and-service">Schema and service</a>
+          <a href="#wire-it-together">Wire it together</a>
+        </nav>
+      </aside>
+    </div>
+  </body>
+</html>
