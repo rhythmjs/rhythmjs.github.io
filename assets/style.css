@@ -179,7 +179,10 @@ h1,
   overflow-y: auto;
   display: flex;
   flex-direction: column;
+  scrollbar-width: none;
 }
+
+.sidebar::-webkit-scrollbar { display: none; }
 
 .nav-group { margin-bottom: 22px; }
 
