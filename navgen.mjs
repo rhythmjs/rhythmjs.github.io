@@ -95,6 +95,13 @@ const groups = [
     ["testing/ws.html", "The WebSocket harness"],
     ["testing/api.html", "API reference"],
   ]],
+  ["Data", [
+    ["data/index.html", "Overview"],
+    ["data/drizzle.html", "Drizzle"],
+    ["data/prisma.html", "Prisma"],
+    ["data/mikro-orm.html", "MikroORM"],
+    ["data/mongodb.html", "MongoDB"],
+  ]],
 ];
 
 const pages = [...guides.map(([p]) => p), ...groups.flatMap(([, links]) => links.map(([p]) => p))];

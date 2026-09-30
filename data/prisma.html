@@ -5,22 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="Every export of @rhythmjs/ws: the RhythmWs class, WsRoute handlers, guards, behavior tuning, and supporting types."
+      content="Wire Prisma into Rhythm: PrismaClient as a disposable provider, not-found error codes mapped at the service boundary, and deploy-style migrations."
     />
     <meta name="color-scheme" content="light dark" />
-    <title>API reference · RhythmJS</title>
+    <title>Prisma · RhythmJS</title>
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="RhythmJS documentation" />
-    <meta property="og:title" content="API reference · RhythmJS" />
+    <meta property="og:title" content="Prisma · RhythmJS" />
     <meta
       property="og:description"
-      content="Every export of @rhythmjs/ws: the RhythmWs class, WsRoute handlers, guards, behavior tuning, and supporting types."
+      content="Wire Prisma into Rhythm: PrismaClient as a disposable provider, not-found error codes mapped at the service boundary, and deploy-style migrations."
     />
     <meta name="twitter:card" content="summary" />
-    <meta name="twitter:title" content="API reference · RhythmJS" />
+    <meta name="twitter:title" content="Prisma · RhythmJS" />
     <meta
       name="twitter:description"
-      content="Every export of @rhythmjs/ws: the RhythmWs class, WsRoute handlers, guards, behavior tuning, and supporting types."
+      content="Wire Prisma into Rhythm: PrismaClient as a disposable provider, not-found error codes mapped at the service boundary, and deploy-style migrations."
     />
     <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -71,11 +71,11 @@
           <a href="../router/static.html">Serving files</a>
           <a href="../router/api.html">API reference</a>
         </details>
-        <details class="nav-group package-group" open>
+        <details class="nav-group package-group">
           <summary>WebSockets</summary>
-          <a href="index.html">Connection routing</a>
-          <a href="serving.html">Serving &amp; pub/sub</a>
-          <a href="api.html" aria-current="page">API reference</a>
+          <a href="../ws/index.html">Connection routing</a>
+          <a href="../ws/serving.html">Serving &amp; pub/sub</a>
+          <a href="../ws/api.html">API reference</a>
         </details>
         <details class="nav-group package-group">
           <summary>Middleware</summary>
@@ -159,13 +159,13 @@
           <a href="../testing/ws.html">The WebSocket harness</a>
           <a href="../testing/api.html">API reference</a>
         </details>
-        <details class="nav-group package-group">
+        <details class="nav-group package-group" open>
           <summary>Data</summary>
-          <a href="../data/index.html">Overview</a>
-          <a href="../data/drizzle.html">Drizzle</a>
-          <a href="../data/prisma.html">Prisma</a>
-          <a href="../data/mikro-orm.html">MikroORM</a>
-          <a href="../data/mongodb.html">MongoDB</a>
+          <a href="index.html">Overview</a>
+          <a href="drizzle.html">Drizzle</a>
+          <a href="prisma.html" aria-current="page">Prisma</a>
+          <a href="mikro-orm.html">MikroORM</a>
+          <a href="mongodb.html">MongoDB</a>
         </details>
       </nav>
     </details>
@@ -186,11 +186,11 @@
             <a href="../router/static.html">Serving files</a>
             <a href="../router/api.html">API reference</a>
           </details>
-          <details class="nav-group package-group" open>
+          <details class="nav-group package-group">
             <summary>WebSockets</summary>
-            <a href="index.html">Connection routing</a>
-            <a href="serving.html">Serving &amp; pub/sub</a>
-            <a href="api.html" aria-current="page">API reference</a>
+            <a href="../ws/index.html">Connection routing</a>
+            <a href="../ws/serving.html">Serving &amp; pub/sub</a>
+            <a href="../ws/api.html">API reference</a>
           </details>
           <details class="nav-group package-group">
             <summary>Middleware</summary>
@@ -276,216 +276,216 @@
             <a href="../testing/ws.html">The WebSocket harness</a>
             <a href="../testing/api.html">API reference</a>
           </details>
-          <details class="nav-group package-group">
+          <details class="nav-group package-group" open>
             <summary>Data</summary>
-            <a href="../data/index.html">Overview</a>
-            <a href="../data/drizzle.html">Drizzle</a>
-            <a href="../data/prisma.html">Prisma</a>
-            <a href="../data/mikro-orm.html">MikroORM</a>
-            <a href="../data/mongodb.html">MongoDB</a>
+            <a href="index.html">Overview</a>
+            <a href="drizzle.html">Drizzle</a>
+            <a href="prisma.html" aria-current="page">Prisma</a>
+            <a href="mikro-orm.html">MikroORM</a>
+            <a href="mongodb.html">MongoDB</a>
           </details>
         </nav>
       </aside>
       <main id="main" tabindex="-1">
         <div class="breadcrumb">
-          <a href="../index.html">Docs</a> <span>/</span> WebSockets
-          <span>/</span> API reference
+          <a href="../index.html">Docs</a> <span>/</span> Data <span>/</span>
+          Prisma
         </div>
-        <h1>API reference</h1>
+        <h1>Prisma as a provider</h1>
         <p class="lead">
-          Every export of <code>@rhythmjs/ws</code>: one class and the types
-          around it.
+          One <code>PrismaClient</code> for the app's lifetime, opened by a
+          provider and closed by its dispose hook — with Prisma's error codes
+          translated to plain answers at the service boundary.
         </p>
         <div class="article">
-          <section aria-labelledby="rhythmws-class">
-            <h2 id="rhythmws-class">
-              <a href="#rhythmws-class"
-                >class RhythmWs<span aria-hidden="true"> #</span></a
-              >
+          <section aria-labelledby="install">
+            <h2 id="install">
+              <a href="#install">Install<span aria-hidden="true"> #</span></a>
             </h2>
+            <p>
+              The generated client is a runtime dependency; the
+              <code>prisma</code> CLI is a dev tool. The schema lives in
+              <code>prisma/schema.prisma</code>, and the model maps to the same
+              <code>notes</code> table the other recipes use.
+            </p>
             <figure class="code-block">
-              <pre><code>new RhythmWs(options?: RhythmWsOptions);
-
-route&lt;Data extends object = WsParams&gt;(path: string, route: WsRoute&lt;Data&gt;): this;
-guard(fn: WsGuard): this;
-merge(child: RhythmWs): this;
-get routes(): readonly string[];
-upgrade: (request: Request, server: Server) =&gt; Promise&lt;Response | undefined&gt; | null;
-get websocket(): Bun.WebSocketHandler&lt;never&gt;;</code></pre>
+              <pre><code>bun add @prisma/client zod @rhythmjs/middleware
+bun add -d prisma</code></pre>
             </figure>
-            <dl>
-              <dt>route(path, handlers)</dt>
-              <dd>
-                Registers an endpoint. <code>Data</code> is this route&#39;s
-                <code>ws.data</code> type; without an
-                <code>upgrade</code> member it defaults to the route params.
-                Throws <code>TypeError</code> for a non-object handlers
-                argument.
-              </dd>
-              <dt>guard(fn)</dt>
-              <dd>
-                Adds an instance-wide guard, run in registration order before
-                every matched route&#39;s upgrade. Guards never run for
-                unmatched paths.
-              </dd>
-              <dt>merge(child)</dt>
-              <dd>
-                Copies the child&#39;s routes under this instance&#39;s prefix,
-                snapshotting the child&#39;s guards at merge time and nesting
-                them inside this instance&#39;s own. Later changes to the child
-                do not propagate.
-              </dd>
-              <dt>routes</dt>
-              <dd>
-                The compiled route paths, prefix applied, in registration order.
-              </dd>
-              <dt>upgrade(request, server)</dt>
-              <dd>
-                The fetch-side half, bound as an arrow property. Returns
-                <code>null</code> synchronously when the request has no
-                <code>upgrade: websocket</code> header or matches no route;
-                otherwise resolves to <code>undefined</code> once
-                <code>server.upgrade()</code> succeeds, the rejecting
-                <code>Response</code> from a guard or the route&#39;s
-                <code>upgrade</code>, or <code>500 Upgrade failed</code> when
-                Bun refuses the socket.
-              </dd>
-              <dt>websocket</dt>
-              <dd>
-                The single behavior object for <code>Bun.serve</code>, spreading
-                the constructor&#39;s <code>WsBehavior</code> tuning and
-                dispatching every event to the connection&#39;s route via the
-                <code>ws.data</code> identity. One behavior serves connections
-                upgraded by any instance.
-              </dd>
-            </dl>
-          </section>
-          <section aria-labelledby="wsroute-interface">
-            <h2 id="wsroute-interface">
-              <a href="#wsroute-interface"
-                >interface WsRoute&lt;Data&gt;<span aria-hidden="true">
-                  #</span
-                ></a
-              >
-            </h2>
             <figure class="code-block">
-              <pre><code>interface WsRoute&lt;Data extends object = WsParams&gt; {
-  upgrade?(request: Request, params: WsParams, server: Server): Data | Response | Promise&lt;Data | Response&gt;;
-  headers?: Bun.HeadersInit | ((request: Request, params: WsParams) =&gt; Bun.HeadersInit | Promise&lt;Bun.HeadersInit&gt;);
-  open?(ws: Bun.ServerWebSocket&lt;Data&gt;): void | Promise&lt;void&gt;;
-  message?(ws: Bun.ServerWebSocket&lt;Data&gt;, message: string | Buffer): void | Promise&lt;void&gt;;
-  drain?(ws: Bun.ServerWebSocket&lt;Data&gt;): void | Promise&lt;void&gt;;
-  close?(ws: Bun.ServerWebSocket&lt;Data&gt;, code: number, reason: string): void | Promise&lt;void&gt;;
-  ping?(ws: Bun.ServerWebSocket&lt;Data&gt;, data: Buffer): void | Promise&lt;void&gt;;
-  pong?(ws: Bun.ServerWebSocket&lt;Data&gt;, data: Buffer): void | Promise&lt;void&gt;;
+              <pre><code>// prisma/schema.prisma
+model Note {
+  id        String   @id @default(uuid())
+  title     String
+  content   String   @default(&quot;&quot;)
+  createdAt DateTime @default(now()) @map(&quot;created_at&quot;)
+  updatedAt DateTime @updatedAt @map(&quot;updated_at&quot;)
+
+  @@map(&quot;notes&quot;)
 }</code></pre>
             </figure>
-            <p>
-              Every lifecycle member is exactly Bun&#39;s
-              <code>WebSocketHandler</code> member: <code>ws</code> is Bun&#39;s
-              <code>ServerWebSocket</code> with <code>send</code>,
-              <code>subscribe</code>, <code>publish</code>, <code>cork</code>,
-              backpressure-aware return codes, and <code>ws.data</code> typed as
-              <code>Data</code>. <code>upgrade</code> runs before
-              <code>server.upgrade()</code>: return the connection&#39;s data,
-              or a <code>Response</code> to reject the handshake.
-              <code>headers</code> contributes to the <code>101</code> response,
-              statically or computed per request.
-            </p>
           </section>
-          <section aria-labelledby="wsguard-type">
-            <h2 id="wsguard-type">
-              <a href="#wsguard-type"
-                >type WsGuard<span aria-hidden="true"> #</span></a
+          <section aria-labelledby="database-provider">
+            <h2 id="database-provider">
+              <a href="#database-provider"
+                >The database provider<span aria-hidden="true"> #</span></a
               >
             </h2>
-            <figure class="code-block">
-              <pre><code>type WsGuard = (
-  request: Request,
-  server: Server,
-) =&gt; Response | undefined | void | Promise&lt;Response | undefined | void&gt;;</code></pre>
-            </figure>
             <p>
-              A pre-upgrade check. Returning a <code>Response</code> rejects the
-              handshake with it; any other return continues to the next guard,
-              then the route&#39;s <code>upgrade</code>.
+              <code>PrismaClient</code> manages its own pool, so the provider
+              pair is short: construct at setup, <code>$disconnect()</code> at
+              teardown. Passing <code>datasourceUrl</code> keeps the runtime
+              independent of the <code>.env</code> file the CLI reads.
             </p>
-          </section>
-          <section aria-labelledby="wsbehavior-interface">
-            <h2 id="wsbehavior-interface">
-              <a href="#wsbehavior-interface"
-                >WsBehavior and RhythmWsOptions<span aria-hidden="true">
-                  #</span
-                ></a
-              >
-            </h2>
             <figure class="code-block">
-              <pre><code>interface WsBehavior {
-  maxPayloadLength?: number;
-  idleTimeout?: number;
-  backpressureLimit?: number;
-  closeOnBackpressureLimit?: boolean;
-  sendPings?: boolean;
-  publishToSelf?: boolean;
-  perMessageDeflate?: Bun.WebSocketHandler&lt;never&gt;[&quot;perMessageDeflate&quot;];
+              <pre><code>// src/database.ts
+import { PrismaClient } from &quot;@prisma/client&quot;;
+
+const databaseUrl = process.env.DATABASE_URL ?? &quot;postgres://postgres:postgres@localhost:5432/notes_prisma&quot;;
+
+export function createDatabase(): { prisma: PrismaClient } {
+  return { prisma: new PrismaClient({ datasourceUrl: databaseUrl }) };
 }
 
-interface RhythmWsOptions extends WsBehavior {
-  prefix?: string;
+export async function closeDatabase({ prisma }: { prisma: PrismaClient }): Promise&lt;void&gt; {
+  await prisma.$disconnect();
 }</code></pre>
             </figure>
-            <p>
-              <code>WsBehavior</code> is Bun&#39;s websocket tuning, passed
-              through to <code>Bun.serve</code>&#39;s behavior object verbatim
-              by the <code>websocket</code> getter. <code>prefix</code> is
-              prepended to every path this instance registers, and to merged
-              children&#39;s paths.
-            </p>
           </section>
-          <section aria-labelledby="supporting-types">
-            <h2 id="supporting-types">
-              <a href="#supporting-types"
-                >Supporting types<span aria-hidden="true"> #</span></a
+          <section aria-labelledby="not-found-at-the-boundary">
+            <h2 id="not-found-at-the-boundary">
+              <a href="#not-found-at-the-boundary"
+                >Not-found at the boundary<span aria-hidden="true"> #</span></a
               >
             </h2>
+            <p>
+              Prisma throws <code>P2025</code> when <code>update</code> or
+              <code>delete</code> misses. The service catches exactly that code
+              and answers with <code>null</code> / <code>false</code>, so the
+              controller decides the HTTP shape — it throws
+              <code>HttpError(404)</code> and the
+              <a href="../middleware/filter.html"><code>filter()</code></a>
+              boundary renders it. Everything else propagates and becomes a 500.
+            </p>
             <figure class="code-block">
-              <pre><code>type WsParams = Readonly&lt;Record&lt;string, string&gt;&gt;;
-type Server = Bun.Server&lt;unknown&gt;;</code></pre>
+              <pre><code>// src/notes/notes.service.ts
+function isRecordNotFound(error: unknown): boolean {
+  return error instanceof Prisma.PrismaClientKnownRequestError &amp;&amp; error.code === &quot;P2025&quot;;
+}
+
+export function createNotesService(prisma: PrismaClient) {
+  return {
+    list: () =&gt; prisma.note.findMany({ orderBy: { createdAt: &quot;desc&quot; } }),
+    get: (id: string) =&gt; prisma.note.findUnique({ where: { id } }),
+    create: (input: CreateNoteInput) =&gt; prisma.note.create({ data: input }),
+    async update(id: string, patch: UpdateNoteInput) {
+      try {
+        return await prisma.note.update({ where: { id }, data: patch });
+      } catch (error) {
+        if (isRecordNotFound(error)) return null;
+        throw error;
+      }
+    },
+    async remove(id: string) {
+      try {
+        await prisma.note.delete({ where: { id } });
+        return true;
+      } catch (error) {
+        if (isRecordNotFound(error)) return false;
+        throw error;
+      }
+    },
+  };
+}</code></pre>
             </figure>
-            <dl>
-              <dt>WsParams</dt>
-              <dd>
-                Route params captured by rou3 for the matched path, the default
-                <code>ws.data</code> when a route has no <code>upgrade</code>.
-              </dd>
-              <dt>Server</dt>
-              <dd>
-                Bun&#39;s server, as passed to
-                <code>fetch(request, server)</code>. Guards and route upgrades
-                receive it for <code>server.requestIP()</code>,
-                <code>server.publish()</code>, and similar.
-              </dd>
-            </dl>
+          </section>
+          <section aria-labelledby="module-wiring">
+            <h2 id="module-wiring">
+              <a href="#module-wiring"
+                >Wiring the module<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              Identical to every other recipe — only the provider name changes.
+              The service factory receives <code>prisma</code> from the provider
+              graph; the controller validates bodies with zod through
+              <code>validate(&quot;body&quot;, …)</code> and checks responses
+              with <code>intercept(…)</code>.
+            </p>
+            <figure class="code-block">
+              <pre><code>// src/app.module.ts
+export const appModule = new Rhythm&lt;RhythmHttpContext&gt;({ name: &quot;app&quot;, type: &quot;module&quot; })
+  .use(filter())
+  .provide(createDatabase, closeDatabase)
+  .provide(({ prisma }) =&gt; ({ notesService: createNotesService(prisma) }))
+  .use(notesController.middleware())
+  .use(() =&gt; {
+    throw new HttpError(404, &quot;Route not found&quot;);
+  });</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="migrations">
+            <h2 id="migrations">
+              <a href="#migrations"
+                >Migrations<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              Checked-in SQL lives under <code>prisma/migrations/</code>.
+              <code>prisma migrate deploy</code> applies pending migrations and
+              nothing else — it does <em>not</em> regenerate the client, so
+              generation is its own step. Author new migrations with
+              <code>prisma migrate dev</code> against a development database.
+            </p>
+            <figure class="code-block">
+              <pre><code>bun run db:generate      # prisma generate
+bun run db:migrate       # prisma migrate deploy
+bun run db:migrate:dev   # prisma migrate dev — author a new migration</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="next-steps">
+            <h2 id="next-steps">
+              <a href="#next-steps"
+                >Where to next<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              The shared pattern is introduced in the
+              <a href="index.html">overview</a>; the first concrete recipe is
+              <a href="drizzle.html">Drizzle</a>.
+              <a href="mikro-orm.html">MikroORM</a> adds a unit of work per
+              request; <a href="mongodb.html">MongoDB</a> drops the ORM
+              entirely. The full app is
+              <a
+                href="https://github.com/rhythmjs/examples/tree/main/examples/prisma-postgres"
+                >examples/prisma-postgres</a
+              >.
+            </p>
           </section>
         </div>
         <nav class="pagination" aria-label="Previous and next pages">
-          <a href="serving.html"
-            ><span>← Previous</span><strong>Serving &amp; pub/sub</strong></a
-          ><span></span>
+          <a href="drizzle.html"
+            ><span>← Previous</span><strong>Drizzle</strong></a
+          ><a href="mikro-orm.html"
+            ><span>Next →</span><strong>MikroORM</strong></a
+          >
         </nav>
         <footer class="page-footer">
           <span>RhythmJS documentation · v0.0.11</span
-          ><a href="https://github.com/rhythmjs/ws">github.com/rhythmjs/ws</a>
+          ><a href="https://github.com/rhythmjs/examples"
+            >github.com/rhythmjs/examples</a
+          >
         </footer>
       </main>
       <aside class="toc">
         <nav aria-label="On this page">
           <p>ON THIS PAGE</p>
-          <a href="#rhythmws-class">class RhythmWs</a>
-          <a href="#wsroute-interface">interface WsRoute</a>
-          <a href="#wsguard-type">type WsGuard</a>
-          <a href="#wsbehavior-interface">WsBehavior, RhythmWsOptions</a>
-          <a href="#supporting-types">Supporting types</a>
+          <a href="#install">Install</a
+          ><a href="#database-provider">The database provider</a
+          ><a href="#not-found-at-the-boundary">Not-found at the boundary</a
+          ><a href="#module-wiring">Wiring the module</a
+          ><a href="#migrations">Migrations</a
+          ><a href="#next-steps">Where to next</a>
         </nav>
       </aside>
     </div>

@@ -5,22 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="Every export of @rhythmjs/ws: the RhythmWs class, WsRoute handlers, guards, behavior tuning, and supporting types."
+      content="Wire the native MongoDB driver into Rhythm: the client hidden behind a hash-key, ObjectId documents mapped to DTOs, and zod contracts instead of a schema."
     />
     <meta name="color-scheme" content="light dark" />
-    <title>API reference · RhythmJS</title>
+    <title>MongoDB · RhythmJS</title>
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="RhythmJS documentation" />
-    <meta property="og:title" content="API reference · RhythmJS" />
+    <meta property="og:title" content="MongoDB · RhythmJS" />
     <meta
       property="og:description"
-      content="Every export of @rhythmjs/ws: the RhythmWs class, WsRoute handlers, guards, behavior tuning, and supporting types."
+      content="Wire the native MongoDB driver into Rhythm: the client hidden behind a hash-key, ObjectId documents mapped to DTOs, and zod contracts instead of a schema."
     />
     <meta name="twitter:card" content="summary" />
-    <meta name="twitter:title" content="API reference · RhythmJS" />
+    <meta name="twitter:title" content="MongoDB · RhythmJS" />
     <meta
       name="twitter:description"
-      content="Every export of @rhythmjs/ws: the RhythmWs class, WsRoute handlers, guards, behavior tuning, and supporting types."
+      content="Wire the native MongoDB driver into Rhythm: the client hidden behind a hash-key, ObjectId documents mapped to DTOs, and zod contracts instead of a schema."
     />
     <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -71,11 +71,11 @@
           <a href="../router/static.html">Serving files</a>
           <a href="../router/api.html">API reference</a>
         </details>
-        <details class="nav-group package-group" open>
+        <details class="nav-group package-group">
           <summary>WebSockets</summary>
-          <a href="index.html">Connection routing</a>
-          <a href="serving.html">Serving &amp; pub/sub</a>
-          <a href="api.html" aria-current="page">API reference</a>
+          <a href="../ws/index.html">Connection routing</a>
+          <a href="../ws/serving.html">Serving &amp; pub/sub</a>
+          <a href="../ws/api.html">API reference</a>
         </details>
         <details class="nav-group package-group">
           <summary>Middleware</summary>
@@ -159,13 +159,13 @@
           <a href="../testing/ws.html">The WebSocket harness</a>
           <a href="../testing/api.html">API reference</a>
         </details>
-        <details class="nav-group package-group">
+        <details class="nav-group package-group" open>
           <summary>Data</summary>
-          <a href="../data/index.html">Overview</a>
-          <a href="../data/drizzle.html">Drizzle</a>
-          <a href="../data/prisma.html">Prisma</a>
-          <a href="../data/mikro-orm.html">MikroORM</a>
-          <a href="../data/mongodb.html">MongoDB</a>
+          <a href="index.html">Overview</a>
+          <a href="drizzle.html">Drizzle</a>
+          <a href="prisma.html">Prisma</a>
+          <a href="mikro-orm.html">MikroORM</a>
+          <a href="mongodb.html" aria-current="page">MongoDB</a>
         </details>
       </nav>
     </details>
@@ -186,11 +186,11 @@
             <a href="../router/static.html">Serving files</a>
             <a href="../router/api.html">API reference</a>
           </details>
-          <details class="nav-group package-group" open>
+          <details class="nav-group package-group">
             <summary>WebSockets</summary>
-            <a href="index.html">Connection routing</a>
-            <a href="serving.html">Serving &amp; pub/sub</a>
-            <a href="api.html" aria-current="page">API reference</a>
+            <a href="../ws/index.html">Connection routing</a>
+            <a href="../ws/serving.html">Serving &amp; pub/sub</a>
+            <a href="../ws/api.html">API reference</a>
           </details>
           <details class="nav-group package-group">
             <summary>Middleware</summary>
@@ -276,216 +276,211 @@
             <a href="../testing/ws.html">The WebSocket harness</a>
             <a href="../testing/api.html">API reference</a>
           </details>
-          <details class="nav-group package-group">
+          <details class="nav-group package-group" open>
             <summary>Data</summary>
-            <a href="../data/index.html">Overview</a>
-            <a href="../data/drizzle.html">Drizzle</a>
-            <a href="../data/prisma.html">Prisma</a>
-            <a href="../data/mikro-orm.html">MikroORM</a>
-            <a href="../data/mongodb.html">MongoDB</a>
+            <a href="index.html">Overview</a>
+            <a href="drizzle.html">Drizzle</a>
+            <a href="prisma.html">Prisma</a>
+            <a href="mikro-orm.html">MikroORM</a>
+            <a href="mongodb.html" aria-current="page">MongoDB</a>
           </details>
         </nav>
       </aside>
       <main id="main" tabindex="-1">
         <div class="breadcrumb">
-          <a href="../index.html">Docs</a> <span>/</span> WebSockets
-          <span>/</span> API reference
+          <a href="../index.html">Docs</a> <span>/</span> Data <span>/</span>
+          MongoDB
         </div>
-        <h1>API reference</h1>
+        <h1>MongoDB, no ORM</h1>
         <p class="lead">
-          Every export of <code>@rhythmjs/ws</code>: one class and the types
-          around it.
+          The official driver straight into the provider graph: the
+          <code>Db</code> is public, the <code>MongoClient</code> hides behind a
+          hash-key, and zod at the edges replaces the schema the database
+          doesn't have.
         </p>
         <div class="article">
-          <section aria-labelledby="rhythmws-class">
-            <h2 id="rhythmws-class">
-              <a href="#rhythmws-class"
-                >class RhythmWs<span aria-hidden="true"> #</span></a
-              >
+          <section aria-labelledby="install">
+            <h2 id="install">
+              <a href="#install">Install<span aria-hidden="true"> #</span></a>
             </h2>
             <figure class="code-block">
-              <pre><code>new RhythmWs(options?: RhythmWsOptions);
+              <pre><code>bun add mongodb zod @rhythmjs/middleware</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="hash-key-provider">
+            <h2 id="hash-key-provider">
+              <a href="#hash-key-provider"
+                >The hash-key provider<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              The interesting Rhythm mechanic here: a provider's value can carry
+              keys prefixed with <code>#</code>. Those keys are stripped from
+              the request context and from the provider graph — downstream code
+              sees only <code>db</code> — but the dispose hook receives the
+              value whole, so the client it must close is right there. Handles
+              you need at teardown but nowhere else belong under a hash-key.
+              Being schemaless, there is no migration step either: the startup
+              factory is also where the collection's index is ensured.
+            </p>
+            <figure class="code-block">
+              <pre><code>// src/database.ts
+import { MongoClient, type Db } from &quot;mongodb&quot;;
 
-route&lt;Data extends object = WsParams&gt;(path: string, route: WsRoute&lt;Data&gt;): this;
-guard(fn: WsGuard): this;
-merge(child: RhythmWs): this;
-get routes(): readonly string[];
-upgrade: (request: Request, server: Server) =&gt; Promise&lt;Response | undefined&gt; | null;
-get websocket(): Bun.WebSocketHandler&lt;never&gt;;</code></pre>
-            </figure>
-            <dl>
-              <dt>route(path, handlers)</dt>
-              <dd>
-                Registers an endpoint. <code>Data</code> is this route&#39;s
-                <code>ws.data</code> type; without an
-                <code>upgrade</code> member it defaults to the route params.
-                Throws <code>TypeError</code> for a non-object handlers
-                argument.
-              </dd>
-              <dt>guard(fn)</dt>
-              <dd>
-                Adds an instance-wide guard, run in registration order before
-                every matched route&#39;s upgrade. Guards never run for
-                unmatched paths.
-              </dd>
-              <dt>merge(child)</dt>
-              <dd>
-                Copies the child&#39;s routes under this instance&#39;s prefix,
-                snapshotting the child&#39;s guards at merge time and nesting
-                them inside this instance&#39;s own. Later changes to the child
-                do not propagate.
-              </dd>
-              <dt>routes</dt>
-              <dd>
-                The compiled route paths, prefix applied, in registration order.
-              </dd>
-              <dt>upgrade(request, server)</dt>
-              <dd>
-                The fetch-side half, bound as an arrow property. Returns
-                <code>null</code> synchronously when the request has no
-                <code>upgrade: websocket</code> header or matches no route;
-                otherwise resolves to <code>undefined</code> once
-                <code>server.upgrade()</code> succeeds, the rejecting
-                <code>Response</code> from a guard or the route&#39;s
-                <code>upgrade</code>, or <code>500 Upgrade failed</code> when
-                Bun refuses the socket.
-              </dd>
-              <dt>websocket</dt>
-              <dd>
-                The single behavior object for <code>Bun.serve</code>, spreading
-                the constructor&#39;s <code>WsBehavior</code> tuning and
-                dispatching every event to the connection&#39;s route via the
-                <code>ws.data</code> identity. One behavior serves connections
-                upgraded by any instance.
-              </dd>
-            </dl>
-          </section>
-          <section aria-labelledby="wsroute-interface">
-            <h2 id="wsroute-interface">
-              <a href="#wsroute-interface"
-                >interface WsRoute&lt;Data&gt;<span aria-hidden="true">
-                  #</span
-                ></a
-              >
-            </h2>
-            <figure class="code-block">
-              <pre><code>interface WsRoute&lt;Data extends object = WsParams&gt; {
-  upgrade?(request: Request, params: WsParams, server: Server): Data | Response | Promise&lt;Data | Response&gt;;
-  headers?: Bun.HeadersInit | ((request: Request, params: WsParams) =&gt; Bun.HeadersInit | Promise&lt;Bun.HeadersInit&gt;);
-  open?(ws: Bun.ServerWebSocket&lt;Data&gt;): void | Promise&lt;void&gt;;
-  message?(ws: Bun.ServerWebSocket&lt;Data&gt;, message: string | Buffer): void | Promise&lt;void&gt;;
-  drain?(ws: Bun.ServerWebSocket&lt;Data&gt;): void | Promise&lt;void&gt;;
-  close?(ws: Bun.ServerWebSocket&lt;Data&gt;, code: number, reason: string): void | Promise&lt;void&gt;;
-  ping?(ws: Bun.ServerWebSocket&lt;Data&gt;, data: Buffer): void | Promise&lt;void&gt;;
-  pong?(ws: Bun.ServerWebSocket&lt;Data&gt;, data: Buffer): void | Promise&lt;void&gt;;
-}</code></pre>
-            </figure>
-            <p>
-              Every lifecycle member is exactly Bun&#39;s
-              <code>WebSocketHandler</code> member: <code>ws</code> is Bun&#39;s
-              <code>ServerWebSocket</code> with <code>send</code>,
-              <code>subscribe</code>, <code>publish</code>, <code>cork</code>,
-              backpressure-aware return codes, and <code>ws.data</code> typed as
-              <code>Data</code>. <code>upgrade</code> runs before
-              <code>server.upgrade()</code>: return the connection&#39;s data,
-              or a <code>Response</code> to reject the handshake.
-              <code>headers</code> contributes to the <code>101</code> response,
-              statically or computed per request.
-            </p>
-          </section>
-          <section aria-labelledby="wsguard-type">
-            <h2 id="wsguard-type">
-              <a href="#wsguard-type"
-                >type WsGuard<span aria-hidden="true"> #</span></a
-              >
-            </h2>
-            <figure class="code-block">
-              <pre><code>type WsGuard = (
-  request: Request,
-  server: Server,
-) =&gt; Response | undefined | void | Promise&lt;Response | undefined | void&gt;;</code></pre>
-            </figure>
-            <p>
-              A pre-upgrade check. Returning a <code>Response</code> rejects the
-              handshake with it; any other return continues to the next guard,
-              then the route&#39;s <code>upgrade</code>.
-            </p>
-          </section>
-          <section aria-labelledby="wsbehavior-interface">
-            <h2 id="wsbehavior-interface">
-              <a href="#wsbehavior-interface"
-                >WsBehavior and RhythmWsOptions<span aria-hidden="true">
-                  #</span
-                ></a
-              >
-            </h2>
-            <figure class="code-block">
-              <pre><code>interface WsBehavior {
-  maxPayloadLength?: number;
-  idleTimeout?: number;
-  backpressureLimit?: number;
-  closeOnBackpressureLimit?: boolean;
-  sendPings?: boolean;
-  publishToSelf?: boolean;
-  perMessageDeflate?: Bun.WebSocketHandler&lt;never&gt;[&quot;perMessageDeflate&quot;];
+const mongoUrl = process.env.MONGODB_URL ?? &quot;mongodb://localhost:27017&quot;;
+const dbName = process.env.MONGODB_DB ?? &quot;notes_mongodb&quot;;
+
+export interface DatabaseValue {
+  db: Db;
+  &quot;#client&quot;: MongoClient;
 }
 
-interface RhythmWsOptions extends WsBehavior {
-  prefix?: string;
+export async function createDatabase(): Promise&lt;DatabaseValue&gt; {
+  const client = new MongoClient(mongoUrl);
+  await client.connect();
+  const db = client.db(dbName);
+  await db.collection(&quot;notes&quot;).createIndex({ createdAt: -1 });
+  return { db, &quot;#client&quot;: client };
+}
+
+export async function closeDatabase(value: DatabaseValue): Promise&lt;void&gt; {
+  await value[&quot;#client&quot;].close();
 }</code></pre>
             </figure>
-            <p>
-              <code>WsBehavior</code> is Bun&#39;s websocket tuning, passed
-              through to <code>Bun.serve</code>&#39;s behavior object verbatim
-              by the <code>websocket</code> getter. <code>prefix</code> is
-              prepended to every path this instance registers, and to merged
-              children&#39;s paths.
-            </p>
           </section>
-          <section aria-labelledby="supporting-types">
-            <h2 id="supporting-types">
-              <a href="#supporting-types"
-                >Supporting types<span aria-hidden="true"> #</span></a
+          <section aria-labelledby="documents-and-dtos">
+            <h2 id="documents-and-dtos">
+              <a href="#documents-and-dtos"
+                >Documents in, DTOs out<span aria-hidden="true"> #</span></a
               >
             </h2>
+            <p>
+              Driver types stop at the service boundary. Internally documents
+              carry <code>_id: ObjectId</code>; outward the service maps them to
+              <code>id: string</code> DTOs, and an
+              <code>ObjectId.isValid</code> guard turns malformed ids into a
+              plain not-found instead of a thrown <code>BSONError</code>.
+              <code>findOneAndUpdate</code> with
+              <code>returnDocument: &quot;after&quot;</code> makes the update a
+              single round trip.
+            </p>
             <figure class="code-block">
-              <pre><code>type WsParams = Readonly&lt;Record&lt;string, string&gt;&gt;;
-type Server = Bun.Server&lt;unknown&gt;;</code></pre>
+              <pre><code>// src/notes/notes.service.ts
+function toObjectId(id: string): ObjectId | undefined {
+  return ObjectId.isValid(id) ? new ObjectId(id) : undefined;
+}
+
+export function createNotesService(db: Db) {
+  const collection: Collection&lt;NoteDocument&gt; = db.collection(&quot;notes&quot;);
+
+  return {
+    async list() {
+      const docs = await collection.find().sort({ createdAt: -1 }).toArray();
+      return docs.map(toNote);
+    },
+    async get(id: string) {
+      const _id = toObjectId(id);
+      if (!_id) return null;
+      const doc = await collection.findOne({ _id });
+      return doc &amp;&amp; toNote(doc);
+    },
+    async create(input: CreateNoteInput) {
+      const now = new Date();
+      const doc: NoteDocument = { _id: new ObjectId(), ...input, createdAt: now, updatedAt: now };
+      await collection.insertOne(doc);
+      return toNote(doc);
+    },
+    async update(id: string, patch: UpdateNoteInput) {
+      const _id = toObjectId(id);
+      if (!_id) return null;
+      const doc = await collection.findOneAndUpdate(
+        { _id },
+        { $set: { ...patch, updatedAt: new Date() } },
+        { returnDocument: &quot;after&quot; },
+      );
+      return doc &amp;&amp; toNote(doc);
+    },
+    async remove(id: string) {
+      const _id = toObjectId(id);
+      if (!_id) return false;
+      const result = await collection.deleteOne({ _id });
+      return result.deletedCount &gt; 0;
+    },
+  };
+}</code></pre>
             </figure>
-            <dl>
-              <dt>WsParams</dt>
-              <dd>
-                Route params captured by rou3 for the matched path, the default
-                <code>ws.data</code> when a route has no <code>upgrade</code>.
-              </dd>
-              <dt>Server</dt>
-              <dd>
-                Bun&#39;s server, as passed to
-                <code>fetch(request, server)</code>. Guards and route upgrades
-                receive it for <code>server.requestIP()</code>,
-                <code>server.publish()</code>, and similar.
-              </dd>
-            </dl>
+          </section>
+          <section aria-labelledby="zod-is-the-schema">
+            <h2 id="zod-is-the-schema">
+              <a href="#zod-is-the-schema"
+                >zod is the schema<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              With no database schema, the zod contracts in
+              <code>src/notes/notes.schema.ts</code> do the guarding:
+              <code>validate(&quot;body&quot;, createNoteSchema)</code> keeps
+              malformed documents out of the collection, and
+              <code>intercept(notesResponseSchema)</code> keeps stray document
+              fields from leaking into responses. The module wiring is the
+              shared pattern from the <a href="index.html">overview</a> page,
+              with <code>({ db }) =&gt; …</code> feeding the service.
+            </p>
+            <figure class="code-block">
+              <pre><code>// src/notes/notes.schema.ts
+export const createNoteSchema = z.object({
+  title: z.string().trim().min(1, &quot;title must be a non-empty string&quot;),
+  content: z.string().default(&quot;&quot;),
+});
+
+export const noteSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  content: z.string(),
+  createdAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime(),
+});
+
+export const notesResponseSchema = z.union([noteSchema, z.array(noteSchema)]);</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="next-steps">
+            <h2 id="next-steps">
+              <a href="#next-steps"
+                >Where to next<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              The relational recipes: <a href="drizzle.html">Drizzle</a>,
+              <a href="prisma.html">Prisma</a>, and
+              <a href="mikro-orm.html">MikroORM</a>. The full app is
+              <a
+                href="https://github.com/rhythmjs/examples/tree/main/examples/mongodb"
+                >examples/mongodb</a
+              >.
+            </p>
           </section>
         </div>
         <nav class="pagination" aria-label="Previous and next pages">
-          <a href="serving.html"
-            ><span>← Previous</span><strong>Serving &amp; pub/sub</strong></a
+          <a href="mikro-orm.html"
+            ><span>← Previous</span><strong>MikroORM</strong></a
           ><span></span>
         </nav>
         <footer class="page-footer">
           <span>RhythmJS documentation · v0.0.11</span
-          ><a href="https://github.com/rhythmjs/ws">github.com/rhythmjs/ws</a>
+          ><a href="https://github.com/rhythmjs/examples"
+            >github.com/rhythmjs/examples</a
+          >
         </footer>
       </main>
       <aside class="toc">
         <nav aria-label="On this page">
           <p>ON THIS PAGE</p>
-          <a href="#rhythmws-class">class RhythmWs</a>
-          <a href="#wsroute-interface">interface WsRoute</a>
-          <a href="#wsguard-type">type WsGuard</a>
-          <a href="#wsbehavior-interface">WsBehavior, RhythmWsOptions</a>
-          <a href="#supporting-types">Supporting types</a>
+          <a href="#install">Install</a
+          ><a href="#hash-key-provider">The hash-key provider</a
+          ><a href="#documents-and-dtos">Documents in, DTOs out</a
+          ><a href="#zod-is-the-schema">zod is the schema</a
+          ><a href="#next-steps">Where to next</a>
         </nav>
       </aside>
     </div>

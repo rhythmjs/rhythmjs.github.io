@@ -5,22 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="Every export of @rhythmjs/ws: the RhythmWs class, WsRoute handlers, guards, behavior tuning, and supporting types."
+      content="Wire Drizzle ORM into Rhythm on Bun's native SQL driver: the database as a disposable provider, a service factory, and drizzle-kit migrations."
     />
     <meta name="color-scheme" content="light dark" />
-    <title>API reference · RhythmJS</title>
+    <title>Drizzle · RhythmJS</title>
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="RhythmJS documentation" />
-    <meta property="og:title" content="API reference · RhythmJS" />
+    <meta property="og:title" content="Drizzle · RhythmJS" />
     <meta
       property="og:description"
-      content="Every export of @rhythmjs/ws: the RhythmWs class, WsRoute handlers, guards, behavior tuning, and supporting types."
+      content="Wire Drizzle ORM into Rhythm on Bun's native SQL driver: the database as a disposable provider, a service factory, and drizzle-kit migrations."
     />
     <meta name="twitter:card" content="summary" />
-    <meta name="twitter:title" content="API reference · RhythmJS" />
+    <meta name="twitter:title" content="Drizzle · RhythmJS" />
     <meta
       name="twitter:description"
-      content="Every export of @rhythmjs/ws: the RhythmWs class, WsRoute handlers, guards, behavior tuning, and supporting types."
+      content="Wire Drizzle ORM into Rhythm on Bun's native SQL driver: the database as a disposable provider, a service factory, and drizzle-kit migrations."
     />
     <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -71,11 +71,11 @@
           <a href="../router/static.html">Serving files</a>
           <a href="../router/api.html">API reference</a>
         </details>
-        <details class="nav-group package-group" open>
+        <details class="nav-group package-group">
           <summary>WebSockets</summary>
-          <a href="index.html">Connection routing</a>
-          <a href="serving.html">Serving &amp; pub/sub</a>
-          <a href="api.html" aria-current="page">API reference</a>
+          <a href="../ws/index.html">Connection routing</a>
+          <a href="../ws/serving.html">Serving &amp; pub/sub</a>
+          <a href="../ws/api.html">API reference</a>
         </details>
         <details class="nav-group package-group">
           <summary>Middleware</summary>
@@ -159,13 +159,13 @@
           <a href="../testing/ws.html">The WebSocket harness</a>
           <a href="../testing/api.html">API reference</a>
         </details>
-        <details class="nav-group package-group">
+        <details class="nav-group package-group" open>
           <summary>Data</summary>
-          <a href="../data/index.html">Overview</a>
-          <a href="../data/drizzle.html">Drizzle</a>
-          <a href="../data/prisma.html">Prisma</a>
-          <a href="../data/mikro-orm.html">MikroORM</a>
-          <a href="../data/mongodb.html">MongoDB</a>
+          <a href="index.html">Overview</a>
+          <a href="drizzle.html" aria-current="page">Drizzle</a>
+          <a href="prisma.html">Prisma</a>
+          <a href="mikro-orm.html">MikroORM</a>
+          <a href="mongodb.html">MongoDB</a>
         </details>
       </nav>
     </details>
@@ -186,11 +186,11 @@
             <a href="../router/static.html">Serving files</a>
             <a href="../router/api.html">API reference</a>
           </details>
-          <details class="nav-group package-group" open>
+          <details class="nav-group package-group">
             <summary>WebSockets</summary>
-            <a href="index.html">Connection routing</a>
-            <a href="serving.html">Serving &amp; pub/sub</a>
-            <a href="api.html" aria-current="page">API reference</a>
+            <a href="../ws/index.html">Connection routing</a>
+            <a href="../ws/serving.html">Serving &amp; pub/sub</a>
+            <a href="../ws/api.html">API reference</a>
           </details>
           <details class="nav-group package-group">
             <summary>Middleware</summary>
@@ -276,216 +276,249 @@
             <a href="../testing/ws.html">The WebSocket harness</a>
             <a href="../testing/api.html">API reference</a>
           </details>
-          <details class="nav-group package-group">
+          <details class="nav-group package-group" open>
             <summary>Data</summary>
-            <a href="../data/index.html">Overview</a>
-            <a href="../data/drizzle.html">Drizzle</a>
-            <a href="../data/prisma.html">Prisma</a>
-            <a href="../data/mikro-orm.html">MikroORM</a>
-            <a href="../data/mongodb.html">MongoDB</a>
+            <a href="index.html">Overview</a>
+            <a href="drizzle.html" aria-current="page">Drizzle</a>
+            <a href="prisma.html">Prisma</a>
+            <a href="mikro-orm.html">MikroORM</a>
+            <a href="mongodb.html">MongoDB</a>
           </details>
         </nav>
       </aside>
       <main id="main" tabindex="-1">
         <div class="breadcrumb">
-          <a href="../index.html">Docs</a> <span>/</span> WebSockets
-          <span>/</span> API reference
+          <a href="../index.html">Docs</a> <span>/</span> Data <span>/</span>
+          Drizzle
         </div>
-        <h1>API reference</h1>
+        <h1>Drizzle on Bun's native SQL</h1>
         <p class="lead">
-          Every export of <code>@rhythmjs/ws</code>: one class and the types
-          around it.
+          The database is a provider with a dispose hook, the queries live in a
+          service factory, and Drizzle talks to PostgreSQL through
+          <code>Bun.SQL</code> — no driver package.
         </p>
         <div class="article">
-          <section aria-labelledby="rhythmws-class">
-            <h2 id="rhythmws-class">
-              <a href="#rhythmws-class"
-                >class RhythmWs<span aria-hidden="true"> #</span></a
+          <section aria-labelledby="install">
+            <h2 id="install">
+              <a href="#install">Install<span aria-hidden="true"> #</span></a>
+            </h2>
+            <p>
+              Drizzle's <code>drizzle-orm/bun-sql</code> entry runs on Bun's
+              built-in <code>SQL</code> class, so PostgreSQL needs no
+              <code>pg</code> or <code>postgres.js</code> dependency —
+              <code>drizzle-kit</code> is only a dev tool for generating and
+              applying migrations. The wiring below follows the shared shape
+              from the <a href="index.html">overview</a>.
+            </p>
+            <figure class="code-block">
+              <pre><code>bun add drizzle-orm zod @rhythmjs/middleware
+bun add -d drizzle-kit</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="database-provider">
+            <h2 id="database-provider">
+              <a href="#database-provider"
+                >The database provider<span aria-hidden="true"> #</span></a
               >
             </h2>
+            <p>
+              The factory returns the drizzle instance under <code>db</code>
+              and the raw client under the hash-key
+              <code>&quot;#client&quot;</code>. Hash-prefixed keys never reach
+              the request context or the provider graph, but the dispose hook
+              receives the <em>whole</em> value — so the pool stays private and
+              still gets closed when the module tears down.
+            </p>
             <figure class="code-block">
-              <pre><code>new RhythmWs(options?: RhythmWsOptions);
+              <pre><code>// src/database.ts
+import { SQL } from &quot;bun&quot;;
+import { drizzle, type BunSQLDatabase } from &quot;drizzle-orm/bun-sql&quot;;
+import * as schema from &quot;./notes/notes.table&quot;;
 
-route&lt;Data extends object = WsParams&gt;(path: string, route: WsRoute&lt;Data&gt;): this;
-guard(fn: WsGuard): this;
-merge(child: RhythmWs): this;
-get routes(): readonly string[];
-upgrade: (request: Request, server: Server) =&gt; Promise&lt;Response | undefined&gt; | null;
-get websocket(): Bun.WebSocketHandler&lt;never&gt;;</code></pre>
-            </figure>
-            <dl>
-              <dt>route(path, handlers)</dt>
-              <dd>
-                Registers an endpoint. <code>Data</code> is this route&#39;s
-                <code>ws.data</code> type; without an
-                <code>upgrade</code> member it defaults to the route params.
-                Throws <code>TypeError</code> for a non-object handlers
-                argument.
-              </dd>
-              <dt>guard(fn)</dt>
-              <dd>
-                Adds an instance-wide guard, run in registration order before
-                every matched route&#39;s upgrade. Guards never run for
-                unmatched paths.
-              </dd>
-              <dt>merge(child)</dt>
-              <dd>
-                Copies the child&#39;s routes under this instance&#39;s prefix,
-                snapshotting the child&#39;s guards at merge time and nesting
-                them inside this instance&#39;s own. Later changes to the child
-                do not propagate.
-              </dd>
-              <dt>routes</dt>
-              <dd>
-                The compiled route paths, prefix applied, in registration order.
-              </dd>
-              <dt>upgrade(request, server)</dt>
-              <dd>
-                The fetch-side half, bound as an arrow property. Returns
-                <code>null</code> synchronously when the request has no
-                <code>upgrade: websocket</code> header or matches no route;
-                otherwise resolves to <code>undefined</code> once
-                <code>server.upgrade()</code> succeeds, the rejecting
-                <code>Response</code> from a guard or the route&#39;s
-                <code>upgrade</code>, or <code>500 Upgrade failed</code> when
-                Bun refuses the socket.
-              </dd>
-              <dt>websocket</dt>
-              <dd>
-                The single behavior object for <code>Bun.serve</code>, spreading
-                the constructor&#39;s <code>WsBehavior</code> tuning and
-                dispatching every event to the connection&#39;s route via the
-                <code>ws.data</code> identity. One behavior serves connections
-                upgraded by any instance.
-              </dd>
-            </dl>
-          </section>
-          <section aria-labelledby="wsroute-interface">
-            <h2 id="wsroute-interface">
-              <a href="#wsroute-interface"
-                >interface WsRoute&lt;Data&gt;<span aria-hidden="true">
-                  #</span
-                ></a
-              >
-            </h2>
-            <figure class="code-block">
-              <pre><code>interface WsRoute&lt;Data extends object = WsParams&gt; {
-  upgrade?(request: Request, params: WsParams, server: Server): Data | Response | Promise&lt;Data | Response&gt;;
-  headers?: Bun.HeadersInit | ((request: Request, params: WsParams) =&gt; Bun.HeadersInit | Promise&lt;Bun.HeadersInit&gt;);
-  open?(ws: Bun.ServerWebSocket&lt;Data&gt;): void | Promise&lt;void&gt;;
-  message?(ws: Bun.ServerWebSocket&lt;Data&gt;, message: string | Buffer): void | Promise&lt;void&gt;;
-  drain?(ws: Bun.ServerWebSocket&lt;Data&gt;): void | Promise&lt;void&gt;;
-  close?(ws: Bun.ServerWebSocket&lt;Data&gt;, code: number, reason: string): void | Promise&lt;void&gt;;
-  ping?(ws: Bun.ServerWebSocket&lt;Data&gt;, data: Buffer): void | Promise&lt;void&gt;;
-  pong?(ws: Bun.ServerWebSocket&lt;Data&gt;, data: Buffer): void | Promise&lt;void&gt;;
-}</code></pre>
-            </figure>
-            <p>
-              Every lifecycle member is exactly Bun&#39;s
-              <code>WebSocketHandler</code> member: <code>ws</code> is Bun&#39;s
-              <code>ServerWebSocket</code> with <code>send</code>,
-              <code>subscribe</code>, <code>publish</code>, <code>cork</code>,
-              backpressure-aware return codes, and <code>ws.data</code> typed as
-              <code>Data</code>. <code>upgrade</code> runs before
-              <code>server.upgrade()</code>: return the connection&#39;s data,
-              or a <code>Response</code> to reject the handshake.
-              <code>headers</code> contributes to the <code>101</code> response,
-              statically or computed per request.
-            </p>
-          </section>
-          <section aria-labelledby="wsguard-type">
-            <h2 id="wsguard-type">
-              <a href="#wsguard-type"
-                >type WsGuard<span aria-hidden="true"> #</span></a
-              >
-            </h2>
-            <figure class="code-block">
-              <pre><code>type WsGuard = (
-  request: Request,
-  server: Server,
-) =&gt; Response | undefined | void | Promise&lt;Response | undefined | void&gt;;</code></pre>
-            </figure>
-            <p>
-              A pre-upgrade check. Returning a <code>Response</code> rejects the
-              handshake with it; any other return continues to the next guard,
-              then the route&#39;s <code>upgrade</code>.
-            </p>
-          </section>
-          <section aria-labelledby="wsbehavior-interface">
-            <h2 id="wsbehavior-interface">
-              <a href="#wsbehavior-interface"
-                >WsBehavior and RhythmWsOptions<span aria-hidden="true">
-                  #</span
-                ></a
-              >
-            </h2>
-            <figure class="code-block">
-              <pre><code>interface WsBehavior {
-  maxPayloadLength?: number;
-  idleTimeout?: number;
-  backpressureLimit?: number;
-  closeOnBackpressureLimit?: boolean;
-  sendPings?: boolean;
-  publishToSelf?: boolean;
-  perMessageDeflate?: Bun.WebSocketHandler&lt;never&gt;[&quot;perMessageDeflate&quot;];
+const databaseUrl = process.env.DATABASE_URL ?? &quot;postgres://postgres:postgres@localhost:5432/notes_drizzle&quot;;
+
+export type Database = BunSQLDatabase&lt;typeof schema&gt;;
+
+export interface DatabaseValue {
+  db: Database;
+  &quot;#client&quot;: SQL;
 }
 
-interface RhythmWsOptions extends WsBehavior {
-  prefix?: string;
+export function createDatabase(): DatabaseValue {
+  const client = new SQL(databaseUrl);
+  return { db: drizzle({ client, schema }), &quot;#client&quot;: client };
+}
+
+export async function closeDatabase(value: DatabaseValue): Promise&lt;void&gt; {
+  await value[&quot;#client&quot;].close();
 }</code></pre>
             </figure>
-            <p>
-              <code>WsBehavior</code> is Bun&#39;s websocket tuning, passed
-              through to <code>Bun.serve</code>&#39;s behavior object verbatim
-              by the <code>websocket</code> getter. <code>prefix</code> is
-              prepended to every path this instance registers, and to merged
-              children&#39;s paths.
-            </p>
           </section>
-          <section aria-labelledby="supporting-types">
-            <h2 id="supporting-types">
-              <a href="#supporting-types"
-                >Supporting types<span aria-hidden="true"> #</span></a
+          <section aria-labelledby="table-and-service">
+            <h2 id="table-and-service">
+              <a href="#table-and-service"
+                >Table and service<span aria-hidden="true"> #</span></a
               >
             </h2>
+            <p>
+              Everything notes-related lives under <code>src/notes/</code>: the
+              table, the zod schemas, the service, and the controller. Ids are
+              plain <code>text</code> columns defaulted from
+              <code>crypto.randomUUID()</code> in JavaScript, so a malformed id
+              in the URL is an empty result instead of a database type error.
+            </p>
             <figure class="code-block">
-              <pre><code>type WsParams = Readonly&lt;Record&lt;string, string&gt;&gt;;
-type Server = Bun.Server&lt;unknown&gt;;</code></pre>
+              <pre><code>// src/notes/notes.table.ts
+import { pgTable, text, timestamp } from &quot;drizzle-orm/pg-core&quot;;
+
+export const notes = pgTable(&quot;notes&quot;, {
+  id: text(&quot;id&quot;)
+    .primaryKey()
+    .$defaultFn(() =&gt; crypto.randomUUID()),
+  title: text(&quot;title&quot;).notNull(),
+  content: text(&quot;content&quot;).notNull().default(&quot;&quot;),
+  createdAt: timestamp(&quot;created_at&quot;, { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp(&quot;updated_at&quot;, { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type Note = typeof notes.$inferSelect;</code></pre>
             </figure>
-            <dl>
-              <dt>WsParams</dt>
-              <dd>
-                Route params captured by rou3 for the matched path, the default
-                <code>ws.data</code> when a route has no <code>upgrade</code>.
-              </dd>
-              <dt>Server</dt>
-              <dd>
-                Bun&#39;s server, as passed to
-                <code>fetch(request, server)</code>. Guards and route upgrades
-                receive it for <code>server.requestIP()</code>,
-                <code>server.publish()</code>, and similar.
-              </dd>
-            </dl>
+            <p>
+              The service is a factory over the typed database. It owns every
+              query; nothing else in the app touches drizzle.
+              <code>returning()</code> turns updates and deletes into
+              found-or-not answers without a second round trip.
+            </p>
+            <figure class="code-block">
+              <pre><code>// src/notes/notes.service.ts
+export function createNotesService(db: Database) {
+  return {
+    list: () =&gt; db.select().from(notes).orderBy(desc(notes.createdAt)),
+    async get(id: string) {
+      const [note] = await db.select().from(notes).where(eq(notes.id, id));
+      return note;
+    },
+    async create(input: CreateNoteInput) {
+      const [note] = await db.insert(notes).values(input).returning();
+      return note;
+    },
+    async update(id: string, patch: UpdateNoteInput) {
+      const [note] = await db
+        .update(notes)
+        .set({ ...patch, updatedAt: new Date() })
+        .where(eq(notes.id, id))
+        .returning();
+      return note;
+    },
+    async remove(id: string) {
+      const deleted = await db.delete(notes).where(eq(notes.id, id)).returning({ id: notes.id });
+      return deleted.length &gt; 0;
+    },
+  };
+}
+
+export type NotesService = ReturnType&lt;typeof createNotesService&gt;;</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="module-wiring">
+            <h2 id="module-wiring">
+              <a href="#module-wiring"
+                >Wiring the module<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              The app module chains it together: a
+              <a href="../middleware/filter.html"><code>filter()</code></a>
+              error boundary first, then the database provider, then the service
+              provider — which receives <code>db</code> from the provider graph
+              — then the controller. Handlers throw <code>HttpError</code> for
+              missing notes; <code>validate(&quot;body&quot;, …)</code> guards
+              the writes and <code>intercept(…)</code> enforces the response
+              contract.
+            </p>
+            <figure class="code-block">
+              <pre><code>// src/app.module.ts
+export const appModule = new Rhythm&lt;RhythmHttpContext&gt;({ name: &quot;app&quot;, type: &quot;module&quot; })
+  .use(filter())
+  .provide(createDatabase, closeDatabase)
+  .provide(({ db }) =&gt; ({ notesService: createNotesService(db) }))
+  .use(notesController.middleware())
+  .use(() =&gt; {
+    throw new HttpError(404, &quot;Route not found&quot;);
+  });</code></pre>
+            </figure>
+            <p>
+              On shutdown, <code>appModule.teardown()</code> disposes providers
+              in reverse order: the service (nothing to do) and then the pool.
+            </p>
+          </section>
+          <section aria-labelledby="migrations">
+            <h2 id="migrations">
+              <a href="#migrations"
+                >Migrations<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              <code>drizzle-kit generate</code> diffs
+              <code>notes.table.ts</code> against the last snapshot and emits a
+              SQL migration into <code>drizzle/</code> — no database needed.
+              <code>drizzle-kit migrate</code> applies whatever is pending.
+            </p>
+            <figure class="code-block">
+              <pre><code>// drizzle.config.ts
+import { defineConfig } from &quot;drizzle-kit&quot;;
+
+export default defineConfig({
+  dialect: &quot;postgresql&quot;,
+  schema: &quot;./src/notes/notes.table.ts&quot;,
+  out: &quot;./drizzle&quot;,
+  dbCredentials: { url: process.env.DATABASE_URL ?? &quot;postgres://postgres:postgres@localhost:5432/notes_drizzle&quot; },
+});</code></pre>
+            </figure>
+            <figure class="code-block">
+              <pre><code>bun run db:generate   # emit drizzle/0001_*.sql after editing the table
+bun run db:migrate    # apply pending migrations</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="next-steps">
+            <h2 id="next-steps">
+              <a href="#next-steps"
+                >Where to next<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              The same shape with a generated client:
+              <a href="prisma.html">Prisma</a>. A unit-of-work ORM that forks
+              per request: <a href="mikro-orm.html">MikroORM</a>. No ORM at all:
+              <a href="mongodb.html">MongoDB</a>. The full app is
+              <a
+                href="https://github.com/rhythmjs/examples/tree/main/examples/drizzle-postgres"
+                >examples/drizzle-postgres</a
+              >.
+            </p>
           </section>
         </div>
         <nav class="pagination" aria-label="Previous and next pages">
-          <a href="serving.html"
-            ><span>← Previous</span><strong>Serving &amp; pub/sub</strong></a
-          ><span></span>
+          <a href="index.html"
+            ><span>← Previous</span><strong>Overview</strong></a
+          ><a href="prisma.html"><span>Next →</span><strong>Prisma</strong></a>
         </nav>
         <footer class="page-footer">
           <span>RhythmJS documentation · v0.0.11</span
-          ><a href="https://github.com/rhythmjs/ws">github.com/rhythmjs/ws</a>
+          ><a href="https://github.com/rhythmjs/examples"
+            >github.com/rhythmjs/examples</a
+          >
         </footer>
       </main>
       <aside class="toc">
         <nav aria-label="On this page">
           <p>ON THIS PAGE</p>
-          <a href="#rhythmws-class">class RhythmWs</a>
-          <a href="#wsroute-interface">interface WsRoute</a>
-          <a href="#wsguard-type">type WsGuard</a>
-          <a href="#wsbehavior-interface">WsBehavior, RhythmWsOptions</a>
-          <a href="#supporting-types">Supporting types</a>
+          <a href="#install">Install</a
+          ><a href="#database-provider">The database provider</a
+          ><a href="#table-and-service">Table and service</a
+          ><a href="#module-wiring">Wiring the module</a
+          ><a href="#migrations">Migrations</a
+          ><a href="#next-steps">Where to next</a>
         </nav>
       </aside>
     </div>

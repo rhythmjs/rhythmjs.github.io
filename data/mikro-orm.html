@@ -5,22 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="Every export of @rhythmjs/ws: the RhythmWs class, WsRoute handlers, guards, behavior tuning, and supporting types."
+      content="Wire MikroORM into Rhythm on Bun: decorator-free EntitySchema entities, a forked EntityManager per operation, and Migrator-driven migrations."
     />
     <meta name="color-scheme" content="light dark" />
-    <title>API reference · RhythmJS</title>
+    <title>MikroORM · RhythmJS</title>
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="RhythmJS documentation" />
-    <meta property="og:title" content="API reference · RhythmJS" />
+    <meta property="og:title" content="MikroORM · RhythmJS" />
     <meta
       property="og:description"
-      content="Every export of @rhythmjs/ws: the RhythmWs class, WsRoute handlers, guards, behavior tuning, and supporting types."
+      content="Wire MikroORM into Rhythm on Bun: decorator-free EntitySchema entities, a forked EntityManager per operation, and Migrator-driven migrations."
     />
     <meta name="twitter:card" content="summary" />
-    <meta name="twitter:title" content="API reference · RhythmJS" />
+    <meta name="twitter:title" content="MikroORM · RhythmJS" />
     <meta
       name="twitter:description"
-      content="Every export of @rhythmjs/ws: the RhythmWs class, WsRoute handlers, guards, behavior tuning, and supporting types."
+      content="Wire MikroORM into Rhythm on Bun: decorator-free EntitySchema entities, a forked EntityManager per operation, and Migrator-driven migrations."
     />
     <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -71,11 +71,11 @@
           <a href="../router/static.html">Serving files</a>
           <a href="../router/api.html">API reference</a>
         </details>
-        <details class="nav-group package-group" open>
+        <details class="nav-group package-group">
           <summary>WebSockets</summary>
-          <a href="index.html">Connection routing</a>
-          <a href="serving.html">Serving &amp; pub/sub</a>
-          <a href="api.html" aria-current="page">API reference</a>
+          <a href="../ws/index.html">Connection routing</a>
+          <a href="../ws/serving.html">Serving &amp; pub/sub</a>
+          <a href="../ws/api.html">API reference</a>
         </details>
         <details class="nav-group package-group">
           <summary>Middleware</summary>
@@ -159,13 +159,13 @@
           <a href="../testing/ws.html">The WebSocket harness</a>
           <a href="../testing/api.html">API reference</a>
         </details>
-        <details class="nav-group package-group">
+        <details class="nav-group package-group" open>
           <summary>Data</summary>
-          <a href="../data/index.html">Overview</a>
-          <a href="../data/drizzle.html">Drizzle</a>
-          <a href="../data/prisma.html">Prisma</a>
-          <a href="../data/mikro-orm.html">MikroORM</a>
-          <a href="../data/mongodb.html">MongoDB</a>
+          <a href="index.html">Overview</a>
+          <a href="drizzle.html">Drizzle</a>
+          <a href="prisma.html">Prisma</a>
+          <a href="mikro-orm.html" aria-current="page">MikroORM</a>
+          <a href="mongodb.html">MongoDB</a>
         </details>
       </nav>
     </details>
@@ -186,11 +186,11 @@
             <a href="../router/static.html">Serving files</a>
             <a href="../router/api.html">API reference</a>
           </details>
-          <details class="nav-group package-group" open>
+          <details class="nav-group package-group">
             <summary>WebSockets</summary>
-            <a href="index.html">Connection routing</a>
-            <a href="serving.html">Serving &amp; pub/sub</a>
-            <a href="api.html" aria-current="page">API reference</a>
+            <a href="../ws/index.html">Connection routing</a>
+            <a href="../ws/serving.html">Serving &amp; pub/sub</a>
+            <a href="../ws/api.html">API reference</a>
           </details>
           <details class="nav-group package-group">
             <summary>Middleware</summary>
@@ -276,216 +276,263 @@
             <a href="../testing/ws.html">The WebSocket harness</a>
             <a href="../testing/api.html">API reference</a>
           </details>
-          <details class="nav-group package-group">
+          <details class="nav-group package-group" open>
             <summary>Data</summary>
-            <a href="../data/index.html">Overview</a>
-            <a href="../data/drizzle.html">Drizzle</a>
-            <a href="../data/prisma.html">Prisma</a>
-            <a href="../data/mikro-orm.html">MikroORM</a>
-            <a href="../data/mongodb.html">MongoDB</a>
+            <a href="index.html">Overview</a>
+            <a href="drizzle.html">Drizzle</a>
+            <a href="prisma.html">Prisma</a>
+            <a href="mikro-orm.html" aria-current="page">MikroORM</a>
+            <a href="mongodb.html">MongoDB</a>
           </details>
         </nav>
       </aside>
       <main id="main" tabindex="-1">
         <div class="breadcrumb">
-          <a href="../index.html">Docs</a> <span>/</span> WebSockets
-          <span>/</span> API reference
+          <a href="../index.html">Docs</a> <span>/</span> Data <span>/</span>
+          MikroORM
         </div>
-        <h1>API reference</h1>
+        <h1>MikroORM without decorators</h1>
         <p class="lead">
-          Every export of <code>@rhythmjs/ws</code>: one class and the types
-          around it.
+          <code>EntitySchema</code> keeps entities Bun-friendly — no
+          <code>reflect-metadata</code>, no decorator transforms — and the
+          service forks a fresh <code>EntityManager</code> for every operation.
         </p>
         <div class="article">
-          <section aria-labelledby="rhythmws-class">
-            <h2 id="rhythmws-class">
-              <a href="#rhythmws-class"
-                >class RhythmWs<span aria-hidden="true"> #</span></a
+          <section aria-labelledby="install">
+            <h2 id="install">
+              <a href="#install">Install<span aria-hidden="true"> #</span></a>
+            </h2>
+            <p>
+              The PostgreSQL driver package re-exports the core;
+              <code>@mikro-orm/migrations</code> adds the
+              <code>Migrator</code> extension used below.
+            </p>
+            <figure class="code-block">
+              <pre><code>bun add @mikro-orm/core @mikro-orm/postgresql @mikro-orm/migrations zod @rhythmjs/middleware</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="entity-schema">
+            <h2 id="entity-schema">
+              <a href="#entity-schema"
+                >Entities without decorators<span aria-hidden="true">
+                  #</span
+                ></a
               >
             </h2>
+            <p>
+              MikroORM's decorator style needs
+              <code>emitDecoratorMetadata</code> or a ts-morph discovery pass —
+              machinery Bun's transpiler doesn't owe you.
+              <code>EntitySchema</code> sidesteps all of it: the entity is a
+              plain class, the metadata is an explicit object next to it.
+              MikroORM hydrates rows without calling the constructor, so
+              constructor arguments stay a convenience for
+              <em>creating</em> notes.
+            </p>
             <figure class="code-block">
-              <pre><code>new RhythmWs(options?: RhythmWsOptions);
+              <pre><code>// src/notes/note.entity.ts
+import { EntitySchema } from &quot;@mikro-orm/core&quot;;
 
-route&lt;Data extends object = WsParams&gt;(path: string, route: WsRoute&lt;Data&gt;): this;
-guard(fn: WsGuard): this;
-merge(child: RhythmWs): this;
-get routes(): readonly string[];
-upgrade: (request: Request, server: Server) =&gt; Promise&lt;Response | undefined&gt; | null;
-get websocket(): Bun.WebSocketHandler&lt;never&gt;;</code></pre>
-            </figure>
-            <dl>
-              <dt>route(path, handlers)</dt>
-              <dd>
-                Registers an endpoint. <code>Data</code> is this route&#39;s
-                <code>ws.data</code> type; without an
-                <code>upgrade</code> member it defaults to the route params.
-                Throws <code>TypeError</code> for a non-object handlers
-                argument.
-              </dd>
-              <dt>guard(fn)</dt>
-              <dd>
-                Adds an instance-wide guard, run in registration order before
-                every matched route&#39;s upgrade. Guards never run for
-                unmatched paths.
-              </dd>
-              <dt>merge(child)</dt>
-              <dd>
-                Copies the child&#39;s routes under this instance&#39;s prefix,
-                snapshotting the child&#39;s guards at merge time and nesting
-                them inside this instance&#39;s own. Later changes to the child
-                do not propagate.
-              </dd>
-              <dt>routes</dt>
-              <dd>
-                The compiled route paths, prefix applied, in registration order.
-              </dd>
-              <dt>upgrade(request, server)</dt>
-              <dd>
-                The fetch-side half, bound as an arrow property. Returns
-                <code>null</code> synchronously when the request has no
-                <code>upgrade: websocket</code> header or matches no route;
-                otherwise resolves to <code>undefined</code> once
-                <code>server.upgrade()</code> succeeds, the rejecting
-                <code>Response</code> from a guard or the route&#39;s
-                <code>upgrade</code>, or <code>500 Upgrade failed</code> when
-                Bun refuses the socket.
-              </dd>
-              <dt>websocket</dt>
-              <dd>
-                The single behavior object for <code>Bun.serve</code>, spreading
-                the constructor&#39;s <code>WsBehavior</code> tuning and
-                dispatching every event to the connection&#39;s route via the
-                <code>ws.data</code> identity. One behavior serves connections
-                upgraded by any instance.
-              </dd>
-            </dl>
-          </section>
-          <section aria-labelledby="wsroute-interface">
-            <h2 id="wsroute-interface">
-              <a href="#wsroute-interface"
-                >interface WsRoute&lt;Data&gt;<span aria-hidden="true">
-                  #</span
-                ></a
-              >
-            </h2>
-            <figure class="code-block">
-              <pre><code>interface WsRoute&lt;Data extends object = WsParams&gt; {
-  upgrade?(request: Request, params: WsParams, server: Server): Data | Response | Promise&lt;Data | Response&gt;;
-  headers?: Bun.HeadersInit | ((request: Request, params: WsParams) =&gt; Bun.HeadersInit | Promise&lt;Bun.HeadersInit&gt;);
-  open?(ws: Bun.ServerWebSocket&lt;Data&gt;): void | Promise&lt;void&gt;;
-  message?(ws: Bun.ServerWebSocket&lt;Data&gt;, message: string | Buffer): void | Promise&lt;void&gt;;
-  drain?(ws: Bun.ServerWebSocket&lt;Data&gt;): void | Promise&lt;void&gt;;
-  close?(ws: Bun.ServerWebSocket&lt;Data&gt;, code: number, reason: string): void | Promise&lt;void&gt;;
-  ping?(ws: Bun.ServerWebSocket&lt;Data&gt;, data: Buffer): void | Promise&lt;void&gt;;
-  pong?(ws: Bun.ServerWebSocket&lt;Data&gt;, data: Buffer): void | Promise&lt;void&gt;;
-}</code></pre>
-            </figure>
-            <p>
-              Every lifecycle member is exactly Bun&#39;s
-              <code>WebSocketHandler</code> member: <code>ws</code> is Bun&#39;s
-              <code>ServerWebSocket</code> with <code>send</code>,
-              <code>subscribe</code>, <code>publish</code>, <code>cork</code>,
-              backpressure-aware return codes, and <code>ws.data</code> typed as
-              <code>Data</code>. <code>upgrade</code> runs before
-              <code>server.upgrade()</code>: return the connection&#39;s data,
-              or a <code>Response</code> to reject the handshake.
-              <code>headers</code> contributes to the <code>101</code> response,
-              statically or computed per request.
-            </p>
-          </section>
-          <section aria-labelledby="wsguard-type">
-            <h2 id="wsguard-type">
-              <a href="#wsguard-type"
-                >type WsGuard<span aria-hidden="true"> #</span></a
-              >
-            </h2>
-            <figure class="code-block">
-              <pre><code>type WsGuard = (
-  request: Request,
-  server: Server,
-) =&gt; Response | undefined | void | Promise&lt;Response | undefined | void&gt;;</code></pre>
-            </figure>
-            <p>
-              A pre-upgrade check. Returning a <code>Response</code> rejects the
-              handshake with it; any other return continues to the next guard,
-              then the route&#39;s <code>upgrade</code>.
-            </p>
-          </section>
-          <section aria-labelledby="wsbehavior-interface">
-            <h2 id="wsbehavior-interface">
-              <a href="#wsbehavior-interface"
-                >WsBehavior and RhythmWsOptions<span aria-hidden="true">
-                  #</span
-                ></a
-              >
-            </h2>
-            <figure class="code-block">
-              <pre><code>interface WsBehavior {
-  maxPayloadLength?: number;
-  idleTimeout?: number;
-  backpressureLimit?: number;
-  closeOnBackpressureLimit?: boolean;
-  sendPings?: boolean;
-  publishToSelf?: boolean;
-  perMessageDeflate?: Bun.WebSocketHandler&lt;never&gt;[&quot;perMessageDeflate&quot;];
+export class Note {
+  id: string = crypto.randomUUID();
+  title: string;
+  content: string;
+  createdAt: Date = new Date();
+  updatedAt: Date = new Date();
+
+  constructor(title: string, content: string = &quot;&quot;) {
+    this.title = title;
+    this.content = content;
+  }
 }
 
-interface RhythmWsOptions extends WsBehavior {
-  prefix?: string;
+export const noteEntitySchema = new EntitySchema&lt;Note&gt;({
+  class: Note,
+  tableName: &quot;notes&quot;,
+  properties: {
+    id: { type: &quot;string&quot;, primary: true },
+    title: { type: &quot;string&quot; },
+    content: { type: &quot;text&quot;, default: &quot;&quot; },
+    createdAt: { type: &quot;datetime&quot;, fieldName: &quot;created_at&quot; },
+    updatedAt: { type: &quot;datetime&quot;, fieldName: &quot;updated_at&quot;, onUpdate: () =&gt; new Date() },
+  },
+});</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="database-provider">
+            <h2 id="database-provider">
+              <a href="#database-provider"
+                >The database provider<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              <code>MikroORM.init</code> is async, and providers may be — the
+              factory resolves once at setup, and <code>orm.close()</code> is
+              the dispose hook. Registering the <code>Migrator</code> extension
+              here means the same config serves the app and the migration
+              runner.
+            </p>
+            <figure class="code-block">
+              <pre><code>// src/database.ts
+import { join } from &quot;node:path&quot;;
+import { Migrator } from &quot;@mikro-orm/migrations&quot;;
+import { MikroORM } from &quot;@mikro-orm/postgresql&quot;;
+import { noteEntitySchema } from &quot;./notes/note.entity&quot;;
+
+const clientUrl = process.env.DATABASE_URL ?? &quot;postgres://postgres:postgres@localhost:5432/notes_mikro_orm&quot;;
+
+export async function createDatabase(): Promise&lt;{ orm: MikroORM }&gt; {
+  const orm = await MikroORM.init({
+    clientUrl,
+    entities: [noteEntitySchema],
+    extensions: [Migrator],
+    migrations: { path: join(import.meta.dirname, &quot;migrations&quot;), snapshot: false },
+  });
+  return { orm };
+}
+
+export async function closeDatabase({ orm }: { orm: MikroORM }): Promise&lt;void&gt; {
+  await orm.close();
+}</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="fork-per-operation">
+            <h2 id="fork-per-operation">
+              <a href="#fork-per-operation"
+                >Fork per operation<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              MikroORM's <code>EntityManager</code> carries an identity map — a
+              unit of work that must not be shared across concurrent requests.
+              The provider holds the long-lived <code>orm</code>; every service
+              method starts from <code>orm.em.fork()</code>, so each operation
+              gets its own isolated context and the global-context guard never
+              fires.
+            </p>
+            <figure class="code-block">
+              <pre><code>// src/notes/notes.service.ts
+export function createNotesService(orm: MikroORM) {
+  return {
+    list: () =&gt; orm.em.fork().find(Note, {}, { orderBy: { createdAt: &quot;desc&quot; } }),
+    get: (id: string) =&gt; orm.em.fork().findOne(Note, { id }),
+    async create(input: CreateNoteInput) {
+      const em = orm.em.fork();
+      const note = new Note(input.title, input.content);
+      em.persist(note);
+      await em.flush();
+      return note;
+    },
+    async update(id: string, patch: UpdateNoteInput) {
+      const em = orm.em.fork();
+      const note = await em.findOne(Note, { id });
+      if (!note) return null;
+      em.assign(note, patch);
+      await em.flush();
+      return note;
+    },
+    async remove(id: string) {
+      const em = orm.em.fork();
+      const note = await em.findOne(Note, { id });
+      if (!note) return false;
+      await em.removeAndFlush(note);
+      return true;
+    },
+  };
 }</code></pre>
             </figure>
             <p>
-              <code>WsBehavior</code> is Bun&#39;s websocket tuning, passed
-              through to <code>Bun.serve</code>&#39;s behavior object verbatim
-              by the <code>websocket</code> getter. <code>prefix</code> is
-              prepended to every path this instance registers, and to merged
-              children&#39;s paths.
+              The module wiring is the shared pattern from the
+              <a href="index.html">overview</a>: <code>filter()</code>, the
+              provider pair, the service provider (<code>({ orm }) =&gt; …</code
+              >), the controller, a thrown 404.
             </p>
           </section>
-          <section aria-labelledby="supporting-types">
-            <h2 id="supporting-types">
-              <a href="#supporting-types"
-                >Supporting types<span aria-hidden="true"> #</span></a
+          <section aria-labelledby="migrations">
+            <h2 id="migrations">
+              <a href="#migrations"
+                >Migrations<span aria-hidden="true"> #</span></a
               >
             </h2>
+            <p>
+              Migrations are classes under <code>src/migrations/</code> with
+              <code>up()</code> and <code>down()</code> built from
+              <code>this.addSql(…)</code>. A short script opens the ORM, runs
+              <code>orm.migrator.up()</code>, and closes it — MikroORM records
+              applied migrations in a <code>mikro_orm_migrations</code> table.
+            </p>
             <figure class="code-block">
-              <pre><code>type WsParams = Readonly&lt;Record&lt;string, string&gt;&gt;;
-type Server = Bun.Server&lt;unknown&gt;;</code></pre>
+              <pre><code>// src/migrations/Migration20260930000000_init.ts
+import { Migration } from &quot;@mikro-orm/migrations&quot;;
+
+export class Migration20260930000000_init extends Migration {
+  override async up(): Promise&lt;void&gt; {
+    this.addSql(`
+      create table &quot;notes&quot; (
+        &quot;id&quot; varchar(255) not null,
+        &quot;title&quot; varchar(255) not null,
+        &quot;content&quot; text not null default '',
+        &quot;created_at&quot; timestamptz not null,
+        &quot;updated_at&quot; timestamptz not null,
+        constraint &quot;notes_pkey&quot; primary key (&quot;id&quot;)
+      );
+    `);
+  }
+
+  override async down(): Promise&lt;void&gt; {
+    this.addSql(`drop table if exists &quot;notes&quot; cascade;`);
+  }
+}</code></pre>
             </figure>
-            <dl>
-              <dt>WsParams</dt>
-              <dd>
-                Route params captured by rou3 for the matched path, the default
-                <code>ws.data</code> when a route has no <code>upgrade</code>.
-              </dd>
-              <dt>Server</dt>
-              <dd>
-                Bun&#39;s server, as passed to
-                <code>fetch(request, server)</code>. Guards and route upgrades
-                receive it for <code>server.requestIP()</code>,
-                <code>server.publish()</code>, and similar.
-              </dd>
-            </dl>
+            <figure class="code-block">
+              <pre><code>// src/migrate.ts
+const { orm } = await createDatabase();
+const migrated = await orm.migrator.up();
+await closeDatabase({ orm });
+console.log(`applied ${migrated.length} migration(s)`);</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="next-steps">
+            <h2 id="next-steps">
+              <a href="#next-steps"
+                >Where to next<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              Query-builder instead of unit-of-work:
+              <a href="drizzle.html">Drizzle</a>. Generated client:
+              <a href="prisma.html">Prisma</a>. Document store:
+              <a href="mongodb.html">MongoDB</a>. The full app is
+              <a
+                href="https://github.com/rhythmjs/examples/tree/main/examples/mikro-orm-postgres"
+                >examples/mikro-orm-postgres</a
+              >.
+            </p>
           </section>
         </div>
         <nav class="pagination" aria-label="Previous and next pages">
-          <a href="serving.html"
-            ><span>← Previous</span><strong>Serving &amp; pub/sub</strong></a
-          ><span></span>
+          <a href="prisma.html"
+            ><span>← Previous</span><strong>Prisma</strong></a
+          ><a href="mongodb.html"
+            ><span>Next →</span><strong>MongoDB</strong></a
+          >
         </nav>
         <footer class="page-footer">
           <span>RhythmJS documentation · v0.0.11</span
-          ><a href="https://github.com/rhythmjs/ws">github.com/rhythmjs/ws</a>
+          ><a href="https://github.com/rhythmjs/examples"
+            >github.com/rhythmjs/examples</a
+          >
         </footer>
       </main>
       <aside class="toc">
         <nav aria-label="On this page">
           <p>ON THIS PAGE</p>
-          <a href="#rhythmws-class">class RhythmWs</a>
-          <a href="#wsroute-interface">interface WsRoute</a>
-          <a href="#wsguard-type">type WsGuard</a>
-          <a href="#wsbehavior-interface">WsBehavior, RhythmWsOptions</a>
-          <a href="#supporting-types">Supporting types</a>
+          <a href="#install">Install</a
+          ><a href="#entity-schema">Entities without decorators</a
+          ><a href="#database-provider">The database provider</a
+          ><a href="#fork-per-operation">Fork per operation</a
+          ><a href="#migrations">Migrations</a
+          ><a href="#next-steps">Where to next</a>
         </nav>
       </aside>
     </div>
