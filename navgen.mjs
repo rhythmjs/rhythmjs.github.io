@@ -63,6 +63,13 @@ const groups = [
     ["config/service.html", "The config service"],
     ["config/api.html", "API reference"],
   ]],
+  ["Data", [
+    ["data/index.html", "Overview"],
+    ["data/drizzle.html", "Drizzle"],
+    ["data/prisma.html", "Prisma"],
+    ["data/mikro-orm.html", "MikroORM"],
+    ["data/mongodb.html", "MongoDB"],
+  ]],
   ["OpenAPI", [
     ["openapi/index.html", "Describing routes"],
     ["openapi/document.html", "Documents &amp; UIs"],
@@ -94,13 +101,6 @@ const groups = [
     ["testing/cli.html", "The CLI runner"],
     ["testing/ws.html", "The WebSocket harness"],
     ["testing/api.html", "API reference"],
-  ]],
-  ["Data", [
-    ["data/index.html", "Overview"],
-    ["data/drizzle.html", "Drizzle"],
-    ["data/prisma.html", "Prisma"],
-    ["data/mikro-orm.html", "MikroORM"],
-    ["data/mongodb.html", "MongoDB"],
   ]],
 ];
 
