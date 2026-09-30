@@ -438,6 +438,17 @@ const ws = new RhythmWs({ prefix: &quot;/ws&quot;, idleTimeout: 120 })
               <code>server</code> argument gives guards access to server-level
               facilities such as <code>server.requestIP()</code>.
             </p>
+            <p>
+              Before any guard runs, the instance validates the handshake&#39;s
+              <code>Origin</code> header (the <code>origin</code> constructor
+              option, default <code>&quot;same-origin&quot;</code>): a
+              cross-origin browser handshake is answered with
+              <code>403</code>, which closes the classic cross-site WebSocket
+              hijacking hole where an attacker&#39;s page opens an
+              authenticated socket with the victim&#39;s cookies. Pass an
+              allowlist or predicate for cross-origin frontends, or
+              <code>false</code> to opt out.
+            </p>
             <figure class="code-block">
               <pre><code>const ws = new RhythmWs()
   .guard((request) =&gt;

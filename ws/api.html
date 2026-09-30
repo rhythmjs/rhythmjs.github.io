@@ -430,8 +430,15 @@ get websocket(): Bun.WebSocketHandler&lt;never&gt;;</code></pre>
   perMessageDeflate?: Bun.WebSocketHandler&lt;never&gt;[&quot;perMessageDeflate&quot;];
 }
 
+type WsOrigin =
+  | &quot;same-origin&quot;
+  | readonly string[]
+  | ((origin: string, request: Request) =&gt; boolean | Promise&lt;boolean&gt;)
+  | false;
+
 interface RhythmWsOptions extends WsBehavior {
   prefix?: string;
+  origin?: WsOrigin;
 }</code></pre>
             </figure>
             <p>
@@ -440,6 +447,18 @@ interface RhythmWsOptions extends WsBehavior {
               by the <code>websocket</code> getter. <code>prefix</code> is
               prepended to every path this instance registers, and to merged
               children&#39;s paths.
+            </p>
+            <p>
+              <code>origin</code> validates the handshake&#39;s
+              <code>Origin</code> header before guards run, guarding against
+              cross-site WebSocket hijacking (browsers attach cookies to
+              handshakes, and WebSocket is exempt from CORS). The default
+              <code>&quot;same-origin&quot;</code> requires a present
+              <code>Origin</code> to match the request&#39;s own
+              <code>Host</code> and answers <code>403</code> otherwise;
+              requests without an <code>Origin</code> (non-browser clients)
+              pass. An array allows exactly those origins, a predicate decides
+              per request, and <code>false</code> disables the check.
             </p>
           </section>
           <section aria-labelledby="supporting-types">
