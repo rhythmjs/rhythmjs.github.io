@@ -390,8 +390,9 @@ function timeoutJob(name: string, ms: number, handler: JobHandler, options?: Job
               <dt>add(job) / remove(name) / jobs</dt>
               <dd>
                 Dynamic registry. <code>add</code> throws on duplicates;
-                <code>remove</code> throws on unknown names;
-                <code>jobs</code> returns a fresh array.
+                <code>remove</code> throws on unknown names, and a running
+                scheduler&#39;s timer for a removed job cancels itself on its
+                next fire; <code>jobs</code> returns a fresh array.
               </dd>
             </dl>
           </section>

@@ -393,8 +393,10 @@ const jobs = [
               <code>{ running, runs, lastRun?, lastError?, nextRun? }</code>,
               which pairs naturally with a health indicator.
               <code>add</code> and <code>remove</code> mutate the registry; a
-              scheduler started earlier keeps its snapshot; restart it to pick
-              up changes. <code>jobs</code> lists the registry.
+              scheduler started earlier keeps its snapshot: restart it to pick
+              up added jobs, while a removed job&#39;s timer cancels itself on
+              its next fire without running the handler.
+              <code>jobs</code> lists the registry.
             </p>
           </section>
           <section aria-labelledby="run-the-scheduler">
