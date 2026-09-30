@@ -308,12 +308,12 @@ router.use(etag()).get(&quot;/report&quot;, (ctx) =&gt; {
             </h2>
             <p>
               <code>cacheControl(options)</code> sets a
-              <code>Cache-Control</code> header from typed directives —
+              <code>Cache-Control</code> header from typed directives -
               <code>maxAge</code>, <code>sMaxAge</code>,
               <code>staleWhileRevalidate</code>, <code>staleIfError</code>,
               <code>public</code>, <code>private</code>, <code>noCache</code>,
               <code>noStore</code>, <code>mustRevalidate</code>,
-              <code>immutable</code> — and never overwrites a header a handler
+              <code>immutable</code>, and never overwrites a header a handler
               already set. <code>formatCacheControl(options)</code> exposes the
               formatter on its own.
             </p>
@@ -374,7 +374,7 @@ router.use(cache({ ttl: 30, vary: [&quot;accept-language&quot;] })).get(&quot;/p
               that default preference order. Buffered bodies are compressed
               <em>synchronously</em> with <code>Bun.zstdCompressSync</code> /
               <code>Bun.gzipSync</code>; streaming bodies pipe through
-              <code>CompressionStream</code> — which cannot speak zstd, so a
+              <code>CompressionStream</code>, which cannot speak zstd, so a
               streaming response falls to gzip. HTTP <code>deflate</code> means
               zlib-wrapped, which <code>Bun.deflateSync</code> does not produce,
               so deflate always takes the stream path too.

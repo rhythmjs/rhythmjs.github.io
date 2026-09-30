@@ -271,8 +271,8 @@
         </div>
         <h1>Drive HTTP without a server</h1>
         <p class="lead">
-          A fetch-based client over the real middleware chain — verb helpers,
-          JSON shorthands, provider teardown — plus a runner for one HTTP
+          A fetch-based client over the real middleware chain (verb helpers,
+          JSON shorthands, provider teardown) plus a runner for one HTTP
           middleware at a time.
         </p>
         <div class="article">
@@ -285,7 +285,7 @@
             <p>
               <code>createTestClient(appOrRouter, options?)</code> from
               <code>@rhythmjs/testing/router</code> wraps a Rhythm HTTP app
-              behind supertest-style helpers — or a bare
+              behind supertest-style helpers, or a bare
               <code>RhythmRouter</code>, which it mounts into a fresh app for
               you. Requests go straight through <code>toFetchHandler</code>: the
               real middleware chain runs, and responses are real
@@ -308,16 +308,16 @@ expect(await created.json()).toEqual({ id: 1, name: &quot;Ada&quot; });</code></
               >
             </h2>
             <p>
-              Six verb helpers cover the routed methods — <code>get</code>,
+              Six verb helpers cover the routed methods (<code>get</code>,
               <code>head</code>, <code>post</code>, <code>put</code>,
-              <code>patch</code>, <code>delete</code> — each taking a path and
+              <code>patch</code>, <code>delete</code>), each taking a path and
               <code>TestRequestOptions</code>: <code>headers</code> (any
               <code>HeadersInit</code>), a raw <code>body</code> (anything a
               <code>Response</code> accepts), or <code>json</code>, which
               serializes the value and sets
               <code>content-type: application/json</code> unless you already
-              did. For anything else — exotic methods, a prebuilt
-              <code>Request</code>, custom <code>RequestInit</code> — the raw
+              did. For anything else (exotic methods, a prebuilt
+              <code>Request</code>, custom <code>RequestInit</code>) the raw
               escape hatch is <code>client.fetch(input, init?)</code>.
             </p>
           </section>
@@ -327,8 +327,8 @@ expect(await created.json()).toEqual({ id: 1, name: &quot;Ada&quot; });</code></
             </h2>
             <p>
               <code>client.teardown()</code> disposes the app&#39;s providers in
-              reverse order — the same lifecycle a real shutdown runs. Call it
-              in <code>afterAll</code> when the app under test provides anything
+              reverse order, the same lifecycle a real shutdown runs. Call it in
+              <code>afterAll</code> when the app under test provides anything
               with cleanup semantics; for a bare router mounted by the client,
               it is a no-op that is still safe to call.
             </p>
@@ -346,7 +346,7 @@ expect(await created.json()).toEqual({ id: 1, name: &quot;Ada&quot; });</code></
               <code>Request</code> (default <code>GET /</code>), merges
               <code>extras</code> into the context for middleware that expects
               upstream state, runs the middleware, and resolves to
-              <code>{ ctx, nextCalled, response }</code> — the mutated context,
+              <code>{ ctx, nextCalled, response }</code>: the mutated context,
               whether <code>next()</code> ran, and the rendered
               <code>Response</code>.
             </p>

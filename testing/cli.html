@@ -271,8 +271,8 @@
         </div>
         <h1>Run commands in-process</h1>
         <p class="lead">
-          A command line in, captured output and an exit code back — flags
-          parsed by the real parser, stdin as a web stream, stdio untouched.
+          A command line in, captured output and an exit code back; flags parsed
+          by the real parser, stdin as a web stream, stdio untouched.
         </p>
         <div class="article">
           <section aria-labelledby="create-a-runner">
@@ -283,8 +283,8 @@
             </h2>
             <p>
               <code>createCliRunner(appOrCli)</code> from
-              <code>@rhythmjs/testing/cli</code> wraps a Rhythm CLI app — or a
-              bare <code>RhythmCli</code>, which it mounts for you — behind a
+              <code>@rhythmjs/testing/cli</code> wraps a Rhythm CLI app (or a
+              bare <code>RhythmCli</code>, which it mounts for you) behind a
               single <code>run()</code>. The app&#39;s real middleware chain
               executes through <code>callback()</code>; nothing touches the
               process&#39;s actual stdio, argv, or exit code.
@@ -306,9 +306,9 @@ expect(result.exitCode).toBe(0);</code></pre>
             </h2>
             <p>
               <code>run(argv, options?)</code> accepts a command line as a
-              string — split on whitespace, empty segments dropped — or as an
-              argv array when arguments contain spaces. Flags are parsed with
-              the real <code>parseArgv</code>, so <code>--env=prod</code> and
+              string (split on whitespace, empty segments dropped) or as an argv
+              array when arguments contain spaces. Flags are parsed with the
+              real <code>parseArgv</code>, so <code>--env=prod</code> and
               boolean flags behave exactly as in production. The result is
               <code>{ ctx, stdout, stderr, exitCode }</code>:
               <code>stdout</code> and <code>stderr</code> are copies of the
@@ -326,7 +326,7 @@ expect(result.exitCode).toBe(0);</code></pre>
             <p>
               Pass <code>{ stdin: &quot;line1\nline2&quot; }</code> and the
               context&#39;s <code>ctx.stdin</code> becomes a real web
-              <code>ReadableStream</code> over those bytes — exactly the shape
+              <code>ReadableStream</code> over those bytes, exactly the shape
               piped input has under
               <a href="../cli/run.html"><code>toCliHandler</code></a> on Bun.
               Without the option, <code>ctx.stdin</code> is <code>null</code>,

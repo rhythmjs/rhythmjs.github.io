@@ -98,7 +98,7 @@
             </p>
             <p>
               The core has no HTTP layer or command router. Those live in
-              separate packages, built on the same primitives — and the whole
+              separate packages, built on the same primitives, and the whole
               ecosystem is coupled to <a href="https://bun.com">Bun</a> on
               purpose: no runtime adapters, no portability shims, Bun's native
               APIs end to end.
@@ -162,7 +162,7 @@
               >
               <a href="queue/index.html"
                 ><code>@rhythmjs/queue</code><strong>Obligate the work</strong>
-                <p>Typed job queues — in-memory or Bun's native redis.</p></a
+                <p>Typed job queues: in-memory or Bun's native redis.</p></a
               >
               <a href="bullmq/index.html"
                 ><code>@rhythmjs/bullmq</code><strong>Scale the workers</strong>
@@ -225,7 +225,7 @@ await app.teardown();</code></pre>
               </li>
               <li>
                 <strong>Bun-native.</strong> Bun.serve, native WebSockets and
-                pub/sub, Bun.redis, Bun.CookieMap — no adapter layers in
+                pub/sub, Bun.redis, Bun.CookieMap, with no adapter layers in
                 between.
               </li>
             </ul>
@@ -236,7 +236,7 @@ await app.teardown();</code></pre>
                 <a href="https://www.npmjs.com/org/rhythmjs"
                   >@rhythmjs organization</a
                 >
-                — fifteen packages across the core, HTTP, background-work, and
+                : fifteen packages across the core, HTTP, background-work, and
                 testing repositories. Every module is exported by its own
                 subpath, such as <code>@rhythmjs/middleware/validate</code>;
                 there are no barrel exports.

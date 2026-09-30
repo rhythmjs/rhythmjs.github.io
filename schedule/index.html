@@ -287,7 +287,7 @@
               Bun: cron, interval, and timeout jobs declared as plain values,
               served by a kernel module, and driven by an in-process scheduler.
               Four subpaths: the root, <code>/types</code>,
-              <code>/scheduler</code>, and <code>/cron</code> — the engine has
+              <code>/scheduler</code>, and <code>/cron</code>; the engine has
               <a href="cron.html">its own page</a>.
             </p>
             <figure class="code-block">
@@ -295,8 +295,8 @@
             </figure>
             <p>
               The design splits <em>what runs</em> from
-              <em>who decides when</em>: every trigger — the scheduler or your
-              own code — reduces to <code>scheduleService.run(name)</code>, so
+              <em>who decides when</em>: every trigger, the scheduler or your
+              own code, reduces to <code>scheduleService.run(name)</code>, so
               job semantics (overlap skipping, error capture, per-job state)
               live in one place.
             </p>
@@ -328,9 +328,9 @@ const jobs = [
             </figure>
             <p>
               Options: <code>timezone</code> (cron only, DST-correct),
-              <code>overlap</code> (<code>&quot;skip&quot;</code> — the default
-              — or <code>&quot;allow&quot;</code>), and <code>disabled</code>.
-              <code>cronPatterns</code> covers the common expressions —
+              <code>overlap</code> (<code>&quot;skip&quot;</code>, the default,
+              or <code>&quot;allow&quot;</code>), and <code>disabled</code>.
+              <code>cronPatterns</code> covers the common expressions -
               <code>everySecond</code> (a 6-field pattern),
               <code>everyMinute</code>, <code>every5Minutes</code>,
               <code>every10Minutes</code>, <code>every30Minutes</code>,
@@ -351,7 +351,7 @@ const jobs = [
               returns <code>{ name, ran: false }</code> without touching the
               handler when the job is <code>disabled</code>, or already running
               with <code>overlap: &quot;skip&quot;</code>. Otherwise it runs the
-              handler and returns <code>{ name, ran: true, durationMs }</code> —
+              handler and returns <code>{ name, ran: true, durationMs }</code> -
               and on failure adds <code>error</code> with the message instead of
               throwing. Success clears <code>lastError</code>; every completed
               run bumps <code>runs</code> and stamps <code>lastRun</code>.
@@ -360,17 +360,17 @@ const jobs = [
               <pre><code>const result = await scheduleService.run(&quot;cleanup&quot;);
 // { name: &quot;cleanup&quot;, ran: true, durationMs: 12 }
 // { name: &quot;cleanup&quot;, ran: true, durationMs: 3, error: &quot;db unreachable&quot; }
-// { name: &quot;cleanup&quot;, ran: false } — disabled, or overlap-skipped</code></pre>
+// { name: &quot;cleanup&quot;, ran: false }: disabled, or overlap-skipped</code></pre>
             </figure>
             <p>
               <code>runDue(date?)</code> runs every enabled cron job due in that
-              minute — manual catch-up, or an external tick.
+              minute: manual catch-up, or an external tick.
               <code>nextRun(name, from?)</code> returns the next occurrence for
               cron jobs (<code>null</code> otherwise).
               <code>state(name)</code> reports
               <code>{ running, runs, lastRun?, lastError?, nextRun? }</code>,
               which pairs naturally with a health indicator.
-              <code>add</code> and <code>remove</code> mutate the registry — a
+              <code>add</code> and <code>remove</code> mutate the registry; a
               scheduler started earlier keeps its snapshot; restart it to pick
               up changes. <code>jobs</code> lists the registry.
             </p>
@@ -404,7 +404,7 @@ scheduler.stop();</code></pre>
             <p>
               <code>stop()</code> clears every timer and prevents re-arming; a
               run already in flight completes. Overlap policy is enforced by the
-              service, not the timers — even overlapping fires reduce to
+              service, not the timers; even overlapping fires reduce to
               <code>run(name)</code> and its skip logic.
             </p>
           </section>
@@ -434,7 +434,7 @@ const scheduler = startScheduler(scheduleService);</code></pre>
             </figure>
             <p>
               Distributed one-instance locking, persistent job queues, and
-              platform schedulers are out of scope by design — this package is
+              platform schedulers are out of scope by design: this package is
               coupled to Bun on purpose. For durable, replica-safe repeats, see
               <a href="../queue/index.html">@rhythmjs/queue</a>, whose cron
               repeats run through <a href="cron.html">this same engine</a>.

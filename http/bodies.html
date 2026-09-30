@@ -287,7 +287,7 @@
               handler runs. When the client sends <code>Content-Length</code>,
               the check is free; without one, the middleware measures a
               <em>clone</em> of the body, so the handler can still read the
-              original. Measuring a clone buffers it in memory — for large
+              original. Measuring a clone buffers it in memory; for large
               uploads prefer <code>multipart</code>’s streaming
               <code>maxBytes</code>.
             </p>
@@ -340,7 +340,7 @@ router.post&lt;MultipartContext&gt;(
               <code>maxBytes</code> is enforced twice: a fast
               <code>Content-Length</code> precheck, and a counting
               <code>ReadableStream</code> wrapped around the body so parsing
-              <em>aborts mid-stream</em> the moment the limit is crossed — an
+              <em>aborts mid-stream</em> the moment the limit is crossed, an
               attacker cannot make you buffer a lying request.
               <code>maxFileSize</code> (per file), <code>maxFiles</code>, and
               <code>maxFields</code> are checked after parsing.
@@ -364,7 +364,7 @@ router.post&lt;MultipartContext&gt;(
               Two exported types keep this honest under Bun:
               <code>RequestFormData</code> is whatever
               <code>request.formData()</code> actually returns, and
-              <code>FormFile</code> is its file entry type — use them instead of
+              <code>FormFile</code> is its file entry type; use them instead of
               the global <code>File</code>/<code>FormData</code> when the type
               checker gets opinionated.
             </p>

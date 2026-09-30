@@ -286,12 +286,12 @@
               The fetch-side half is <code>upgrade(request, server)</code>,
               bound so you can pass it around. Its result is three-way: it
               returns <code>null</code> <em>synchronously</em> when the request
-              is not a websocket upgrade or matches no route — which is what
-              makes single-expression composition with <code>??</code> work —
+              is not a websocket upgrade or matches no route (which is what
+              makes single-expression composition with <code>??</code> work);
               otherwise a promise that resolves to <code>undefined</code> once
               <code>server.upgrade()</code> has taken the socket, or to the
-              <code>Response</code> that rejects the handshake — from a guard or
-              from the route&#39;s <code>upgrade</code>. A refused
+              <code>Response</code> that rejects the handshake (from a guard or
+              from the route&#39;s <code>upgrade</code>). A refused
               <code>server.upgrade()</code> answers
               <code>500 Upgrade failed</code>, Bun&#39;s own convention.
             </p>
@@ -314,7 +314,7 @@
               <code>Bun.serve</code> accepts. Each event looks up the
               connection&#39;s route through the shared registry keyed on
               <code>ws.data</code> identity and forwards to that route&#39;s
-              handler — <code>open</code>, <code>message</code>,
+              handler: <code>open</code>, <code>message</code>,
               <code>drain</code>, <code>close</code>, <code>ping</code>,
               <code>pong</code>. The getter also carries the constructor&#39;s
               behavior tuning, passed through to Bun verbatim:
@@ -358,7 +358,7 @@
               >
             </h2>
             <p>
-              There is no server wrapper anywhere in the ecosystem — the
+              There is no server wrapper anywhere in the ecosystem: the
               router&#x27;s app is a fetch handler, so both halves plug into the
               same hand-written <code>Bun.serve</code> call you already own. The
               sync-<code>null</code> contract keeps it one expression.
@@ -387,7 +387,7 @@ Bun.serve({
               <code>ws.publish(topic, data)</code> work as Bun documents them
               (<code>publish</code> excludes the sender unless
               <code>publishToSelf</code> is set). Outside any socket, the server
-              itself publishes — an ordinary route can announce into a room:
+              itself publishes; an ordinary route can announce into a room:
             </p>
             <figure class="code-block">
               <pre><code>router.post(&quot;/api/rooms/:id/announce&quot;, async (ctx) =&gt; {
@@ -405,15 +405,15 @@ Bun.serve({
             <p>
               Bun&#39;s pub/sub is in-process: <code>peer.publish</code> and
               <code>server.publish</code> reach peers on the same instance. For
-              replicas, relay publishes through a backplane you own — Redis
-              pub/sub via <code>Bun.redis</code>, NATS — by calling
+              replicas, relay publishes through a backplane you own (Redis
+              pub/sub via <code>Bun.redis</code>, NATS) by calling
               <code>server.publish</code> in the subscriber.
             </p>
             <p>
               Guards, upgrades, and handlers all run socketless under the
               harness in
-              <a href="../testing/ws.html"><code>@rhythmjs/testing/ws</code></a>
-              — <code>upgradeWs</code> exercises this page&#39;s whole contract
+              <a href="../testing/ws.html"><code>@rhythmjs/testing/ws</code></a
+              >; <code>upgradeWs</code> exercises this page&#39;s whole contract
               against a mock server.
             </p>
           </section>

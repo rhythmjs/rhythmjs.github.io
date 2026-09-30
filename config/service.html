@@ -272,7 +272,7 @@
         <h1>The config service</h1>
         <p class="lead">
           One validated tree merged at setup, read through dot paths that the
-          compiler checks — and boot failures that report everything at once.
+          compiler checks, and boot failures that report everything at once.
         </p>
         <div class="article">
           <section aria-labelledby="register-the-module">
@@ -283,8 +283,8 @@
             </h2>
             <p>
               <code>configModule.forRoot(...factories)</code> returns a Rhythm
-              module that runs every factory once at <code>setup()</code> — not
-              per run — and deep-merges the outputs into one tree. Plain
+              module that runs every factory once at <code>setup()</code>, not
+              per run, and deep-merges the outputs into one tree. Plain
               factories merge at the root; namespaced factories merge under
               their token; on conflicts, later factories win, with nested plain
               objects merged key by key (arrays and other values replace
@@ -312,7 +312,7 @@ await app.setup(); // every factory runs and validates here</code></pre>
               Validation does not stop at the first bad file. A factory that
               throws <code>ConfigError</code> contributes its issues and loading
               continues; after all factories have run, the collected issues are
-              thrown together as one <code>ConfigError</code> — a single boot
+              thrown together as one <code>ConfigError</code>: a single boot
               failure reports the whole broken environment, namespaced paths
               included. Only unexpected errors (not <code>ConfigError</code>)
               abort immediately and propagate as-is.
@@ -331,21 +331,21 @@ await app.setup(); // every factory runs and validates here</code></pre>
             </h2>
             <p>
               The provided <code>configService</code> is typed from the exact
-              factories you passed. <code>get(path)</code> takes a dot path —
-              <code>&quot;database.port&quot;</code> — resolved segment by
+              factories you passed. <code>get(path)</code> takes a dot path -
+              <code>&quot;database.port&quot;</code>, resolved segment by
               segment; <code>value</code> is the whole merged tree. The optional
               second argument is a fallback applied with <code>??</code>, so it
               kicks in for <code>null</code> as well as
               <code>undefined</code> and missing paths.
               <code>getOrThrow(path)</code> throws a
               <code>ConfigError</code> naming the path when the value is null or
-              missing — reach for it at boot for values the app cannot run
+              missing; reach for it at boot for values the app cannot run
               without.
             </p>
             <figure class="code-block">
-              <pre><code>const port = ctx.configService.get(&quot;database.port&quot;);        // number
-const db = ctx.configService.get(&quot;database&quot;);               // { host: string; port: number }
-const flag = ctx.configService.get(&quot;debug&quot;, false);         // ?? fallback: covers null too
+              <pre><code>const port = ctx.configService.get(&quot;database.port&quot;); // number
+const db = ctx.configService.get(&quot;database&quot;); // { host: string; port: number }
+const flag = ctx.configService.get(&quot;debug&quot;, false); // ?? fallback: covers null too
 const host = ctx.configService.getOrThrow(&quot;database.host&quot;); // throws ConfigError when absent</code></pre>
             </figure>
           </section>
@@ -358,8 +358,8 @@ const host = ctx.configService.getOrThrow(&quot;database.host&quot;); // throws 
             <p>
               Both the path and the result are checked at compile time.
               <code>ConfigPath&lt;T&gt;</code> enumerates every reachable dot
-              path — nested objects recurse, arrays are leaves (you get the
-              array, not indices into it) — and
+              path: nested objects recurse, arrays are leaves (you get the
+              array, not indices into it), and
               <code>ConfigValue&lt;T, P&gt;</code> resolves the value type at a
               path. <code>MergedConfig&lt;TLoad&gt;</code> computes the merged
               tree type from the factory tuple, which is what makes
@@ -380,7 +380,7 @@ ctx.configService.get(&quot;database.port&quot;, &quot;3000&quot;); // compile e
               Downstream modules declare what they expect with
               <code>ConfigContext&lt;typeof load&gt;</code>, where
               <code>load</code> is the <code>as const</code> tuple of factories
-              the app registers — the module compiles against exactly the
+              the app registers; the module compiles against exactly the
               configuration shape the host provides.
               <code>ConfigType&lt;typeof factory&gt;</code> extracts one
               factory&#x27;s output type for functions that take a config slice

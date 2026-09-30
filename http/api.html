@@ -306,9 +306,11 @@
               <dt>Cookies.set(name, value, options?)</dt>
               <dd>
                 Append a Set-Cookie header serialized by Bun's native
-                <code>Bun.Cookie</code>. Bun's defaults apply —
-                <code>Path=/</code> and <code>SameSite=Lax</code> — unless
-                overridden. Each call appends a separate header.
+                <code>Bun.Cookie</code>. Bun's defaults apply (<code
+                  >Path=/</code
+                >
+                and <code>SameSite=Lax</code>) unless overridden. Each call
+                appends a separate header.
               </dd>
               <dt>Cookies.delete(name, options?)</dt>
               <dd>
@@ -435,8 +437,8 @@
             <p>
               <code>etag(options?)</code> returns middleware that runs after
               downstream handlers and sets an <code>ETag</code> header computed
-              from the SHA-1 hash of the response body — synchronously, via
-              Bun's native <code>Bun.CryptoHasher</code>. It only acts on 2xx
+              from the SHA-1 hash of the response body, synchronously, via Bun's
+              native <code>Bun.CryptoHasher</code>. It only acts on 2xx
               responses with string bodies, and it leaves a pre-set
               <code>ETag</code> header untouched. When the request's
               <code>If-None-Match</code> header lists the computed tag, the
@@ -632,8 +634,8 @@ type FormFile = Exclude&lt;ReturnType&lt;RequestFormData[&quot;get&quot;]&gt;, s
                 On <code>ctx.form</code>: <code>data</code> (the raw
                 <code>RequestFormData</code>), <code>get(name)</code> and
                 <code>getAll(name)</code> (string fields only), and
-                <code>file(name)</code> and <code>files(name?)</code> — files
-                typed as <code>FormFile</code>.
+                <code>file(name)</code> and <code>files(name?)</code>, with
+                files typed as <code>FormFile</code>.
               </dd>
             </dl>
           </section>
@@ -722,7 +724,7 @@ function parseAcceptLanguage(header: string | null): AcceptedLanguage[]</code></
             <dl>
               <dt>I18nOptions</dt>
               <dd>
-                <code>i18next</code> (any <code>I18nInstanceLike</code> — a
+                <code>i18next</code> (any <code>I18nInstanceLike</code>: a
                 structural contract where only <code>t</code> is required, so
                 i18next major versions cannot break compilation),
                 <code>detection</code>, <code>cacheCookie</code> +
@@ -741,13 +743,13 @@ function parseAcceptLanguage(header: string | null): AcceptedLanguage[]</code></
                 <code>lookupCookie</code> (default <code>i18next</code>),
                 <code>lookupPath</code> (segment index),
                 <code>supportedLanguages</code>, and
-                <code>fallbackLanguage</code> — the last two default to the
+                <code>fallbackLanguage</code>; the last two default to the
                 instance's own configuration. Matching tries exact tags, then
                 base languages, case-insensitively.
               </dd>
               <dt>I18nContext</dt>
               <dd>
-                <code>ctx.i18n</code> (the per-request instance — a clone when
+                <code>ctx.i18n</code> (the per-request instance: a clone when
                 the instance supports it, else <code>getFixedT</code>),
                 <code>ctx.t</code>, and <code>ctx.language</code>.
               </dd>

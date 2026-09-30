@@ -323,13 +323,13 @@ const app = new Rhythm().register(
               timeout (its <code>timeout</code>, else the module default), and a
               throw or timeout becomes
               <code>status: &quot;down&quot;</code> with the error message under
-              <code>details.error</code> — a broken check never breaks the
+              <code>details.error</code>; a broken check never breaks the
               endpoint. Every check reports its <code>durationMs</code>.
             </p>
             <p>
               <code>critical</code> defaults to <code>true</code>: a down
               critical indicator marks the whole report down. Mark best-effort
-              dependencies <code>critical: false</code> — their status still
+              dependencies <code>critical: false</code>; their status still
               shows in the report without failing readiness.
             </p>
           </section>
@@ -341,12 +341,12 @@ const app = new Rhythm().register(
             </h2>
             <p>
               The service exposes the two probe questions separately.
-              <code>live()</code> is synchronous and cannot fail —
+              <code>live()</code> is synchronous and cannot fail -
               <code>{ status: &quot;up&quot;, uptime, timestamp }</code> with
-              uptime in whole seconds — answering &quot;is the process
+              uptime in whole seconds, answering &quot;is the process
               running?&quot;. <code>ready()</code> answers &quot;should traffic
               come here?&quot;: it runs the indicators and returns a
-              <code>HealthReport</code> —
+              <code>HealthReport</code> -
               <code>{ status, shuttingDown, checks }</code> keyed by indicator
               name. Reports are cached for <code>cacheTtl</code> so probe storms
               and dashboard polling stay cheap; once <code>shutdown()</code> has
@@ -367,14 +367,14 @@ const app = new Rhythm().register(
               default: <code>GET /health/live</code> always answers
               <code>200</code> with the liveness snapshot, and
               <code>GET /health/ready</code> answers the report with
-              <code>200</code> when up and <code>503</code> when down — the
+              <code>200</code> when up and <code>503</code> when down; the
               status code Kubernetes-style readiness probes act on.
             </p>
             <figure class="code-block">
               <pre><code>import { healthRoutes } from &quot;@rhythmjs/observability/health&quot;;
 
 router.use(healthRoutes(healthService).middleware());
-// GET /health/live  -&gt; 200 { status: &quot;up&quot;, uptime, timestamp }
+// GET /health/live -&gt; 200 { status: &quot;up&quot;, uptime, timestamp }
 // GET /health/ready -&gt; 200 | 503 HealthReport</code></pre>
             </figure>
           </section>
@@ -393,10 +393,10 @@ router.use(healthRoutes(healthService).middleware());
               <code>drainMs</code> (default <code>0</code>), run your
               <code>close</code> hook (stop servers, close sockets), then the
               app&#x27;s <code>teardown()</code> (providers dispose in reverse
-              order), then exit <code>0</code>. A force timer —
+              order), then exit <code>0</code>. A force timer -
               <code>timeoutMs</code>, default
               <code>10&#8239;000</code>&#8239;ms, unref&#x27;d so it never keeps
-              the process alive — exits <code>1</code> if the sequence hangs.
+              the process alive, and exits <code>1</code> if the sequence hangs.
               Repeated signals are ignored once shutdown has started.
             </p>
             <figure class="code-block">
@@ -414,8 +414,8 @@ process.on(&quot;uncaughtException&quot;, () =&gt; void shutdown());</code></pre
             </figure>
             <p>
               Set <code>exit: false</code> to run the sequence without exiting
-              the process — useful under test runners, where the returned
-              trigger function replaces the signal.
+              the process, useful under test runners, where the returned trigger
+              function replaces the signal.
             </p>
           </section>
         </div>

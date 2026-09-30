@@ -283,7 +283,7 @@
             </h2>
             <p>
               <code>sse(options?)</code> stamps the headers an EventSource
-              endpoint needs — <code>content-type: text/event-stream</code>,
+              endpoint needs: <code>content-type: text/event-stream</code>,
               <code>cache-control: no-cache, no-transform</code>,
               <code>connection: keep-alive</code>, and
               <code>x-accel-buffering: no</code> for nginx-style proxies. It
@@ -322,11 +322,12 @@ router.use(sse()).get(&quot;/ticker&quot;, (ctx) =&gt; {
             </h2>
             <p>
               <code>stream(options?)</code> is the same header-stamping pattern
-              for non-SSE streams — progress logs, NDJSON, long exports:
-              <code>content-type: text/plain</code>, the same no-buffering trio,
-              plus <code>x-content-type-options: nosniff</code>. Override the
-              content type per route or via <code>options.headers</code> for
-              NDJSON and friends.
+              for non-SSE streams such as progress logs, NDJSON, and long
+              exports: <code>content-type: text/plain</code>, the same
+              no-buffering trio, plus
+              <code>x-content-type-options: nosniff</code>. Override the content
+              type per route or via <code>options.headers</code> for NDJSON and
+              friends.
             </p>
           </section>
           <section aria-labelledby="timeouts">
@@ -338,7 +339,7 @@ router.use(sse()).get(&quot;/ticker&quot;, (ctx) =&gt; {
             <p>
               <code>timeout(ms)</code> races the downstream chain against a
               deadline. If the deadline wins, the response becomes
-              <code>504 Gateway Timeout</code> (JSON body) — note the downstream
+              <code>504 Gateway Timeout</code> (JSON body); note the downstream
               work is <em>not</em> aborted; its eventual result is discarded and
               its rejection swallowed. Put it outside slow handlers or around
               <code>proxy</code> targets you do not control:

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="The queue's two in-house engines — in-memory and Bun.redis with atomic ZREM claims — plus replica-safe repeatable schedules and the QueueEngine contract."
+      content="The queue's two in-house engines, in-memory and Bun.redis with atomic ZREM claims, plus replica-safe repeatable schedules and the QueueEngine contract."
     />
     <meta name="color-scheme" content="light dark" />
     <title>Engines &amp; repeats · RhythmJS</title>
@@ -14,13 +14,13 @@
     <meta property="og:title" content="Engines &amp; repeats · RhythmJS" />
     <meta
       property="og:description"
-      content="The queue's two in-house engines — in-memory and Bun.redis with atomic ZREM claims — plus replica-safe repeatable schedules and the QueueEngine contract."
+      content="The queue's two in-house engines, in-memory and Bun.redis with atomic ZREM claims, plus replica-safe repeatable schedules and the QueueEngine contract."
     />
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content="Engines &amp; repeats · RhythmJS" />
     <meta
       name="twitter:description"
-      content="The queue's two in-house engines — in-memory and Bun.redis with atomic ZREM claims — plus replica-safe repeatable schedules and the QueueEngine contract."
+      content="The queue's two in-house engines, in-memory and Bun.redis with atomic ZREM claims, plus replica-safe repeatable schedules and the QueueEngine contract."
     />
     <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -290,9 +290,9 @@
               never change.
             </p>
             <figure class="code-block">
-              <pre><code>queueModule.forRoot&lt;AppJobs&gt;();                                  // in-memory
-queueModule.forRoot&lt;AppJobs&gt;({ redis: process.env.REDIS_URL });  // distributed
-queueModule.forRoot&lt;AppJobs&gt;({ engine: myEngine });              // custom</code></pre>
+              <pre><code>queueModule.forRoot&lt;AppJobs&gt;(); // in-memory
+queueModule.forRoot&lt;AppJobs&gt;({ redis: process.env.REDIS_URL }); // distributed
+queueModule.forRoot&lt;AppJobs&gt;({ engine: myEngine }); // custom</code></pre>
             </figure>
           </section>
           <section aria-labelledby="the-memory-engine">
@@ -318,8 +318,8 @@ queueModule.forRoot&lt;AppJobs&gt;({ engine: myEngine });              // custom
             </h2>
             <p>
               <code>redisEngine(connection?, { prefix? })</code> distributes on
-              Bun's native redis client. Pass a <code>redis://</code> URL — the
-              engine constructs, owns, and closes the client — an existing
+              Bun's native redis client. Pass a <code>redis://</code> URL (the
+              engine constructs, owns, and closes the client), an existing
               <code>Bun.RedisClient</code> (left open on close), or nothing to
               use <code>Bun.redis</code> and its <code>REDIS_URL</code>. It
               actually accepts any
@@ -380,7 +380,7 @@ await queueService.unschedule(&quot;order.process&quot;);</code></pre>
             </p>
             <p>
               On the redis engine, due repeats are claimed with the same atomic
-              <code>ZREM</code> before being re-armed — a schedule fires
+              <code>ZREM</code> before being re-armed, so a schedule fires
               <strong>once across any number of app replicas</strong>.
             </p>
           </section>
@@ -392,14 +392,14 @@ await queueService.unschedule(&quot;order.process&quot;);</code></pre>
             </h2>
             <p>
               Both engines implement the structural
-              <code>QueueEngine</code> interface — <code>add</code>,
+              <code>QueueEngine</code> interface (<code>add</code>,
               <code>addBulk</code>, <code>take(now)</code> (the engine promotes
               its own due delayed jobs), <code>requeue(job, readyAt)</code> for
               retries,
               <code>record(&quot;completed&quot; | &quot;failed&quot;)</code>,
               <code>setRepeat</code
               >/<code>clearRepeat</code>/<code>claimDueRepeats(now)</code>,
-              <code>counts</code>, and <code>close</code> — over the
+              <code>counts</code>, and <code>close</code>) over the
               <code>StoredJob</code> and <code>RepeatSpec</code> shapes. Tests
               can substitute a recording engine wholesale.
             </p>
@@ -417,7 +417,7 @@ await queueService.unschedule(&quot;order.process&quot;);</code></pre>
               atomic state transitions, per-job history, pause/resume, rate
               limiting, and the Bull Board ecosystem. If you want those,
               <a href="../bullmq/index.html">@rhythmjs/bullmq</a> serves the
-              same typed service shape on full BullMQ — switching is a one-line
+              same typed service shape on full BullMQ; switching is a one-line
               change at the registration site. See the
               <a href="api.html">API reference</a> for every export.
             </p>

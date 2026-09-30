@@ -284,7 +284,7 @@
             </h2>
             <p>
               <code>@rhythmjs/events</code> is a typed in-process event bus for
-              the Rhythm kernel: events <em>announce</em> — an ephemeral
+              the Rhythm kernel: events <em>announce</em>, an ephemeral
               broadcast to whoever is listening right now. Dispatch is in-house
               and dependency-free; there is no
               <code>node:events</code> underneath, just a pattern registry. Two
@@ -330,7 +330,7 @@ export type AppEventsContext = EventsContext&lt;AppEvents&gt;;</code></pre>
               <code>MatchingPayload&lt;TEvents, P&gt;</code> resolves a pattern
               such as <code>&quot;order.*&quot;</code> to the union of matching
               payloads, and <code>MatchingNames</code> to the union of matching
-              event names — so a wildcard handler's arguments are precisely
+              event names, so a wildcard handler's arguments are precisely
               typed, not <code>unknown</code>.
             </p>
           </section>
@@ -345,7 +345,7 @@ export type AppEventsContext = EventsContext&lt;AppEvents&gt;;</code></pre>
               returns an unsubscribe function. An
               <code>AbortSignal</code> unsubscribes automatically on abort, and
               a signal that is already aborted subscribes nothing.
-              <code>off(pattern, handler)</code> removes by reference — the same
+              <code>off(pattern, handler)</code> removes by reference: the same
               pair you registered.
             </p>
             <figure class="code-block">
@@ -403,7 +403,7 @@ controller.abort(); // if you passed { signal: controller.signal }</code></pre>
             <p>
               Patterns are dot-segmented. <code>*</code> matches exactly one
               segment; <code>**</code> matches the rest of the name and is only
-              meaningful as the <em>final</em> segment — a
+              meaningful as the <em>final</em> segment; a
               <code>**</code> anywhere else makes the pattern match nothing. An
               exact name is the fast path: <code>matchesPattern</code> returns
               immediately on equality, and a pattern containing no
@@ -413,10 +413,10 @@ controller.abort(); // if you passed { signal: controller.signal }</code></pre>
               <pre><code>import { matchesPattern } from &quot;@rhythmjs/events&quot;;
 
 matchesPattern(&quot;order.created&quot;, &quot;order.created&quot;); // true
-matchesPattern(&quot;order.*&quot;, &quot;order.created&quot;);       // true
-matchesPattern(&quot;order.*&quot;, &quot;order.item.added&quot;);    // false — * is one segment
-matchesPattern(&quot;order.**&quot;, &quot;order.item.added&quot;);   // true — ** takes the rest
-matchesPattern(&quot;*.created&quot;, &quot;order.created&quot;);     // true</code></pre>
+matchesPattern(&quot;order.*&quot;, &quot;order.created&quot;); // true
+matchesPattern(&quot;order.*&quot;, &quot;order.item.added&quot;); // false: * is one segment
+matchesPattern(&quot;order.**&quot;, &quot;order.item.added&quot;); // true: ** takes the rest
+matchesPattern(&quot;*.created&quot;, &quot;order.created&quot;); // true</code></pre>
             </figure>
           </section>
           <section aria-labelledby="counting-listeners">
@@ -428,14 +428,14 @@ matchesPattern(&quot;*.created&quot;, &quot;order.created&quot;);     // true</c
             <p>
               <code>listenerCount()</code> totals every live subscription;
               <code>listenerCount(pattern)</code> counts registrations under
-              that <em>exact pattern string</em> —
+              that <em>exact pattern string</em> -
               <code>listenerCount(&quot;order.*&quot;)</code> reports
               subscribers of the pattern <code>&quot;order.*&quot;</code>, not
               how many handlers a given event would reach. Once-subscriptions
               count until they fire or are aborted.
             </p>
             <p>
-              Emitting is the other half of the bus — dispatch ordering, error
+              Emitting is the other half of the bus: dispatch ordering, error
               isolation, <code>emitAsync</code>, and the kernel module live on
               the <a href="emitting.html">Emitting &amp; errors</a> page.
             </p>

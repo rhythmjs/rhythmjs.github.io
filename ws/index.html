@@ -273,7 +273,7 @@
         <p class="lead">
           Routes are Bun websocket handlers under rou3 paths;
           <code>upgrade</code> decides what each connection&#39;s typed
-          <code>ws.data</code> is — the route params by default.
+          <code>ws.data</code> is: the route params by default.
         </p>
         <div class="article">
           <section aria-labelledby="install-the-package">
@@ -288,7 +288,7 @@
               WebSocket model and adds exactly the two things Bun leaves to you:
               matching upgrade requests to endpoints, and deciding what each
               connection&#39;s <code>ws.data</code> is. Everything else
-              <em>is</em> Bun — handlers are Bun
+              <em>is</em> Bun: handlers are Bun
               <code>WebSocketHandler</code> members receiving Bun&#39;s
               <code>ServerWebSocket</code>, and fan-out is Bun&#39;s native
               pub/sub. The only dependency is rou3, the route matcher shared
@@ -312,8 +312,8 @@
               instance&#39;s <code>prefix</code> is prepended, and a static
               segment always beats a param segment regardless of registration
               order. The handlers object carries Bun&#39;s own lifecycle members
-              — <code>open</code>, <code>message</code>, <code>drain</code>,
-              <code>close</code>, <code>ping</code>, <code>pong</code> — with
+              (<code>open</code>, <code>message</code>, <code>drain</code>,
+              <code>close</code>, <code>ping</code>, <code>pong</code>) with
               Bun&#39;s exact signatures (<code>message</code> receives
               <code>string | Buffer</code>, <code>close</code> receives
               <code>code</code> and <code>reason</code>), plus two upgrade-time
@@ -354,18 +354,19 @@ const ws = new RhythmWs({ prefix: &quot;/ws&quot;, idleTimeout: 120 })
             </h2>
             <p>
               <code>upgrade(request, params, server)</code> runs before the
-              handshake and returns this connection&#39;s <code>ws.data</code> —
-              any object — or a <code>Response</code> to reject. The route&#39;s
-              <code>Data</code> type parameter flows into every lifecycle
-              member, so <code>ws.data.user</code> above is a typed
-              <code>string</code>. Without an <code>upgrade</code> member,
-              <code>Data</code> defaults to the route params:
-              <code>ws.data.id</code> on <code>/rooms/:id</code> just works.
+              handshake and returns this connection&#39;s
+              <code>ws.data</code> (any object) or a <code>Response</code> to
+              reject. The route&#39;s <code>Data</code> type parameter flows
+              into every lifecycle member, so <code>ws.data.user</code> above is
+              a typed <code>string</code>. Without an
+              <code>upgrade</code> member, <code>Data</code> defaults to the
+              route params: <code>ws.data.id</code> on
+              <code>/rooms/:id</code> just works.
             </p>
             <p>
               Dispatch is keyed on the data object&#39;s <em>identity</em> (a
               module-level <code>WeakMap</code> maps it to the route), so
-              <code>upgrade</code> must return an object, fresh per connection —
+              <code>upgrade</code> must return an object, fresh per connection -
               the default params object already is one. Returning
               <code>undefined</code> at runtime falls back to the params.
               <code>ws.routes</code> lists the compiled paths for introspection.
@@ -381,7 +382,7 @@ const ws = new RhythmWs({ prefix: &quot;/ws&quot;, idleTimeout: 120 })
             </h2>
             <p>
               The optional <code>headers</code> member adds headers to the
-              <code>101 Switching Protocols</code> response — a
+              <code>101 Switching Protocols</code> response: a
               <code>HeadersInit</code>, or a function of
               <code>(request, params)</code> (async allowed) when the value
               depends on the connection. This is where subprotocol negotiation
@@ -408,7 +409,7 @@ const ws = new RhythmWs({ prefix: &quot;/ws&quot;, idleTimeout: 120 })
               <code>guard(fn)</code> registers
               <code>(request, server) =&gt; Response | undefined</code>. Guards
               are instance-wide: they run in registration order before
-              <em>every matched</em> route of the instance — never for unmatched
+              <em>every matched</em> route of the instance, never for unmatched
               paths, so a miss costs nothing. Returning (or throwing nothing but
               returning) a <code>Response</code> rejects the handshake with it;
               returning <code>undefined</code> continues. The
@@ -433,8 +434,8 @@ const ws = new RhythmWs({ prefix: &quot;/ws&quot;, idleTimeout: 120 })
             </h2>
             <p>
               <code>merge(child)</code> copies another instance&#39;s routes
-              under this instance&#39;s prefix — <code>/ws</code> +
-              <code>/rooms/:id</code> becomes <code>/ws/rooms/:id</code> — and
+              under this instance&#39;s prefix (<code>/ws</code> +
+              <code>/rooms/:id</code> becomes <code>/ws/rooms/:id</code>) and
               keeps the child&#39;s guards nested inside the parent&#39;s own:
               parent guards run first, then the child&#39;s, then the
               route&#39;s <code>upgrade</code>. The merge is a snapshot; routes
@@ -449,7 +450,7 @@ const ws = new RhythmWs({ prefix: &quot;/ws&quot;, idleTimeout: 120 })
 
 const root = new RhythmWs({ prefix: &quot;/ws&quot; })
   .guard(requireTenant) // runs first, for every matched route
-  .merge(rooms)         // /ws/rooms/:id, behind requireTenant then requireAuth
+  .merge(rooms) // /ws/rooms/:id, behind requireTenant then requireAuth
   .route(&quot;/live&quot;, liveHandlers); // parent routes skip the child's guards</code></pre>
             </figure>
           </section>

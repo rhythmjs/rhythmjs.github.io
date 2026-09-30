@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="Static files with Bun's built-in routes: a Response for known files, { dir } directory routes for folders — and why a directory must never mount at /*."
+      content="Static files with Bun's built-in routes: a Response for known files, { dir } directory routes for folders, and why a directory must never mount at /*."
     />
     <meta name="color-scheme" content="light dark" />
     <title>Serving files · RhythmJS</title>
@@ -14,13 +14,13 @@
     <meta property="og:title" content="Serving files · RhythmJS" />
     <meta
       property="og:description"
-      content="Static files with Bun's built-in routes: a Response for known files, { dir } directory routes for folders — and why a directory must never mount at /*."
+      content="Static files with Bun's built-in routes: a Response for known files, { dir } directory routes for folders, and why a directory must never mount at /*."
     />
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content="Serving files · RhythmJS" />
     <meta
       name="twitter:description"
-      content="Static files with Bun's built-in routes: a Response for known files, { dir } directory routes for folders — and why a directory must never mount at /*."
+      content="Static files with Bun's built-in routes: a Response for known files, { dir } directory routes for folders, and why a directory must never mount at /*."
     />
     <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -271,7 +271,7 @@
         </div>
         <h1>Serving files</h1>
         <p class="lead">
-          Static files are Bun&#39;s built-in routes — a Response for a known
+          Static files are Bun&#39;s built-in routes: a Response for a known
           file, a directory route for a folder. Nothing to import; one rule to
           respect.
         </p>
@@ -285,7 +285,7 @@
             <p>
               A file you can name maps straight to a
               <code>Response</code> over <code>Bun.file</code> in
-              <code>Bun.serve</code>&#39;s <code>routes</code> — served before
+              <code>Bun.serve</code>&#39;s <code>routes</code>, served before
               your <code>fetch</code> ever runs:
             </p>
             <figure class="code-block">
@@ -332,7 +332,7 @@
               <dt>Range requests</dt>
               <dd>
                 <code>Accept-Ranges: bytes</code> with
-                <code>Content-Range</code> — video seeking and resumable
+                <code>Content-Range</code>; video seeking and resumable
                 downloads work out of the box.
               </dd>
               <dt>Directories</dt>
@@ -366,7 +366,7 @@
               <strong>A directory route answers its own 404s.</strong>
               <p>
                 With <code>&quot;/*&quot;: { dir }</code>, every URL that
-                isn&#39;t a file dies in the directory route — your app&#39;s
+                isn&#39;t a file dies in the directory route: your app&#39;s
                 <code>fetch</code> never runs, and the whole application turns
                 into file-not-found. Misses do <em>not</em> fall through.
               </p>
@@ -375,8 +375,8 @@
               Keep folders on dedicated prefixes (<code>/static/*</code>,
               <code>/assets/*</code>) and let <code>fetch</code> stay the
               app&#39;s. Root-level files (favicon, <code>robots.txt</code>) are
-              explicit known-file routes, one line each. Route precedence —
-              exact, then <code>:param</code>, then wildcard, then catch-all —
+              explicit known-file routes, one line each. Route precedence -
+              exact, then <code>:param</code>, then wildcard, then catch-all -
               means <code>&quot;/&quot;</code> and
               <code>&quot;/static/*&quot;</code> coexist cleanly.
             </p>

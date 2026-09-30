@@ -287,7 +287,7 @@
               <code>filter(onError?)</code> wraps the rest of the chain in a
               try/catch and turns anything thrown downstream into an HTTP
               response. Register it first, before any routes, so it forms the
-              outermost onion layer and sees every error — including ones thrown
+              outermost onion layer and sees every error, including ones thrown
               by other middleware.
             </p>
             <figure class="code-block">
@@ -312,8 +312,8 @@ const router = new RhythmRouter().use(filter()).get(&quot;/users/:id&quot;, (ctx
               A thrown <code>HttpError(status, message, details?)</code> maps to
               its status with a JSON <code>FilterFailure</code> body;
               <code>details</code> is included only when defined, so simple
-              errors stay small. Anything else thrown — a plain
-              <code>Error</code>, a string, a rejected promise — maps to a
+              errors stay small. Anything else thrown (a plain
+              <code>Error</code>, a string, a rejected promise) maps to a
               generic 500 with the message
               <code>&quot;Internal Server Error&quot;</code>: the original
               message is <em>never</em> leaked to the client.

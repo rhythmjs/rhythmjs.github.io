@@ -271,7 +271,7 @@
         </div>
         <h1>Defining configuration</h1>
         <p class="lead">
-          Config factories that own their own Standard Schema validation —
+          Config factories that own their own Standard Schema validation -
           defineConfig for the root, registerAs for namespaces, ConfigError for
           honest failures.
         </p>
@@ -313,7 +313,7 @@
               <code>ConfigError</code> with serialized issues when validation
               fails. Coercions and defaults live in the schema, so
               <code>process.env</code> strings become numbers and booleans
-              before anyone reads them — and Bun loads <code>.env</code> files
+              before anyone reads them, and Bun loads <code>.env</code> files
               natively, no loader needed.
             </p>
             <figure class="code-block">
@@ -343,7 +343,7 @@ export const appConfig = defineConfig(
               (<code>database.port</code>, not <code>port</code>), so aggregated
               boot errors stay readable. The two-argument form
               <code>registerAs(token, factory)</code> skips validation for
-              values that are already trusted. Factories may be async — fetching
+              values that are already trusted. Factories may be async: fetching
               remote configuration at boot works.
             </p>
             <figure class="code-block">
@@ -374,7 +374,7 @@ const remoteConfig = registerAs(&quot;remote&quot;, async () =&gt; fetchSettings
               <code>{ message, path? }</code> entries serialized from the schema
               library&#x27;s Standard Schema issues (symbol path segments are
               dropped, object segments reduced to their keys), and its message
-              lists every issue with its dot path — one line per problem.
+              lists every issue with its dot path, one line per problem.
               <code>createConfigService(value)</code> is also exported directly
               for building a service from an already-validated object, without
               the module.

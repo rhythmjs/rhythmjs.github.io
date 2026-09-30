@@ -278,7 +278,7 @@
         <h1>Authentication &amp; authorization</h1>
         <p class="lead">
           Resolve the user once, derive it onto the context, and guard what
-          follows — predicates, roles, and permissions with honest 401/403
+          follows: predicates, roles, and permissions with honest 401/403
           semantics.
         </p>
         <div class="article">
@@ -288,7 +288,7 @@
             </h2>
             <p>
               <code>@rhythmjs/security</code> ships six independent middleware
-              modules, each on its own subpath export — there is no root barrel.
+              modules, each on its own subpath export; there is no root barrel.
               This page covers <code>/authentication</code> and
               <code>/authorization</code>;
               <a href="protection.html">CORS &amp; CSRF</a> and
@@ -310,7 +310,7 @@
               request and derives <code>ctx.user</code> onto the context
               (<code>UserContext&lt;TUser&gt;</code>). The resolver receives the
               full <code>RhythmHttpContext</code>, may be async, and whatever it
-              returns is normalized with <code>?? null</code> — returning
+              returns is normalized with <code>?? null</code>: returning
               <code>undefined</code> and returning <code>null</code> both mean
               anonymous. Identity stays in your hands: a session lookup, a token
               verification, a database call; the middleware only owns the
@@ -354,15 +354,15 @@ new RhythmRouter().use(withUser).get(&quot;/me&quot;, (ctx) =&gt; {
 new RhythmRouter()
   .use(attachUser((ctx) =&gt; sessionUser(ctx)))
   .use(requireAuthentication({ challenge: &quot;Bearer&quot; }))
-  .get(&quot;/me&quot;, (ctx) =&gt; ctx.json(ctx.user)); // ctx.user: TUser — narrowed, no null check</code></pre>
+  .get(&quot;/me&quot;, (ctx) =&gt; ctx.json(ctx.user)); // ctx.user: TUser, narrowed, no null check</code></pre>
             </figure>
             <p>
               Two companions cover the remaining flows:
               <code>isAuthenticated(ctx)</code> is the underlying type-guard
               predicate, usable in your own branches, and
-              <code>redirectIfAuthenticated(to)</code> is the login-page inverse
-              — an already-signed-in user is redirected away, everyone else
-              falls through.
+              <code>redirectIfAuthenticated(to)</code> is the login-page
+              inverse: an already-signed-in user is redirected away, everyone
+              else falls through.
             </p>
           </section>
           <section aria-labelledby="parse-authorization-headers">
@@ -382,7 +382,7 @@ new RhythmRouter()
               <code>getBasicCredentials(request)</code> base64-decodes
               <code>Basic</code> credentials byte-safely (UTF-8 usernames and
               passwords survive), splits on the first <code>:</code>, and
-              returns <code>{ username, password }</code> — or
+              returns <code>{ username, password }</code>, or
               <code>null</code> for malformed input rather than throwing.
             </p>
             <figure class="code-block">
@@ -425,7 +425,7 @@ documentsRouter.use(
               <code>requireRoles(required)</code> and
               <code>requirePermissions(required)</code> are the common cases
               packaged. They read <code>user.roles</code> and
-              <code>user.permissions</code> by default — override with the
+              <code>user.permissions</code> by default; override with the
               <code>roles</code> / <code>permissions</code> extractor options
               when your user shape differs. The <code>match</code> defaults
               differ on purpose: roles match <code>&quot;any&quot;</code> (one
@@ -452,7 +452,7 @@ legacyRouter.use(requireRoles([&quot;editor&quot;], { roles: (user) =&gt; user.g
               Missing identity is <code>401</code>:
               <code>requireAuthentication</code> answers it, and so do
               <code>requireRoles</code> / <code>requirePermissions</code> when
-              <code>ctx.user</code> is null — an anonymous request is never told
+              <code>ctx.user</code> is null: an anonymous request is never told
               it lacks a role. Present-but-insufficient identity is
               <code>403</code>: <code>authorize</code> refusals and failed role
               or permission checks. Rejections use the router&#x27;s

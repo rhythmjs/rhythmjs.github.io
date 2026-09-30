@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="BullMQ Job Schedulers through the typed facade — replica-safe repeats, unschedule — plus the queueService.queue escape hatch and the mock.module testing pattern."
+      content="BullMQ Job Schedulers through the typed facade (replica-safe repeats, unschedule) plus the queueService.queue escape hatch and the mock.module testing pattern."
     />
     <meta name="color-scheme" content="light dark" />
     <title>Schedulers &amp; queue access · RhythmJS</title>
@@ -17,7 +17,7 @@
     />
     <meta
       property="og:description"
-      content="BullMQ Job Schedulers through the typed facade — replica-safe repeats, unschedule — plus the queueService.queue escape hatch and the mock.module testing pattern."
+      content="BullMQ Job Schedulers through the typed facade (replica-safe repeats, unschedule) plus the queueService.queue escape hatch and the mock.module testing pattern."
     />
     <meta name="twitter:card" content="summary" />
     <meta
@@ -26,7 +26,7 @@
     />
     <meta
       name="twitter:description"
-      content="BullMQ Job Schedulers through the typed facade — replica-safe repeats, unschedule — plus the queueService.queue escape hatch and the mock.module testing pattern."
+      content="BullMQ Job Schedulers through the typed facade (replica-safe repeats, unschedule) plus the queueService.queue escape hatch and the mock.module testing pattern."
     />
     <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -294,8 +294,8 @@
               <code>{ name, data, opts }</code> as the template for every job it
               spawns. Schedulers are Redis-coordinated: register the same
               schedule from every replica and it still fires
-              <strong>once</strong> — the natural pattern is to declare
-              schedules at boot on all instances.
+              <strong>once</strong>; the natural pattern is to declare schedules
+              at boot on all instances.
             </p>
             <figure class="code-block">
               <pre><code>await queueService.schedule(&quot;order.process&quot;, { pattern: &quot;0 3 * * *&quot;, tz: &quot;UTC&quot; }, { orderId: &quot;nightly&quot; });
@@ -303,13 +303,13 @@ await queueService.schedule(&quot;email.send&quot;, { every: 60_000, limit: 10 }
             </figure>
             <p>
               <code>repeat</code> is BullMQ's own
-              <code>RepeatOptions</code> passed through untouched —
+              <code>RepeatOptions</code> passed through untouched -
               <code>pattern</code> (BullMQ's cron dialect), <code>every</code>,
               <code>tz</code>, <code>limit</code>,
               <code>startDate</code>/<code>endDate</code>, and the rest. Note
               the field is <code>tz</code> here, where
               <a href="../queue/engines.html">@rhythmjs/queue</a> spells it
-              <code>timezone</code> — the one naming difference between the two
+              <code>timezone</code>, the one naming difference between the two
               packages' repeat options.
             </p>
           </section>
@@ -338,21 +338,21 @@ await queueService.schedule(&quot;email.send&quot;, { every: 60_000, limit: 10 }
             </h2>
             <p>
               <code>queueService.queue</code> is the underlying BullMQ
-              <code>Queue</code> instance — everything the typed facade does not
+              <code>Queue</code> instance: everything the typed facade does not
               wrap is one property away, with no second connection:
             </p>
             <figure class="code-block">
-              <pre><code>await queueService.queue.pause();                 // and resume()
-await queueService.queue.getJobs([&quot;failed&quot;]);     // inspect job records
-await queueService.queue.getJobSchedulers();      // list registered schedulers
-await queueService.queue.drain();                 // drop waiting jobs</code></pre>
+              <pre><code>await queueService.queue.pause(); // and resume()
+await queueService.queue.getJobs([&quot;failed&quot;]); // inspect job records
+await queueService.queue.getJobSchedulers(); // list registered schedulers
+await queueService.queue.drain(); // drop waiting jobs</code></pre>
             </figure>
             <p>
               The same instance is what UI tooling wants: hand it to Bull
               Board's <code>BullMQAdapter</code> or Taskforce and the dashboard
-              sees the queue exactly as your app does. For parent–child flows,
+              sees the queue exactly as your app does. For parent-child flows,
               construct BullMQ's <code>FlowProducer</code> alongside with the
-              same <code>connection</code> options — flow jobs land on this
+              same <code>connection</code> options, so flow jobs land on this
               queue and your named processors handle them like any other job.
             </p>
           </section>
@@ -366,7 +366,7 @@ await queueService.queue.drain();                 // drop waiting jobs</code></p
               The package's own suite is the pattern to copy. Facade wiring is
               tested with <code>mock.module(&quot;bullmq&quot;, …)</code> from
               <code>bun:test</code>, substituting recording
-              <code>Queue</code>/<code>Worker</code> fakes — no Redis server
+              <code>Queue</code>/<code>Worker</code> fakes; no Redis server
               needed. Live behavior (retries, schedulers, real dispatch) runs in
               a separate suite gated on an environment variable, so CI without
               Redis skips it cleanly.

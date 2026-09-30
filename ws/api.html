@@ -271,7 +271,7 @@
         </div>
         <h1>API reference</h1>
         <p class="lead">
-          Every export of <code>@rhythmjs/ws</code> — one class and the types
+          Every export of <code>@rhythmjs/ws</code>: one class and the types
           around it.
         </p>
         <div class="article">
@@ -360,8 +360,8 @@ get websocket(): Bun.WebSocketHandler&lt;never&gt;;</code></pre>
             </figure>
             <p>
               Every lifecycle member is exactly Bun&#39;s
-              <code>WebSocketHandler</code> member — <code>ws</code> is
-              Bun&#39;s <code>ServerWebSocket</code> with <code>send</code>,
+              <code>WebSocketHandler</code> member: <code>ws</code> is Bun&#39;s
+              <code>ServerWebSocket</code> with <code>send</code>,
               <code>subscribe</code>, <code>publish</code>, <code>cork</code>,
               backpressure-aware return codes, and <code>ws.data</code> typed as
               <code>Data</code>. <code>upgrade</code> runs before
@@ -433,7 +433,7 @@ type Server = Bun.Server&lt;unknown&gt;;</code></pre>
             <dl>
               <dt>WsParams</dt>
               <dd>
-                Route params captured by rou3 for the matched path — the default
+                Route params captured by rou3 for the matched path, the default
                 <code>ws.data</code> when a route has no <code>upgrade</code>.
               </dd>
               <dt>Server</dt>

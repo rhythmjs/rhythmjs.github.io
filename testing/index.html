@@ -272,7 +272,7 @@
         <h1>Mock the kernel</h1>
         <p class="lead">
           Typed module fakes that drop into <code>register()</code>, and a
-          one-middleware driver that reports whether <code>next()</code> ran —
+          one-middleware driver that reports whether <code>next()</code> ran -
           no ports, no processes.
         </p>
         <div class="article">
@@ -304,14 +304,13 @@
             </h2>
             <p>
               <code>mockModule(values, dispose?)</code> builds a Rhythm module
-              that provides exactly the object you pass — the drop-in
-              replacement for a real module in <code>register()</code>. Its
-              return type exposes <code>values</code>&#39; shape as both the
-              module&#39;s context and its exports, so the
-              <code>register()</code> pick callback stays fully typed. The
-              optional <code>dispose</code> runs on teardown
-              <em>with the same values object</em>, so a fake can assert its own
-              cleanup.
+              that provides exactly the object you pass: the drop-in replacement
+              for a real module in <code>register()</code>. Its return type
+              exposes <code>values</code>&#39; shape as both the module&#39;s
+              context and its exports, so the <code>register()</code> pick
+              callback stays fully typed. The optional <code>dispose</code> runs
+              on teardown <em>with the same values object</em>, so a fake can
+              assert its own cleanup.
             </p>
             <figure class="code-block">
               <pre><code>import { mockModule } from &quot;@rhythmjs/testing/rhythm&quot;;
@@ -339,7 +338,7 @@ const app = new Rhythm().register(
             </h2>
             <p>
               <code>runMiddleware(middleware, ctx)</code> drives a single
-              middleware against a context you construct — no kernel, no
+              middleware against a context you construct: no kernel, no
               composition. It resolves to <code>{ ctx, nextCalled }</code>: the
               same (mutated) context back, and whether the middleware called
               <code>next()</code>. The provided <code>next</code> resolves to

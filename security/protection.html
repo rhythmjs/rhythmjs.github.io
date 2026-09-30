@@ -272,7 +272,7 @@
         <h1>CORS &amp; CSRF</h1>
         <p class="lead">
           Cross-origin resource sharing with preflight handling, and
-          origin-checked CSRF protection for form submissions — no token
+          origin-checked CSRF protection for form submissions, with no token
           bookkeeping.
         </p>
         <div class="article">
@@ -319,8 +319,8 @@ new RhythmRouter()
               <code>GET, HEAD, PUT, POST, DELETE, PATCH, QUERY</code>),
               <code>Access-Control-Max-Age</code> when <code>maxAge</code> is
               set, and <code>Access-Control-Allow-Headers</code>: either your
-              configured <code>allowHeaders</code>, or — when the option is
-              empty — a reflection of the browser&#x27;s
+              configured <code>allowHeaders</code> or, when the option is empty,
+              a reflection of the browser&#x27;s
               <code>Access-Control-Request-Headers</code>, with
               <code>Vary: Access-Control-Request-Headers</code> appended for
               caches. Any stray <code>Content-Type</code> and
@@ -338,7 +338,7 @@ new RhythmRouter()
             <p>
               <code>credentials: true</code> sets
               <code>Access-Control-Allow-Credentials</code> so cookies and
-              <code>Authorization</code> headers cross origins — pair it with
+              <code>Authorization</code> headers cross origins; pair it with
               explicit origins, never the wildcard.
               <code>exposeHeaders</code> lists response headers scripts may read
               beyond the CORS-safelisted set (for example <code>ETag</code> or
@@ -359,7 +359,7 @@ new RhythmRouter()
               the method is unsafe (anything but <code>GET</code> or
               <code>HEAD</code>), the content type is form-shaped
               (<code>application/x-www-form-urlencoded</code>,
-              <code>multipart/form-data</code>, or <code>text/plain</code> —
+              <code>multipart/form-data</code>, or <code>text/plain</code> -
               what a plain HTML form can send), and the <code>Origin</code> is
               missing or not allowed. The rejection is a <code>403</code> with a
               JSON body of
@@ -371,7 +371,7 @@ new RhythmRouter()
             <p>
               JSON and other non-form content types pass through untouched,
               because a cross-site page cannot send them without a CORS
-              preflight — that path is
+              preflight; that path is
               <a href="#cors-basics">CORS&#x27;s</a> job, not CSRF&#x27;s.
             </p>
           </section>
@@ -384,7 +384,7 @@ new RhythmRouter()
             <p>
               By default only same-origin form posts are allowed: the
               <code>Origin</code> must equal the request URL&#x27;s own origin.
-              The <code>origin</code> option widens that — a string, an array of
+              The <code>origin</code> option widens that: a string, an array of
               strings, or an <code>(origin) =&gt; boolean</code> predicate.
             </p>
             <figure class="code-block">

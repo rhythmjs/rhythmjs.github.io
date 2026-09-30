@@ -287,7 +287,7 @@
               served. A router is a controller, not an app of its own: it
               compiles down to a single middleware via
               <code>middleware()</code>, and a <code>Rhythm</code> host app owns
-              the lifecycle. There is no server wrapper —
+              the lifecycle. There is no server wrapper -
               <code>toFetchHandler(app)</code> turns the app into a plain
               <code>(request: Request) =&gt; Promise&lt;Response&gt;</code>
               handler, and <code>Bun.serve</code> in your own
@@ -314,7 +314,7 @@ console.log(`listening on ${server.url}`);</code></pre>
               <code>errorToResponse(error)</code> (also from
               <code>./fetch</code>) maps thrown errors to status-aware responses
               in your own <code>try/catch</code>; static files are
-              <a href="static.html">Bun&#39;s built-in routes</a> — a
+              <a href="static.html">Bun&#39;s built-in routes</a>: a
               <code>Response</code> for a known file,
               <code>&quot;/static/*&quot;: { dir }</code> for a folder (never
               <code>&quot;/*&quot;</code>); WebSockets from
@@ -373,10 +373,10 @@ console.log(`listening on ${server.url}`);</code></pre>
             <p>
               <code>use()</code> takes only functions, so a nested router mounts
               as <code>use(child.middleware())</code>. The compiled form is
-              opaque &mdash; the mounting router&#39;s prefix is
-              <em>not</em> applied to it &mdash; so give the child its full
-              prefix. Mounting compiles the child at that moment; routes added
-              to the child afterwards don&#39;t appear in the parent.
+              opaque (the mounting router&#39;s prefix is <em>not</em> applied
+              to it), so give the child its full prefix. Mounting compiles the
+              child at that moment; routes added to the child afterwards
+              don&#39;t appear in the parent.
             </p>
             <figure class="code-block">
               <pre><code>const users = new RhythmRouter({ prefix: &quot;/api/users&quot; })
@@ -450,23 +450,23 @@ const app = new Rhythm&lt;RhythmHttpContext&gt;()
             </figure>
             <ul>
               <li>
-                <code>ctx.json(data, status?)</code> &mdash; serializes
+                <code>ctx.json(data, status?)</code>: serializes
                 <code>data</code> and sets
                 <code>application/json; charset=utf-8</code>.
               </li>
               <li>
                 <code>ctx.text(body, status?)</code> /
-                <code>ctx.html(body, status?)</code> &mdash; plain-text and HTML
-                bodies with their content types.
+                <code>ctx.html(body, status?)</code>: plain-text and HTML bodies
+                with their content types.
               </li>
               <li>
-                <code>ctx.error(status, message?)</code> &mdash; sets the status
-                and a plain-text message, defaulting the message from the status
-                code (<code>ctx.error(404)</code> &rarr;
+                <code>ctx.error(status, message?)</code>: sets the status and a
+                plain-text message, defaulting the message from the status code
+                (<code>ctx.error(404)</code> &rarr;
                 <code>&quot;Not Found&quot;</code>).
               </li>
               <li>
-                <code>ctx.redirect(url, status = 302)</code> &mdash; sets the
+                <code>ctx.redirect(url, status = 302)</code>: sets the
                 <code>location</code> header and clears the body.
               </li>
             </ul>

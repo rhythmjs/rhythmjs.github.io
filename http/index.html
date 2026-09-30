@@ -284,7 +284,7 @@
             </h2>
             <p>
               <code>@rhythmjs/http</code> ships utility middleware for Rhythm
-              routers and handlers — thirteen modules, each on its own subpath
+              routers and handlers: thirteen modules, each on its own subpath
               export, no root barrel. This group of pages walks them by theme;
               this one covers per-request state: <code>/cookies</code>,
               <code>/session</code>, and <code>/request-scope</code>.
@@ -304,7 +304,7 @@
               <code>Bun.CookieMap</code> and <code>Bun.Cookie</code> in a
               <code>Cookies</code> jar on the context, typed by
               <code>CookiesContext</code>. Read with <code>get(name)</code>,
-              <code>has(name)</code>, and <code>getAll()</code> — values come
+              <code>has(name)</code>, and <code>getAll()</code>; values come
               back decoded. Write with <code>set(name, value, options?)</code>;
               each call emits its own <code>Set-Cookie</code> header.
               <code>delete(name)</code> writes an empty value with
@@ -360,7 +360,7 @@ new RhythmRouter().use&lt;CookiesContext&gt;(cookies()).get(&quot;/&quot;, (ctx)
               Writes are lazy on both ends. Nothing hits the store unless the
               session was mutated during the request, and the
               <code>Set-Cookie</code> header is only sent when a
-              <em>new</em> session writes for the first time — an existing
+              <em>new</em> session writes for the first time; an existing
               session keeps its cookie. An unknown or expired incoming id gets a
               fresh id, so a forged cookie value is never trusted as a session
               key.
@@ -380,9 +380,9 @@ new RhythmRouter()
   });</code></pre>
             </figure>
             <p>
-              The store contract is three methods — <code>get(id)</code>,
+              The store contract is three methods (<code>get(id)</code>,
               <code>set(id, data, maxAge)</code>, <code>delete(id)</code>, sync
-              or async — so a Redis or database store is a small object. The
+              or async), so a Redis or database store is a small object. The
               bundled <code>memorySessionStore()</code> suits a single process
               and expires entries lazily on read.
             </p>
@@ -397,8 +397,8 @@ new RhythmRouter()
               <code>requestScope()</code> opens an
               <code>AsyncLocalStorage</code> frame around the rest of the chain,
               and the static <code>RequestScope</code> class reads it from
-              <em>anywhere</em> in the same async call tree — repositories,
-              loggers, service functions — without threading
+              <em>anywhere</em> in the same async call tree (repositories,
+              loggers, service functions) without threading
               <code>ctx</code> through every signature.
             </p>
             <figure class="code-block">

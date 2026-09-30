@@ -289,7 +289,7 @@
               <code>@rhythmjs/queue</code> is typed job queues for Rhythm on
               Bun: background work with retries, delays, priorities, and
               repeatable schedules, declared through a typed job map and
-              processed by lifecycle-managed workers. The engines are in-house —
+              processed by lifecycle-managed workers. The engines are in-house -
               no queue library underneath;
               <a href="engines.html">Engines &amp; repeats</a> covers them.
             </p>
@@ -348,7 +348,7 @@ const app = new Rhythm().register(
   queueModule.forRoot&lt;AppJobs&gt;({
     name: &quot;app&quot;,
     defaultJobOptions: { attempts: 3, backoff: { type: &quot;exponential&quot;, delay: 1000 } },
-    // redis: process.env.REDIS_URL — switch engines without touching producers
+    // redis: process.env.REDIS_URL switches engines without touching producers
   }),
   ({ queueService }) =&gt; ({ queueService }),
 );</code></pre>
@@ -367,18 +367,18 @@ await queueService.addBulk([
 ]);</code></pre>
             </figure>
             <p>
-              <code>add</code> returns the job id — always a string:
+              <code>add</code> returns the job id, always a string:
               <code>crypto.randomUUID()</code> unless you pass
               <code>jobId</code>. Job options: <code>delay</code> in ms;
               <code>attempts</code> (total including the first, default 1);
-              <code>backoff</code> — a fixed delay in ms, or
+              <code>backoff</code>, a fixed delay in ms, or
               <code
                 >{ type: &quot;fixed&quot; | &quot;exponential&quot;, delay
                 }</code
               >, where exponential doubles per attempt (<code
                 >delay · 2^(attempt−1)</code
               >); <code>priority</code> (higher runs sooner, default 0, FIFO
-              within a priority); and <code>jobId</code> — pending jobs (waiting
+              within a priority); and <code>jobId</code>: pending jobs (waiting
               or delayed) with the same id are deduplicated on the memory
               engine.
             </p>
@@ -403,7 +403,7 @@ await worker.close(); // drains in-flight jobs</code></pre>
             </figure>
             <p>
               Jobs dispatch to processors by name; each handler receives its
-              typed payload and a <code>JobInfo</code> —
+              typed payload and a <code>JobInfo</code> -
               <code>{ id, name, attemptsMade }</code>, where
               <code>attemptsMade</code> is 1 on the first run. A job with no
               registered processor fails loudly and enters the retry/failed flow

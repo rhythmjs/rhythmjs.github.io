@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="Generate the OpenAPI 3.1 document from a described router — schema resolution, $defs hoisting into components — and serve it with Scalar or Swagger UI."
+      content="Generate the OpenAPI 3.1 document from a described router (schema resolution, $defs hoisting into components) and serve it with Scalar or Swagger UI."
     />
     <meta name="color-scheme" content="light dark" />
     <title>Documents &amp; UIs · RhythmJS</title>
@@ -14,13 +14,13 @@
     <meta property="og:title" content="Documents &amp; UIs · RhythmJS" />
     <meta
       property="og:description"
-      content="Generate the OpenAPI 3.1 document from a described router — schema resolution, $defs hoisting into components — and serve it with Scalar or Swagger UI."
+      content="Generate the OpenAPI 3.1 document from a described router (schema resolution, $defs hoisting into components) and serve it with Scalar or Swagger UI."
     />
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content="Documents &amp; UIs · RhythmJS" />
     <meta
       name="twitter:description"
-      content="Generate the OpenAPI 3.1 document from a described router — schema resolution, $defs hoisting into components — and serve it with Scalar or Swagger UI."
+      content="Generate the OpenAPI 3.1 document from a described router (schema resolution, $defs hoisting into components) and serve it with Scalar or Swagger UI."
     />
     <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -284,9 +284,9 @@
             </h2>
             <p>
               <code>generate(router, config, options?)</code> walks
-              <code>router.entries</code> in registration order — middleware
+              <code>router.entries</code> in registration order (middleware
               entries contribute inherited fragments, route entries become
-              operations — and emits an OpenAPI object (<code
+              operations) and emits an OpenAPI object (<code
                 >openapi: &quot;3.1.2&quot;</code
               >
               unless overridden). Router paths convert to OpenAPI templates:
@@ -319,7 +319,7 @@ const document = await generate(users, config);
               documented as <code>{}</code> via the vendor&#39;s
               <code>unrepresentable: &quot;any&quot;</code>
               escape hatch. A schema whose vendor does not implement the
-              interface throws with a pointed message — use zod
+              interface throws with a pointed message: use zod
               <code>^4.2.0</code> or pass a raw JSON Schema object, which is
               always passed through untouched.
             </p>
@@ -333,8 +333,8 @@ const document = await generate(users, config);
               >
             </h2>
             <p>
-              When a resolved schema carries <code>$defs</code> — zod emits them
-              for registered, reused schemas — each definition is hoisted into
+              When a resolved schema carries <code>$defs</code> (zod emits them
+              for registered, reused schemas), each definition is hoisted into
               <code>components.schemas</code> and every
               <code>#/$defs/…</code> reference is rewritten to
               <code>#/components/schemas/…</code>. Name collisions are safe: an
@@ -398,8 +398,8 @@ const config = defineDocument({
             </h2>
             <p>
               <code>apiReference({ path?, specUrl?, ui?, title? })</code> serves
-              an interactive reference page at <code>/docs</code> — Scalar by
-              default, Swagger UI with <code>ui: &quot;swagger&quot;</code> —
+              an interactive reference page at <code>/docs</code>, Scalar by
+              default, Swagger UI with <code>ui: &quot;swagger&quot;</code> -
               pointing at <code>specUrl</code> (default
               <code>/openapi.json</code>; the value is HTML-escaped into the
               page). Both are static HTML shells loading the UI from a CDN.

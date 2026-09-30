@@ -298,11 +298,11 @@
 
 const result = await upgradeWs&lt;Chat&gt;(chat, &quot;/rooms/7?token=good&quot;);
 // {
-//   matched: true,      false =&gt; RhythmWs returned null (no route / not an upgrade)
-//   upgraded: true,     server.upgrade() was called and no rejection Response
-//   response: null,     the rejecting Response otherwise
-//   data: { room: &quot;7&quot;, topic: &quot;room:7&quot; },  the ws.data that was attached
-//   headers: null,      captured 101 headers when the route sets them
+// matched: true, false =&gt; RhythmWs returned null (no route / not an upgrade)
+// upgraded: true, server.upgrade() was called and no rejection Response
+// response: null, the rejecting Response otherwise
+// data: { room: &quot;7&quot;, topic: &quot;room:7&quot; }, the ws.data that was attached
+// headers: null, captured 101 headers when the route sets them
 // }</code></pre>
             </figure>
           </section>
@@ -333,8 +333,8 @@ const result = await upgradeWs&lt;Chat&gt;(chat, &quot;/rooms/7?token=good&quot;
             <p>
               <code>fireOpen</code>, <code>fireMessage</code>,
               <code>fireClose</code>, and <code>fireDrain</code> dispatch
-              through the instance&#39;s real <code>websocket</code> behavior —
-              the same data-identity routing production uses — so a wrong route
+              through the instance&#39;s real <code>websocket</code> behavior -
+              the same data-identity routing production uses, so a wrong route
               wired to a connection fails the test.
               <code>fireMessage</code> accepts a string, bytes (delivered as a
               <code>Buffer</code>, Bun&#39;s binary shape), or any object, which
@@ -367,8 +367,8 @@ expect(peer.published).toEqual([{ topic: &quot;room:dev&quot;, data: &quot;left&
               (<code>response?.status</code>, <code>matched</code>); connection
               behavior is peer assertions (<code>sent</code>,
               <code>published</code>, subscriptions); negotiated handshakes are
-              <code>headers</code> assertions. The full serving contract — the
-              sync-<code>null</code> fall-through and the shared behavior — is
+              <code>headers</code> assertions. The full serving contract, the
+              sync-<code>null</code> fall-through and the shared behavior, is
               documented on the
               <a href="../ws/serving.html">Serving &amp; pub/sub</a> page and is
               exactly what the mock server exercises.

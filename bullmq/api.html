@@ -300,7 +300,7 @@ const bullmqModule: {
               queue name and shared connection.
               <code>bullmqModule.forRoot</code> (module name
               <code>bullmq</code>) provides <code>{ queueService }</code> and
-              disposes it on teardown — workers first, then the queue.
+              disposes it on teardown, workers first, then the queue.
             </p>
             <dl>
               <dt>BullmqModuleOptions</dt>
@@ -347,7 +347,7 @@ const bullmqModule: {
               </dd>
               <dt>schedule(name, repeat, payload, options?)</dt>
               <dd>
-                <code>queue.upsertJobScheduler(name, repeat, template)</code> —
+                <code>queue.upsertJobScheduler(name, repeat, template)</code> -
                 the scheduler id is the job name, and the template carries the
                 payload and options for each spawned job. Calling it again with
                 the same name replaces the schedule.
@@ -368,7 +368,7 @@ const bullmqModule: {
               </dd>
               <dt>counts()</dt>
               <dd>
-                <code>queue.getJobCounts()</code> — BullMQ's state counts
+                <code>queue.getJobCounts()</code>: BullMQ's state counts
                 (waiting, active, delayed, completed, failed, …).
               </dd>
               <dt>close()</dt>
@@ -391,7 +391,7 @@ const bullmqModule: {
             <dl>
               <dt>JobsOptions / RepeatOptions / ConnectionOptions</dt>
               <dd>
-                Re-exported from <code>bullmq</code> unchanged — the facade adds
+                Re-exported from <code>bullmq</code> unchanged; the facade adds
                 no translation layer. <code>JobsOptions</code> covers
                 <code>delay</code>, <code>attempts</code>, <code>backoff</code>,
                 <code>priority</code>,
@@ -407,7 +407,7 @@ const bullmqModule: {
                   void; onFailed?: (name, jobId, error) =&gt; void }</code
                 >. <code>onCompleted</code> wraps the worker's
                 <code>completed</code> event; <code>onFailed</code> wraps
-                <code>failed</code> — for an event without a job, the name
+                <code>failed</code>; for an event without a job, the name
                 reports as <code>&quot;unknown&quot;</code>.
               </dd>
               <dt>JobInfo</dt>
@@ -415,8 +415,7 @@ const bullmqModule: {
                 <code
                   >{ id: string | undefined; name: string; attemptsMade: number
                   }</code
-                >
-                — the second processor argument.
+                >, the second processor argument.
               </dd>
               <dt>
                 JobMap / JobProcessors&lt;TJobs&gt; / BulkJobInput&lt;TJobs&gt;
@@ -429,7 +428,7 @@ const bullmqModule: {
               <dt>QueueWorkerHandle / QueueContext&lt;TJobs&gt;</dt>
               <dd>
                 <code>{ close(): Promise&lt;void&gt; }</code>, and
-                <code>{ queueService: QueueService&lt;TJobs&gt; }</code> — the
+                <code>{ queueService: QueueService&lt;TJobs&gt; }</code>, the
                 context slice the module provides. Note it is the same context
                 key as @rhythmjs/queue's, which is what makes the two modules
                 drop-in swappable.

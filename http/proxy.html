@@ -284,7 +284,7 @@
             </h2>
             <p>
               <code>proxy(options)</code> relays the request to
-              <code>target</code> on plain <code>fetch</code> and web streams —
+              <code>target</code> on plain <code>fetch</code> and web streams -
               request and response bodies stream without buffering (the outgoing
               request uses <code>duplex: &quot;half&quot;</code>;
               <code>GET</code>/<code>HEAD</code> go bodiless). It is a terminal
@@ -322,9 +322,9 @@ router.use(
               request.
             </p>
             <p>
-              With <code>xfwd</code> (on by default) the client IP —
-              <code>request.ip</code>, when your <code>Bun.serve</code> fetch
-              exposes it via <code>server.requestIP()</code> — is
+              With <code>xfwd</code> (on by default) the client IP,
+              <code>request.ip</code> when your <code>Bun.serve</code> fetch
+              exposes it via <code>server.requestIP()</code>, is
               <em>appended</em> to the inbound
               <code>x-forwarded-for</code> chain, while
               <code>x-forwarded-proto</code>/<code>-host</code>/<code
@@ -349,7 +349,7 @@ router.use(
               <code>false</code> passes through. Upstream
               <code>Set-Cookie</code> headers are appended verbatim unless
               <code>cookieDomainRewrite</code> /
-              <code>cookiePathRewrite</code> remap them — a string rewrites
+              <code>cookiePathRewrite</code> remap them: a string rewrites
               everything, a map matches exact values with a
               <code>&quot;*&quot;</code> wildcard, and an empty replacement
               removes the attribute.
@@ -366,7 +366,7 @@ router.use(
               <code>timeout</code> aborts the fetch and answers
               <code>504</code>; a client disconnect answers <code>499</code>;
               any other network error answers <code>502</code>. The
-              <code>fetch</code> option injects a custom fetch — the seam tests
+              <code>fetch</code> option injects a custom fetch, the seam tests
               and service meshes use.
             </p>
           </section>
@@ -412,7 +412,7 @@ router.use&lt;I18nContext&gt;(i18n({ i18next, cacheCookie: true })).get(&quot;/&
               >
             </h2>
             <p>
-              Candidates are tried per source in <code>detection.order</code> —
+              Candidates are tried per source in <code>detection.order</code> -
               default <code>querystring</code> (<code>?lng=</code>),
               <code>cookie</code> (<code>i18next</code>), then the
               <code>Accept-Language</code> header parsed with q-values; a

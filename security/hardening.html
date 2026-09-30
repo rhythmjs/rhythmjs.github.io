@@ -290,7 +290,7 @@
             </h2>
             <p>
               <code>@rhythmjs/security/rate-limit</code> counts requests per key
-              in a fixed window — <code>limit</code> requests (default
+              in a fixed window: <code>limit</code> requests (default
               <code>100</code>) per <code>windowMs</code> (default
               <code>60&#8239;000</code>). Within the window each request
               increments the key&#x27;s counter; once the counter passes the
@@ -301,8 +301,8 @@
                 >message</code
               >
               defaults to <code>&quot;Too Many Requests&quot;</code>). A
-              <code>skip(request)</code> predicate exempts requests — health
-              probes, allowlisted callers — before any counting happens.
+              <code>skip(request)</code> predicate exempts requests (health
+              probes, allowlisted callers) before any counting happens.
             </p>
             <figure class="code-block">
               <pre><code>import { rateLimit } from &quot;@rhythmjs/security/rate-limit&quot;;
@@ -319,8 +319,8 @@ new RhythmRouter()
               >
             </h2>
             <p>
-              Unless <code>headers: false</code>, every response — allowed or
-              rejected — carries the draft-standard trio:
+              Unless <code>headers: false</code>, every response, allowed or
+              rejected, carries the draft-standard trio:
               <code>RateLimit-Limit</code>,
               <code>RateLimit-Remaining</code> (never negative), and
               <code>RateLimit-Reset</code> (seconds until the current window
@@ -334,16 +334,16 @@ new RhythmRouter()
               >
             </h2>
             <p>
-              The default key is the client IP: <code>request.ip</code> — expose
-              it in your own <code>Bun.serve</code> fetch (<code
+              The default key is the client IP: <code>request.ip</code>, which
+              you expose in your own <code>Bun.serve</code> fetch (<code
                 >Object.defineProperty(request, &quot;ip&quot;, { get: () =&gt;
                 server.requestIP(request)?.address })</code
-              >) — then the first <code>X-Forwarded-For</code> hop when
+              >); then the first <code>X-Forwarded-For</code> hop when
               <code>ip</code> is absent, then the literal key
               <code>&quot;global&quot;</code> as a last resort (one shared
               bucket). Behind a proxy, terminate the chain deliberately: either
               trust the forwarded header or replace the key entirely with
-              <code>keyOf</code> — an authenticated user id gives fairer buckets
+              <code>keyOf</code>; an authenticated user id gives fairer buckets
               than an IP.
             </p>
             <figure class="code-block">
@@ -355,9 +355,9 @@ new RhythmRouter()
               <a href="#stores">Stores<span aria-hidden="true"> #</span></a>
             </h2>
             <p>
-              Counting goes through the <code>RateLimitStore</code> interface —
+              Counting goes through the <code>RateLimitStore</code> interface -
               <code>increment(key, windowMs)</code> returning
-              <code>{ count, resetAt }</code> and <code>reset(key)</code> — so
+              <code>{ count, resetAt }</code> and <code>reset(key)</code>, so
               the backend is pluggable. The default
               <code>memoryRateLimitStore()</code> keeps counters in a Map and
               lazily sweeps expired entries at most once per window; it is
@@ -379,8 +379,8 @@ new RhythmRouter()
             <p>
               <code>rateLimitWs()</code> applies the same limiter to WebSocket
               handshakes. It is shaped exactly like an
-              <code>@rhythmjs/ws</code> guard —
-              <code>(request) =&gt; Promise&lt;Response | undefined&gt;</code> —
+              <code>@rhythmjs/ws</code> guard -
+              <code>(request) =&gt; Promise&lt;Response | undefined&gt;</code> -
               returning <code>undefined</code> while the budget lasts and the
               full <code>429 Response</code> (with <code>Retry-After</code> and
               the <code>RateLimit-*</code> headers) once it is spent, so it

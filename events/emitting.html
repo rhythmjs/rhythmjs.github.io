@@ -288,13 +288,13 @@
               Exact-name subscribers run first, then wildcard patterns in the
               order their pattern first appeared in the registry. Every handler
               receives <code>(payload, event)</code>, where
-              <code>event</code> is always the concrete emitted name — a
+              <code>event</code> is always the concrete emitted name; a
               <code>&quot;order.*&quot;</code> subscriber sees
               <code>&quot;order.created&quot;</code>, not the pattern.
             </p>
             <figure class="code-block">
-              <pre><code>eventBus.on(&quot;order.created&quot;, audit);   // runs first (exact)
-eventBus.on(&quot;order.*&quot;, project);        // then wildcards, registration order
+              <pre><code>eventBus.on(&quot;order.created&quot;, audit); // runs first (exact)
+eventBus.on(&quot;order.*&quot;, project); // then wildcards, registration order
 eventBus.on(&quot;order.**&quot;, replicate);
 
 eventBus.emit(&quot;order.created&quot;, { orderId: &quot;o1&quot;, total: 99 });</code></pre>
@@ -317,10 +317,10 @@ eventBus.emit(&quot;order.created&quot;, { orderId: &quot;o1&quot;, total: 99 })
             <p>
               A listener that throws never stops its siblings. With
               <code>emit</code>, a synchronous throw is caught on the spot and a
-              returned promise gets a rejection handler — both route to the
-              bus's <code>onError(error, event, payload)</code> hook. The
-              default hook rethrows on a microtask, so failures surface as
-              unhandled errors instead of vanishing.
+              returned promise gets a rejection handler; both route to the bus's
+              <code>onError(error, event, payload)</code> hook. The default hook
+              rethrows on a microtask, so failures surface as unhandled errors
+              instead of vanishing.
             </p>
             <figure class="code-block">
               <pre><code>import { createEventBus } from &quot;@rhythmjs/events&quot;;
@@ -343,8 +343,8 @@ const bus = createEventBus&lt;AppEvents&gt;({
               <code>emitAsync(event, payload)</code> is for emitters that need
               the outcome. It collects every matching handler (removing
               once-subscriptions first), awaits them all with
-              <code>Promise.allSettled</code> — so every listener runs to
-              completion regardless of failures — and then, if any rejected,
+              <code>Promise.allSettled</code>, so every listener runs to
+              completion regardless of failures, and then, if any rejected,
               throws an <code>AggregateError</code> whose
               <code>errors</code> array holds every rejection reason, with the
               message <code>N listener(s) failed for event &quot;…&quot;</code>.
@@ -399,7 +399,7 @@ const { eventBus } = await app.run({});</code></pre>
               <a href="../queue/index.html">@rhythmjs/queue</a>: an event
               <em>announces</em> (ephemeral, every current listener), a queue
               job <em>obligates</em> (at-least-once, exactly one worker).
-              Bridging one into the other is one line — and because both are
+              Bridging one into the other is one line, and because both are
               typed by name-to-payload maps, the bridge type-checks end to end.
             </p>
             <figure class="code-block">

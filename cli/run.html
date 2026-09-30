@@ -288,8 +288,8 @@
               It parses flags, seeds the cli context, runs the pipeline once,
               flushes <code>response.stdout</code> then
               <code>response.stderr</code> to the console, and resolves with the
-              exit code. Nothing calls <code>process.exit()</code> for you
-              &mdash; set <code>process.exitCode</code> and let teardown run.
+              exit code. Nothing calls <code>process.exit()</code> for you; set
+              <code>process.exitCode</code> and let teardown run.
             </p>
             <figure class="code-block">
               <pre><code>#!/usr/bin/env bun
@@ -312,7 +312,7 @@ try {
             <p>
               When input is piped or redirected, <code>ctx.stdin</code> is a
               <code>ReadableStream&lt;Uint8Array&gt;</code> from
-              <code>Bun.stdin.stream()</code> &mdash; Bun&#39;s native stdin, no
+              <code>Bun.stdin.stream()</code>, Bun&#39;s native stdin with no
               Node stream conversion. On a TTY it is <code>null</code>, so
               handlers can branch on interactivity.
             </p>
@@ -337,12 +337,11 @@ try {
               <code>createPrompt()</code> wires the prompt surface to Bun
               directly: questions write to <code>process.stdout</code>, and
               answers are read from Bun&#39;s async-iterable
-              <code>console</code> &mdash; one <code>await</code> per line, no
-              readline interface. <code>close()</code> releases the line
-              iterator; tie it to a provider&#39;s dispose so
-              <code>teardown()</code> cleans up. See
-              <a href="prompts.html">interactive prompts</a> for the provider
-              pattern.
+              <code>console</code> (one <code>await</code> per line, no readline
+              interface). <code>close()</code> releases the line iterator; tie
+              it to a provider&#39;s dispose so <code>teardown()</code> cleans
+              up. See <a href="prompts.html">interactive prompts</a> for the
+              provider pattern.
             </p>
           </section>
           <section aria-labelledby="compatibility-aliases">
@@ -352,8 +351,8 @@ try {
               >
             </h2>
             <p>
-              The package is coupled to Bun on purpose &mdash; there are no Node
-              or Deno builds. Two subpaths from the earlier multi-runtime layout
+              The package is coupled to Bun on purpose; there are no Node or
+              Deno builds. Two subpaths from the earlier multi-runtime layout
               remain as aliases so old imports keep resolving:
               <code>@rhythmjs/cli/adapters/bun</code> &rarr;
               <code>./run</code> and

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="The @rhythmjs/bullmq kernel module: the same typed job map as @rhythmjs/queue on full BullMQ — connection options, JobsOptions passthrough, workers, and lifecycle."
+      content="The @rhythmjs/bullmq kernel module: the same typed job map as @rhythmjs/queue on full BullMQ, with connection options, JobsOptions passthrough, workers, and lifecycle."
     />
     <meta name="color-scheme" content="light dark" />
     <title>The BullMQ module · RhythmJS</title>
@@ -14,13 +14,13 @@
     <meta property="og:title" content="The BullMQ module · RhythmJS" />
     <meta
       property="og:description"
-      content="The @rhythmjs/bullmq kernel module: the same typed job map as @rhythmjs/queue on full BullMQ — connection options, JobsOptions passthrough, workers, and lifecycle."
+      content="The @rhythmjs/bullmq kernel module: the same typed job map as @rhythmjs/queue on full BullMQ, with connection options, JobsOptions passthrough, workers, and lifecycle."
     />
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content="The BullMQ module · RhythmJS" />
     <meta
       name="twitter:description"
-      content="The @rhythmjs/bullmq kernel module: the same typed job map as @rhythmjs/queue on full BullMQ — connection options, JobsOptions passthrough, workers, and lifecycle."
+      content="The @rhythmjs/bullmq kernel module: the same typed job map as @rhythmjs/queue on full BullMQ, with connection options, JobsOptions passthrough, workers, and lifecycle."
     />
     <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -345,7 +345,7 @@ const app = new Rhythm().register(
             <p>
               Options: <code>name</code> (queue name, default
               <code>rhythm</code>), <code>connection</code> (ioredis
-              <code>ConnectionOptions</code> — an options object or an existing
+              <code>ConnectionOptions</code>: an options object or an existing
               instance; default <code>127.0.0.1:6379</code>),
               <code>prefix</code> (Redis key prefix), and
               <code>defaultJobOptions</code> (BullMQ defaults for every job).
@@ -382,7 +382,7 @@ await worker.close();</code></pre>
             </figure>
             <p>
               Job options are BullMQ's own <code>JobsOptions</code>, passed
-              through untouched — <code>delay</code>, <code>attempts</code>,
+              through untouched: <code>delay</code>, <code>attempts</code>,
               <code>backoff</code>, <code>priority</code>,
               <code>removeOnComplete</code>/<code>removeOnFail</code>,
               <code>jobId</code>, <code>lifo</code>, deduplication, and
@@ -400,7 +400,7 @@ await worker.close();</code></pre>
               worker's own <code>completed</code>/<code>failed</code> events; a
               failed event that arrives without a job reports the name as
               <code>&quot;unknown&quot;</code>. <code>counts()</code> forwards
-              <code>getJobCounts()</code> — waiting, active, delayed, completed,
+              <code>getJobCounts()</code>: waiting, active, delayed, completed,
               failed, and the rest of BullMQ's states.
             </p>
             <p>

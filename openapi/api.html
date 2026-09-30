@@ -310,7 +310,7 @@ interface ApiBodyOptions {
                 >&quot;body&quot; | &quot;query&quot; | &quot;param&quot; |
                 &quot;header&quot; | &quot;cookie&quot;</code
               >), <code>ValidationIssue</code>, and
-              <code>ValidationFailure</code> — the 400 body
+              <code>ValidationFailure</code>, the 400 body
               <code>{ success: false, target, issues }</code>.
             </p>
           </section>
@@ -335,7 +335,7 @@ function apiCookie&lt;TSchema&gt;(schema, options?: { overrides? }): DeriveMiddl
               repeated keys collected as arrays, router <code>ctx.params</code>,
               all request headers as a lowercase record, or parsed cookies. The
               generator expands the object schema's properties into individual
-              OpenAPI parameters — required from the schema (path parameters are
+              OpenAPI parameters; required from the schema (path parameters are
               always required), with per-property <code>overrides</code>
               (<code>ParameterOverride</code>: description, required,
               deprecated, style, explode, example, and so on).
@@ -412,7 +412,7 @@ function apiNoSecurity(): Middleware;</code></pre>
               accumulate and de-duplicate across fragments;
               <code>apiNoSecurity()</code> resets them and emits
               <code>security: []</code>, opting the route out of document-level
-              defaults — a later requirement turns security back on.
+              defaults; a later requirement turns security back on.
             </p>
           </section>
           <section aria-labelledby="small-fragments">
@@ -491,7 +491,7 @@ interface GenerateOptions {
               <code>:param</code> to <code>{param}</code> and <code>*</code> to
               <code>{wildcard}</code>. Schemas resolve through the resolver, and
               emitted <code>$defs</code> are hoisted into
-              <code>components.schemas</code> — identical definitions share a
+              <code>components.schemas</code>; identical definitions share a
               name, conflicting ones get numeric suffixes, and
               <code>$ref</code>s are rewritten to
               <code>#/components/schemas/…</code>. RhythmRouter satisfies
@@ -550,13 +550,13 @@ function docOnly(fragment: OperationFragment): Middleware&lt;RhythmHttpContext&g
               under the shared symbol; <code>fragmentOf</code> reads it back
               (the generator uses it); <code>docOnly</code> wraps a fragment in
               a pass-through middleware. <code>OperationFragment</code> holds
-              the mergeable slices — <code>operation</code>, <code>tags</code>,
+              the mergeable slices (<code>operation</code>, <code>tags</code>,
               <code>parameters</code> (<code>ParameterGroupSpec</code>),
               <code>requestBody</code> (<code>RequestBodySpec</code>),
               <code>responses</code> (<code>ResponseSpec</code>),
               <code>security</code> (or <code>&quot;none&quot;</code>),
               <code>callbacks</code>, <code>extensions</code>, and
-              <code>exclude</code> — alongside the spec types
+              <code>exclude</code>) alongside the spec types
               <code>SchemaLike</code> (Standard Schema or raw
               <code>SchemaObject</code>), <code>MediaTypeSpec</code>,
               <code>HeaderSpec</code>, and <code>ParameterOverride</code>.

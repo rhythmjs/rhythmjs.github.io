@@ -297,17 +297,17 @@
               </dd>
               <dt>use(fn)</dt>
               <dd>
-                Add a middleware. It takes only functions &mdash; mount a nested
-                router as <code>use(child.middleware())</code>; the mount is
-                opaque, so the child carries its own full prefix. Registration
-                order is execution order: a middleware wraps only the routes
-                registered after it. There is no <code>provide()</code> or
+                Add a middleware. It takes only functions; mount a nested router
+                as <code>use(child.middleware())</code>; the mount is opaque, so
+                the child carries its own full prefix. Registration order is
+                execution order: a middleware wraps only the routes registered
+                after it. There is no <code>provide()</code> or
                 <code>register()</code>; providers live on the host Rhythm app.
               </dd>
               <dt>middleware()</dt>
               <dd>
-                Compile this router to a plain middleware &mdash; the one form
-                that mounts anywhere, into a Rhythm app or into another router.
+                Compile this router to a plain middleware: the one form that
+                mounts anywhere, into a Rhythm app or into another router.
               </dd>
               <dt>entries</dt>
               <dd>
@@ -340,10 +340,9 @@
             <p>
               The helpers are sugar over <code>ctx.response</code>, built into
               the context by <code>createHttpContext</code>. Context exports
-              &mdash; <code>RhythmHttpContext</code>,
-              <code>RhythmResponse</code>, <code>RhythmResponseBody</code>,
-              <code>createHttpContext</code>, and
-              <code>toResponse</code> &mdash; live at
+              (<code>RhythmHttpContext</code>, <code>RhythmResponse</code>,
+              <code>RhythmResponseBody</code>, <code>createHttpContext</code>,
+              and <code>toResponse</code>) live at
               <code>@rhythmjs/router/context</code>;
               <code>@rhythmjs/router/adapters/context</code> remains as a
               compatibility alias for the same module.
@@ -360,14 +359,13 @@
               <dd>
                 From <code>@rhythmjs/router/fetch</code>: takes a Rhythm app and
                 returns
-                <code>(request: Request) =&gt; Promise&lt;Response&gt;</code>
-                &mdash; the raw primitive for composing and testing without a
-                listener.
+                <code>(request: Request) =&gt; Promise&lt;Response&gt;</code>,
+                the raw primitive for composing and testing without a listener.
               </dd>
               <dt>errorToResponse(error)</dt>
               <dd>
                 From <code>@rhythmjs/router/fetch</code>: maps a thrown error to
-                a Response &mdash; the error&#39;s own <code>status</code>/<code
+                a Response: the error&#39;s own <code>status</code>/<code
                   >statusCode</code
                 >
                 when set, else a logged, masked <code>500</code>. Call it in

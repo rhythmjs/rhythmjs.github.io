@@ -422,7 +422,7 @@ function timeoutJob(name: string, ms: number, handler: JobHandler, options?: Job
               </dd>
               <dt>ScheduleContext</dt>
               <dd>
-                <code>{ scheduleService: ScheduleService }</code> — the context
+                <code>{ scheduleService: ScheduleService }</code>, the context
                 slice the module provides.
               </dd>
             </dl>
@@ -447,7 +447,7 @@ class Cron {
               malformed patterns (field counts other than 5 or 6, out-of-range
               values, reversed ranges, zero steps, unknown names) and on unknown
               timezones. Accepted syntax per field: <code>*</code>, values,
-              names (<code>jan–dec</code>, <code>sun–sat</code>), lists
+              names (<code>jan-dec</code>, <code>sun-sat</code>), lists
               (<code>a,b,c</code>), ranges (<code>a-b</code>), steps
               (<code>*/n</code>, <code>a-b/n</code>, <code>a/n</code> meaning
               <code>a</code> to max), plus the <code>@yearly</code>,
@@ -464,7 +464,7 @@ class Cron {
               <code>timezone</code> set, wall-clock fields are evaluated in that
               zone via <code>Intl.DateTimeFormat</code>; a time erased by a DST
               spring-forward gap is skipped to the next real occurrence. The
-              search is bounded (about eight years) — an impossible date such as
+              search is bounded (about eight years); an impossible date such as
               February 30 returns <code>null</code>.
             </p>
           </section>

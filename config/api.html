@@ -295,7 +295,7 @@
               provides <code>configService</code>. Outputs deep-merge in
               argument order: plain factory outputs spread at the root,
               namespaced outputs nest under their token, plain objects merge
-              recursively, and anything else — including arrays — is replaced by
+              recursively, and anything else (including arrays) is replaced by
               the later value. If any factory throws <code>ConfigError</code>,
               its issues are collected and the remaining factories still run;
               one combined <code>ConfigError</code> is thrown after all of them.
@@ -318,7 +318,7 @@
               Wraps a factory with a Standard Schema so the config file
               validates itself. Calling the returned factory awaits the inner
               factory, runs the schema (sync or async), and resolves with the
-              schema output — defaults applied, strings coerced. On validation
+              schema output: defaults applied, strings coerced. On validation
               failure it throws <code>ConfigError</code> with the serialized
               issues; symbol path segments are dropped.
             </p>
@@ -375,7 +375,7 @@ interface ConfigService&lt;T extends object&gt; {
             </figure>
             <p>
               <code>createConfigService(value)</code> wraps any object in the
-              dot-path reader — the module uses it internally, and it is handy
+              dot-path reader; the module uses it internally, and it is handy
               for tests. <code>get</code> walks the path segment by segment and
               returns <code>undefined</code> when a segment is missing or a
               non-object is traversed; the fallback applies via <code>??</code>,
@@ -425,7 +425,7 @@ interface ConfigIssue {
               <dt>ConfigFactory</dt>
               <dd>
                 (() =&gt; object | Promise&lt;object&gt;) |
-                NamespacedConfigFactory&lt;string, object&gt; — anything forRoot
+                NamespacedConfigFactory&lt;string, object&gt;: anything forRoot
                 accepts.
               </dd>
               <dt>NamespacedConfigFactory&lt;TToken, TValue&gt;</dt>
@@ -441,8 +441,8 @@ interface ConfigIssue {
               </dd>
               <dt>MergedConfig&lt;TLoad&gt;</dt>
               <dd>
-                The intersection of every factory's contribution — namespaced
-                outputs as { token: value }, plain outputs as-is — simplified
+                The intersection of every factory's contribution (namespaced
+                outputs as { token: value }, plain outputs as-is), simplified
                 into one object type. This is the T behind the provided service.
               </dd>
               <dt>ConfigPath&lt;T&gt;</dt>
@@ -458,7 +458,7 @@ interface ConfigIssue {
               <dt>ConfigContext&lt;TLoad&gt;</dt>
               <dd>
                 { configService: ConfigService&lt;MergedConfig&lt;TLoad&gt;&gt;
-                } — the context extension consumers declare, matching what the
+                }, the context extension consumers declare, matching what the
                 module provides for the same factory tuple.
               </dd>
               <dt>ConfigIssue</dt>

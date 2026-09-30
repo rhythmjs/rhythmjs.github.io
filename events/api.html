@@ -290,8 +290,8 @@
             <p>
               Creates a standalone bus.
               <code>options.onError(error, event, payload)</code> receives every
-              listener failure — synchronous throws and rejected promises alike
-              — from <code>on</code>/<code>once</code> handlers dispatched by
+              listener failure (synchronous throws and rejected promises alike)
+              from <code>on</code>/<code>once</code> handlers dispatched by
               <code>emit</code>. When omitted, the default hook rethrows the
               error inside <code>queueMicrotask</code>, so failures become
               unhandled errors rather than silent drops.
@@ -387,7 +387,7 @@
               else. Otherwise both strings split on <code>.</code> and compare
               segment by segment: <code>*</code> accepts exactly one segment, a
               literal must match exactly, and <code>**</code> accepts the rest
-              of the event — but only when it is the pattern's final segment.
+              of the event, but only when it is the pattern's final segment.
               Segment counts must line up unless <code>**</code> ends the
               pattern.
             </p>
@@ -427,7 +427,7 @@
             <dl>
               <dt>EventMap</dt>
               <dd>
-                <code>object</code> — the constraint for event maps: keys are
+                <code>object</code>, the constraint for event maps: keys are
                 event names, values are payload types.
               </dd>
               <dt>EventPattern&lt;TEvents&gt;</dt>
@@ -456,7 +456,7 @@
               </dt>
               <dd>
                 The union of matching event names, and the union of their
-                payloads — the types a wildcard handler's
+                payloads: the types a wildcard handler's
                 <code>(payload, event)</code> arguments carry.
               </dd>
               <dt>OnOptions</dt>
@@ -470,7 +470,7 @@
               </dd>
               <dt>EventsContext&lt;TEvents&gt;</dt>
               <dd>
-                <code>{ eventBus: EventBus&lt;TEvents&gt; }</code> — the context
+                <code>{ eventBus: EventBus&lt;TEvents&gt; }</code>, the context
                 slice the module provides.
               </dd>
             </dl>

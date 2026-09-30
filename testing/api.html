@@ -310,7 +310,7 @@ function runMiddleware&lt;TContext extends object&gt;(
               </dd>
               <dt>MiddlewareRun&lt;TContext&gt;</dt>
               <dd>
-                { ctx: TContext; nextCalled: boolean } — the mutated context and
+                { ctx: TContext; nextCalled: boolean }: the mutated context and
                 whether the chain continued.
               </dd>
             </dl>
@@ -352,7 +352,7 @@ function runHttpMiddleware&lt;TExtras extends object = {}&gt;(
               </dd>
               <dt>TestRequestOptions</dt>
               <dd>
-                { headers?; body?; json? } — <code>json</code> serializes the
+                { headers?; body?; json? }; <code>json</code> serializes the
                 value and sets
                 <code>content-type: application/json</code> unless you set one
                 yourself. <code>TestRequestHeaders</code>,
@@ -370,7 +370,7 @@ function runHttpMiddleware&lt;TExtras extends object = {}&gt;(
               </dd>
               <dt>HttpMiddlewareRun</dt>
               <dd>
-                { ctx; nextCalled: boolean; response: Response } —
+                { ctx; nextCalled: boolean; response: Response } -
                 <code>response</code> is the context&#39;s response rendered
                 with <code>toResponse</code>.
               </dd>
@@ -405,7 +405,7 @@ function runHttpMiddleware&lt;TExtras extends object = {}&gt;(
               </dd>
               <dt>CliRunResult</dt>
               <dd>
-                { ctx; stdout: string[]; stderr: string[]; exitCode: number } —
+                { ctx; stdout: string[]; stderr: string[]; exitCode: number } -
                 copies of the response buffers, nothing written to real stdio.
               </dd>
               <dt>CliRunner.teardown()</dt>
@@ -443,7 +443,7 @@ function fireDrain(ws: RhythmWs, peer: MockWs): void | Promise&lt;void&gt;;</cod
               </dd>
               <dt>WsUpgradeResult&lt;Data&gt;</dt>
               <dd>
-                { matched; upgraded; response; data; headers } —
+                { matched; upgraded; response; data; headers } -
                 <code>matched</code> is false when
                 <code>upgrade()</code> returned null (not a websocket request,
                 or no route); <code>response</code> carries a rejection; on

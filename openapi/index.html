@@ -271,7 +271,7 @@
         </div>
         <h1>Describe the routes</h1>
         <p class="lead">
-          Small middlewares document — and, for request parts, validate — each
+          Small middlewares document (and, for request parts, validate) each
           route, so the router stays the single source of truth.
         </p>
         <div class="article">
@@ -283,7 +283,7 @@
             </h2>
             <p>
               <code>@rhythmjs/openapi</code> exports every module on its own
-              subpath — <code>/body</code>, <code>/response</code>,
+              subpath: <code>/body</code>, <code>/response</code>,
               <code>/docs</code>, and so on; there is no root barrel export.
               Schemas are Standard Schema v1; conversion to JSON Schema goes
               through the Standard JSON Schema interface
@@ -307,8 +307,8 @@
             </h2>
             <p>
               Every <code>api*</code> helper returns an ordinary Rhythm
-              middleware carrying an <em>operation fragment</em> — a slice of an
-              OpenAPI operation — under the well-known symbol
+              middleware carrying an <em>operation fragment</em>, a slice of an
+              OpenAPI operation, under the well-known symbol
               <code>Symbol.for(&quot;rhythmjs.openapi&quot;)</code>. Two kinds
               exist: doc-only fragments (<code>apiOperation</code>,
               <code>apiTags</code>, <code>apiResponse</code>, the security
@@ -356,9 +356,8 @@ const users = new RhythmRouter({ prefix: &quot;/users&quot; })
             <p>
               The five request validators extract their part of the request, run
               the schema, and on success store the output at
-              <code>ctx.valid[target]</code> before calling
-              <code>next()</code> — chained validators merge into one
-              <code>ctx.valid</code>. The
+              <code>ctx.valid[target]</code> before calling <code>next()</code>;
+              chained validators merge into one <code>ctx.valid</code>. The
               <code>Validated&lt;Target, Schema&gt;</code> type plugs into a
               route handler&#39;s extra-context parameter so
               <code>ctx.valid.body</code> is fully typed. On failure the chain
@@ -394,13 +393,12 @@ const users = new RhythmRouter({ prefix: &quot;/users&quot; })
               Doc-only helpers cover the rest of the operation object:
               <code>apiOperation</code> for summary, description, operationId,
               deprecation, per-operation servers and external docs;
-              <code>apiResponse(status, spec)</code> per status code — a number,
+              <code>apiResponse(status, spec)</code> per status code: a number,
               <code>&quot;default&quot;</code>, or a range such as
-              <code>&quot;4XX&quot;</code> — with a
-              <code>schema</code> shorthand or a full per-media-type
-              <code>content</code> map, response headers, and links;
-              <code>apiTags</code> for grouping; <code>apiCallback</code> for
-              callback objects;
+              <code>&quot;4XX&quot;</code>, with a <code>schema</code> shorthand
+              or a full per-media-type <code>content</code> map, response
+              headers, and links; <code>apiTags</code> for grouping;
+              <code>apiCallback</code> for callback objects;
               <code>apiExtension(&quot;x-…&quot;, value)</code> for
               specification extensions (a non-<code>x-</code> name throws); and
               <code>apiExclude()</code> to hide a route from the document
@@ -414,7 +412,7 @@ const users = new RhythmRouter({ prefix: &quot;/users&quot; })
               <code>apiOAuth2(scopes)</code> add requirements (deduplicated),
               while <code>apiNoSecurity()</code>
               clears everything accumulated so far and emits
-              <code>security: []</code> — the OpenAPI idiom for &quot;this route
+              <code>security: []</code>, the OpenAPI idiom for &quot;this route
               is public despite a document-level default&quot;.
             </p>
           </section>

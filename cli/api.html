@@ -298,17 +298,17 @@
               </dd>
               <dt>use(fn)</dt>
               <dd>
-                Add a middleware. It takes only functions &mdash; mount a nested
-                cli as <code>use(child.middleware())</code>; the mount is
-                opaque, so the child carries its own full prefix. A middleware
-                wraps only the commands registered after it. There is no
+                Add a middleware. It takes only functions; mount a nested cli as
+                <code>use(child.middleware())</code>; the mount is opaque, so
+                the child carries its own full prefix. A middleware wraps only
+                the commands registered after it. There is no
                 <code>provide()</code> or <code>register()</code>; providers
                 live on the host Rhythm app.
               </dd>
               <dt>middleware()</dt>
               <dd>
-                Compile this cli to a plain middleware &mdash; the one form that
-                mounts anywhere, into a Rhythm app or into another cli.
+                Compile this cli to a plain middleware: the one form that mounts
+                anywhere, into a Rhythm app or into another cli.
               </dd>
             </dl>
             <p>

@@ -1,18 +1,9 @@
-/* Minimal syntax highlighting for the documentation's code blocks.
-   Hand-written for the small set of languages the pages actually use
-   (TypeScript, shell, JSON) — not a general-purpose highlighter.
-   Progressive enhancement: without this script the blocks render as
-   plain monospaced text, which is fine. Token colors: assets/style.css. */
 (function () {
   var pattern = new RegExp(
     [
-      // comments: `// ...` (but not `://` in URLs) and shell `# ...` at line start
       "((?<!:)\\/\\/[^\\n]*|(?:^|\\n)[ \\t]*#[^\\n]*)",
-      // strings and template literals
       "(\"(?:[^\"\\\\\\n]|\\\\.)*\"|'(?:[^'\\\\\\n]|\\\\.)*'|`(?:[^`\\\\]|\\\\.)*`)",
-      // keywords
       "\\b(import|from|export|const|let|var|new|await|async|function|return|try|catch|finally|throw|if|else|for|of|in|type|interface|extends|class|this|null|undefined|true|false|typeof|as|default)\\b",
-      // numbers
       "\\b(\\d[\\d_]*(?:\\.\\d+)?)\\b",
     ].join("|"),
     "g"

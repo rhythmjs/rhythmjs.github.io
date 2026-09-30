@@ -380,7 +380,7 @@ function gracefulShutdown(options?: GracefulShutdownOptions): () =&gt; Promise&l
               <dt>HealthIndicator</dt>
               <dd>
                 <code>{ name, check(): HealthResult, critical?, timeout? }</code
-                >. <code>critical</code> defaults to true — a down critical
+                >. <code>critical</code> defaults to true; a down critical
                 indicator makes the whole report down; non-critical failures are
                 reported but do not. Each check races its own
                 <code>timeout</code> (falling back to the module-level
@@ -389,9 +389,9 @@ function gracefulShutdown(options?: GracefulShutdownOptions): () =&gt; Promise&l
               </dd>
               <dt>HealthService</dt>
               <dd>
-                <code>live()</code> —
+                <code>live()</code> -
                 <code>{ status: &quot;up&quot;, uptime, timestamp }</code>, no
-                indicators involved. <code>ready()</code> — a
+                indicators involved. <code>ready()</code> returns a
                 <code>HealthReport</code>
                 (<code>status</code>, <code>shuttingDown</code>, per-indicator
                 <code>checks</code> with durations), cached for

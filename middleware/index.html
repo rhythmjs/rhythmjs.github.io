@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="Validate request bodies, query strings, and route params against any Standard Schema — typed straight onto the context."
+      content="Validate request bodies, query strings, and route params against any Standard Schema, typed straight onto the context."
     />
     <meta name="color-scheme" content="light dark" />
     <title>Validate · RhythmJS</title>
@@ -14,13 +14,13 @@
     <meta property="og:title" content="Validate · RhythmJS" />
     <meta
       property="og:description"
-      content="Validate request bodies, query strings, and route params against any Standard Schema — typed straight onto the context."
+      content="Validate request bodies, query strings, and route params against any Standard Schema, typed straight onto the context."
     />
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content="Validate · RhythmJS" />
     <meta
       name="twitter:description"
-      content="Validate request bodies, query strings, and route params against any Standard Schema — typed straight onto the context."
+      content="Validate request bodies, query strings, and route params against any Standard Schema, typed straight onto the context."
     />
     <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -304,26 +304,27 @@
             <p>
               <code>validate(target, schema)</code> checks one part of the
               request against any
-              <a href="https://standardschema.dev">Standard Schema v1</a> schema
-              — zod, valibot, arktype, or anything else implementing the spec,
-              including asynchronous schemas. The target selects what gets
+              <a href="https://standardschema.dev">Standard Schema v1</a>
+              schema: zod, valibot, arktype, or anything else implementing the
+              spec, including asynchronous schemas. The target selects what gets
               extracted:
             </p>
             <ul>
               <li>
-                <strong><code>"body"</code></strong> — the JSON request body,
-                read from <code>ctx.request.clone()</code> so the handler can
-                still read the original body itself.
+                <strong><code>"body"</code></strong
+                >: the JSON request body, read from
+                <code>ctx.request.clone()</code> so the handler can still read
+                the original body itself.
               </li>
               <li>
-                <strong><code>"query"</code></strong> — URL search params
-                collected into an object; a key that repeats becomes an array of
-                its values.
+                <strong><code>"query"</code></strong
+                >: URL search params collected into an object; a key that
+                repeats becomes an array of its values.
               </li>
               <li>
-                <strong><code>"param"</code></strong> — the route params matched
-                by the router (<code>ctx.params</code>; an empty object when
-                nothing matched).
+                <strong><code>"param"</code></strong
+                >: the route params matched by the router
+                (<code>ctx.params</code>; an empty object when nothing matched).
               </li>
             </ul>
             <figure class="code-block">
@@ -350,8 +351,8 @@ const router = new RhythmRouter().post&lt;Validated&lt;&quot;body&quot;, typeof 
               >
             </h2>
             <p>
-              On success the schema’s <em>output</em> — after coercions and
-              transforms — is merged into the context as
+              On success the schema’s <em>output</em> (after coercions and
+              transforms) is merged into the context as
               <code>ctx.valid[target]</code>. The merge is a spread over the
               previous <code>ctx.valid</code>, so chained validators compose:
               validate the body and the query on one route and both results are
@@ -410,7 +411,7 @@ const router = new RhythmRouter().post&lt;Validated&lt;&quot;body&quot;, typeof 
             </h2>
             <p>
               <a href="intercept.html">Intercept</a> is the response-side
-              counterpart — validate and reshape what leaves the handler.
+              counterpart: validate and reshape what leaves the handler.
               <a href="filter.html">Filter</a> turns thrown errors into HTTP
               responses. The <a href="api.html">API reference</a> lists every
               export on the three subpaths.

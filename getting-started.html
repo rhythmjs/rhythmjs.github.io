@@ -95,8 +95,8 @@
             <p>
               The kernel and the router are all you need to start. Every package
               is ESM and runs on <a href="https://bun.com">Bun</a>
-              1.2 or newer — the ecosystem is built on Bun's native APIs, with
-              no runtime adapters.
+              1.2 or newer; the ecosystem is built on Bun's native APIs, with no
+              runtime adapters.
             </p>
             <figure class="code-block">
               <pre><code>bun add @rhythmjs/rhythm @rhythmjs/router</code></pre>
@@ -135,8 +135,8 @@ await app.teardown();</code></pre>
             <p>
               The router registers routes with named parameters and mounts into
               a Rhythm host app via <code>middleware()</code>;
-              <code>Bun.serve</code> &mdash; written by you, in your own
-              <code>main.ts</code> &mdash; starts the host app on
+              <code>Bun.serve</code>, written by you in your own
+              <code>main.ts</code>, starts the host app on
               <code>Bun.serve</code>. Run it with <code>bun server.ts</code>.
             </p>
             <figure class="code-block">
@@ -196,11 +196,11 @@ router.post&lt;Validated&lt;&quot;body&quot;, typeof CreateUser&gt;&gt;(
             </p>
             <figure class="code-block">
               <pre><code>src/
-  main.ts             your own Bun.serve call over toFetchHandler(appModule)
-  app.module.ts       Rhythm instance: provides the service, mounts the controller
-  app.controller.ts   RhythmRouter instance: routes and handlers
-  app.service.ts      plain object holding the business logic
-  app.controller.spec.ts  bun:test specs for the controller</code></pre>
+  main.ts your own Bun.serve call over toFetchHandler(appModule)
+  app.module.ts Rhythm instance: provides the service, mounts the controller
+  app.controller.ts RhythmRouter instance: routes and handlers
+  app.service.ts plain object holding the business logic
+  app.controller.spec.ts bun:test specs for the controller</code></pre>
             </figure>
           </section>
           <section aria-labelledby="the-pattern">
@@ -240,8 +240,8 @@ router.post&lt;Validated&lt;&quot;body&quot;, typeof CreateUser&gt;&gt;(
               <pre><code>bun install
 bun run dev
 
-curl http://localhost:3000/         # Hello World!
-curl http://localhost:3000/missing  # {&quot;success&quot;:false,&quot;status&quot;:404,&quot;message&quot;:&quot;Not Found&quot;}</code></pre>
+curl http://localhost:3000/ # Hello World!
+curl http://localhost:3000/missing # {&quot;success&quot;:false,&quot;status&quot;:404,&quot;message&quot;:&quot;Not Found&quot;}</code></pre>
             </figure>
           </section>
           <section aria-labelledby="test-it">
@@ -256,9 +256,9 @@ curl http://localhost:3000/missing  # {&quot;success&quot;:false,&quot;status&qu
               instead of hardcoding responses.
             </p>
             <figure class="code-block">
-              <pre><code>bun test           # bun test runner
-bun run typecheck  # tsc --noEmit
-bun run check      # prettier --check + oxlint + tsc</code></pre>
+              <pre><code>bun test # bun test runner
+bun run typecheck # tsc --noEmit
+bun run check # prettier --check + oxlint + tsc</code></pre>
             </figure>
           </section>
           <section aria-labelledby="grow-the-app">

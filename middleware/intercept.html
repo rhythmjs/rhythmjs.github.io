@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="Pass outgoing response bodies through a Standard Schema — transform shapes and never leak undeclared fields."
+      content="Pass outgoing response bodies through a Standard Schema: transform shapes and never leak undeclared fields."
     />
     <meta name="color-scheme" content="light dark" />
     <title>Intercept · RhythmJS</title>
@@ -14,13 +14,13 @@
     <meta property="og:title" content="Intercept · RhythmJS" />
     <meta
       property="og:description"
-      content="Pass outgoing response bodies through a Standard Schema — transform shapes and never leak undeclared fields."
+      content="Pass outgoing response bodies through a Standard Schema: transform shapes and never leak undeclared fields."
     />
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content="Intercept · RhythmJS" />
     <meta
       name="twitter:description"
-      content="Pass outgoing response bodies through a Standard Schema — transform shapes and never leak undeclared fields."
+      content="Pass outgoing response bodies through a Standard Schema: transform shapes and never leak undeclared fields."
     />
     <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -289,8 +289,8 @@
               <code>await next()</code>, in onion order, and passes the outgoing
               body through a Standard Schema before the client sees it. Because
               only fields the schema declares survive, it doubles as a
-              serialization guard — a <code>password</code> column can never
-              leak through a route wrapped in a public-shape schema.
+              serialization guard: a <code>password</code> column can never leak
+              through a route wrapped in a public-shape schema.
             </p>
             <figure class="code-block">
               <pre><code>import { RhythmRouter } from &quot;@rhythmjs/router&quot;;
@@ -317,14 +317,14 @@ const router = new RhythmRouter().get(&quot;/users/ada&quot;, intercept(User), (
               Only successful responses with string bodies are touched: the
               status must be 2xx and <code>ctx.response.body</code> must be a
               string. Error responses, streams, buffers, and null bodies pass
-              through untouched — which is also why error payloads written by
+              through untouched, which is also why error payloads written by
               <a href="filter.html">filter</a> (non-2xx) never collide with an
               intercept schema.
             </p>
             <p>
               The string body is parsed as JSON first; if parsing fails, the
               <em>raw string</em> is validated instead. That means plain-text
-              routes can be intercepted too — a <code>z.string()</code> schema
+              routes can be intercepted too: a <code>z.string()</code> schema
               over a text body works.
             </p>
           </section>
@@ -356,7 +356,7 @@ const router = new RhythmRouter().get(&quot;/users/ada&quot;, intercept(User), (
             <p>
               If the outgoing body does not satisfy the schema, the response is
               replaced with status 500 and an <code>InterceptFailure</code> JSON
-              body — the contract between your handlers and your public API is
+              body; the contract between your handlers and your public API is
               enforced, loudly, on the server side:
             </p>
             <figure class="code-block">

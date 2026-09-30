@@ -336,8 +336,8 @@ try {
             </p>
             <p>
               <code>ctx.stdin</code> is a readable byte stream when input is
-              piped &mdash; <code>Bun.stdin.stream()</code>, Bun&#39;s native
-              stdin &mdash; or null when stdin is a TTY.
+              piped (<code>Bun.stdin.stream()</code>, Bun&#39;s native stdin),
+              or null when stdin is a TTY.
             </p>
           </section>
           <section aria-labelledby="nest-command-groups">
@@ -349,10 +349,9 @@ try {
             <p>
               <code>use()</code> takes only functions, so a nested cli mounts as
               <code>use(child.middleware())</code>. The compiled form is opaque
-              &mdash; the mounting cli&#39;s prefix is <em>not</em> applied to
-              it &mdash; so give the child its full prefix. Mounting compiles
-              the child at that moment, so complete the child before mounting
-              it.
+              (the mounting cli&#39;s prefix is <em>not</em> applied to it), so
+              give the child its full prefix. Mounting compiles the child at
+              that moment, so complete the child before mounting it.
             </p>
             <figure class="code-block">
               <pre><code>const remote = new RhythmCli({ prefix: &quot;remote&quot; })
