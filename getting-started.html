@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="Install the packages, write a pipeline, and serve your first routes."
+      content="Clone the starter template, run it, and grow it into your application."
     />
     <meta name="color-scheme" content="light dark" />
     <title>Quick start · RhythmJS</title>
@@ -14,13 +14,13 @@
     <meta property="og:title" content="Quick start · RhythmJS" />
     <meta
       property="og:description"
-      content="Install the packages, write a pipeline, and serve your first routes."
+      content="Clone the starter template, run it, and grow it into your application."
     />
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content="Quick start · RhythmJS" />
     <meta
       name="twitter:description"
-      content="Install the packages, write a pipeline, and serve your first routes."
+      content="Clone the starter template, run it, and grow it into your application."
     />
     <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -117,31 +117,142 @@
         </div>
         <h1>Quick start</h1>
         <p class="lead">
-          Install the packages, write a pipeline, and serve your first routes.
+          Clone the starter template, run it, and grow it into your
+          application.
         </p>
         <div class="article">
-          <section aria-labelledby="install-the-packages">
-            <h2 id="install-the-packages">
-              <a href="#install-the-packages"
-                >Install the packages<span aria-hidden="true"> #</span></a
+          <section aria-labelledby="clone-the-template">
+            <h2 id="clone-the-template">
+              <a href="#clone-the-template"
+                >Clone the template<span aria-hidden="true"> #</span></a
               >
             </h2>
             <p>
-              The kernel and the router are all you need to start. Every package
-              is ESM and runs on <a href="https://bun.com">Bun</a>
-              1.2 or newer; the ecosystem is built on Bun's native APIs, with no
-              runtime adapters.
+              Start from the
+              <a href="https://github.com/rhythmjs/template">template</a>
+              repository rather than wiring a project up file by file: it is a
+              minimal, runnable application organized the way NestJS organizes
+              its starter, expressed with Rhythm primitives. Clone it, or press
+              GitHub's &quot;Use this template&quot; button. Every package is
+              ESM and runs on <a href="https://bun.com">Bun</a> 1.2 or newer;
+              the ecosystem is built on Bun's native APIs, with no runtime
+              adapters.
+            </p>
+            <figure class="code-block">
+              <pre><code>git clone https://github.com/rhythmjs/template my-app
+cd my-app</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="run-it">
+            <h2 id="run-it">
+              <a href="#run-it">Run it<span aria-hidden="true"> #</span></a>
+            </h2>
+            <p>
+              Install the dependencies and start the watcher; the server
+              answers on port 3000.
+            </p>
+            <figure class="code-block">
+              <pre><code>bun install
+bun run dev # bun --watch src/main.ts
+
+curl http://localhost:3000/ # Hello World!
+curl http://localhost:3000/missing # {&quot;success&quot;:false,&quot;status&quot;:404,&quot;message&quot;:&quot;Not Found&quot;}</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="whats-inside">
+            <h2 id="whats-inside">
+              <a href="#whats-inside"
+                >What&#8217;s inside<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              Five small files cover the whole Nest-style pattern: a module, a
+              controller, a service, a spec, and your own server entry point.
+            </p>
+            <figure class="code-block">
+              <pre><code>src/
+  main.ts your own Bun.serve call over toFetchHandler(appModule)
+  app.module.ts Rhythm instance: provides the service, mounts the controller
+  app.controller.ts RhythmRouter instance: routes and handlers
+  app.service.ts plain object holding the business logic
+  app.controller.spec.ts bun:test specs for the controller</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="the-pattern">
+            <h2 id="the-pattern">
+              <a href="#the-pattern"
+                >The pattern<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              The service holds business logic and knows nothing about HTTP. The
+              module provides it with <code>provide()</code>, which places it on
+              the request context of everything mounted afterwards. The
+              controller declares that dependency in its context type, so
+              handlers use <code>ctx.appService</code> with full type safety:
+              the type-level equivalent of constructor injection.
+            </p>
+            <figure class="code-block">
+              <pre><code>export const appModule = new Rhythm&lt;RhythmHttpContext&gt;({ name: &quot;app&quot;, type: &quot;module&quot; })
+  .provide(() =&gt; ({ appService }))
+  .use(appController.middleware())
+  .use((ctx) =&gt; {
+    ctx.response.status = 404;
+    ctx.response.headers.set(&quot;content-type&quot;, &quot;application/json&quot;);
+    ctx.response.body = JSON.stringify({ success: false, status: 404, message: &quot;Not Found&quot; });
+  });</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="test-it">
+            <h2 id="test-it">
+              <a href="#test-it">Test it<span aria-hidden="true"> #</span></a>
+            </h2>
+            <p>
+              The controller spec builds a small test harness instead of booting
+              the whole application: a fresh Rhythm provides the service, mounts
+              the controller's routes, and is wrapped in a fetch handler.
+              Substituting a stub service proves the controller delegates
+              instead of hardcoding responses.
+            </p>
+            <figure class="code-block">
+              <pre><code>bun test # bun test runner
+bun run typecheck # tsc --noEmit
+bun run check # prettier --check + oxlint + tsc</code></pre>
+            </figure>
+          </section>
+          <section aria-labelledby="grow-the-app">
+            <h2 id="grow-the-app">
+              <a href="#grow-the-app"
+                >Grow the app<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              Add a feature by repeating the pattern: a
+              <code>users.service.ts</code>, a
+              <code>users.controller.ts</code> router with a
+              <code>prefix</code>, provide the service in the module, and mount
+              the controller before the 404 handler. Validation, sessions,
+              logging, CORS, and friends come from the
+              <a href="middleware/index.html">Middleware</a>,
+              <a href="http/index.html">HTTP</a>,
+              <a href="security/index.html">Security</a>, and
+              <a href="observability/index.html">Observability</a> packages.
+            </p>
+          </section>
+          <section aria-labelledby="under-the-hood">
+            <h2 id="under-the-hood">
+              <a href="#under-the-hood"
+                >Under the hood<span aria-hidden="true"> #</span></a
+              >
+            </h2>
+            <p>
+              There is no scaffolding magic in the template: it is just the
+              kernel and the router, which you could install and wire up
+              yourself.
             </p>
             <figure class="code-block">
               <pre><code>bun add @rhythmjs/rhythm @rhythmjs/router</code></pre>
             </figure>
-          </section>
-          <section aria-labelledby="write-a-pipeline">
-            <h2 id="write-a-pipeline">
-              <a href="#write-a-pipeline"
-                >Write a pipeline<span aria-hidden="true"> #</span></a
-              >
-            </h2>
             <p>
               The kernel alone composes middleware over any input. Providers
               initialize once; middleware runs per input; the typed context
@@ -168,10 +279,10 @@ await app.teardown();</code></pre>
             </h2>
             <p>
               The router registers routes with named parameters and mounts into
-              a Rhythm host app via <code>middleware()</code>;
-              <code>Bun.serve</code>, written by you in your own
-              <code>main.ts</code>, starts the host app on
-              <code>Bun.serve</code>. Run it with <code>bun server.ts</code>.
+              a Rhythm host app via <code>middleware()</code>; a plain
+              <code>Bun.serve</code> call, written by you in your own
+              <code>main.ts</code>, starts the host app. Run it with
+              <code>bun src/main.ts</code>.
             </p>
             <figure class="code-block">
               <pre><code>import { Rhythm } from &quot;@rhythmjs/rhythm&quot;;
@@ -216,104 +327,6 @@ router.post&lt;Validated&lt;&quot;body&quot;, typeof CreateUser&gt;&gt;(
 );</code></pre>
             </figure>
           </section>
-          <section aria-labelledby="start-from-the-template">
-            <h2 id="start-from-the-template">
-              <a href="#start-from-the-template"
-                >Start from the template<span aria-hidden="true"> #</span></a
-              >
-            </h2>
-            <p>
-              The
-              <a href="https://github.com/rhythmjs/template">template</a>
-              repository is a minimal, runnable application organized the way
-              NestJS organizes its starter, expressed with Rhythm primitives.
-            </p>
-            <figure class="code-block">
-              <pre><code>src/
-  main.ts your own Bun.serve call over toFetchHandler(appModule)
-  app.module.ts Rhythm instance: provides the service, mounts the controller
-  app.controller.ts RhythmRouter instance: routes and handlers
-  app.service.ts plain object holding the business logic
-  app.controller.spec.ts bun:test specs for the controller</code></pre>
-            </figure>
-          </section>
-          <section aria-labelledby="the-pattern">
-            <h2 id="the-pattern">
-              <a href="#the-pattern"
-                >The pattern<span aria-hidden="true"> #</span></a
-              >
-            </h2>
-            <p>
-              The service holds business logic and knows nothing about HTTP. The
-              module provides it with <code>provide()</code>, which places it on
-              the request context of everything mounted afterwards. The
-              controller declares that dependency in its context type, so
-              handlers use <code>ctx.appService</code> with full type safety:
-              the type-level equivalent of constructor injection.
-            </p>
-            <figure class="code-block">
-              <pre><code>export const appModule = new Rhythm&lt;RhythmHttpContext&gt;({ name: &quot;app&quot;, type: &quot;module&quot; })
-  .provide(() =&gt; ({ appService }))
-  .use(appController.middleware())
-  .use((ctx) =&gt; {
-    ctx.response.status = 404;
-    ctx.response.headers.set(&quot;content-type&quot;, &quot;application/json&quot;);
-    ctx.response.body = JSON.stringify({ success: false, status: 404, message: &quot;Not Found&quot; });
-  });</code></pre>
-            </figure>
-          </section>
-          <section aria-labelledby="run-it">
-            <h2 id="run-it">
-              <a href="#run-it">Run it<span aria-hidden="true"> #</span></a>
-            </h2>
-            <p>
-              Clone the repository, or use GitHub's "Use this template" button,
-              then install and start the watcher.
-            </p>
-            <figure class="code-block">
-              <pre><code>bun install
-bun run dev
-
-curl http://localhost:3000/ # Hello World!
-curl http://localhost:3000/missing # {&quot;success&quot;:false,&quot;status&quot;:404,&quot;message&quot;:&quot;Not Found&quot;}</code></pre>
-            </figure>
-          </section>
-          <section aria-labelledby="test-it">
-            <h2 id="test-it">
-              <a href="#test-it">Test it<span aria-hidden="true"> #</span></a>
-            </h2>
-            <p>
-              The controller spec builds a small test harness instead of booting
-              the whole application: a fresh Rhythm provides the service, mounts
-              the controller's routes, and is wrapped in a fetch handler.
-              Substituting a stub service proves the controller delegates
-              instead of hardcoding responses.
-            </p>
-            <figure class="code-block">
-              <pre><code>bun test # bun test runner
-bun run typecheck # tsc --noEmit
-bun run check # prettier --check + oxlint + tsc</code></pre>
-            </figure>
-          </section>
-          <section aria-labelledby="grow-the-app">
-            <h2 id="grow-the-app">
-              <a href="#grow-the-app"
-                >Grow the app<span aria-hidden="true"> #</span></a
-              >
-            </h2>
-            <p>
-              Add a feature by repeating the pattern: a
-              <code>users.service.ts</code>, a
-              <code>users.controller.ts</code> router with a
-              <code>prefix</code>, provide the service in the module, and mount
-              the controller before the 404 handler. Validation, sessions,
-              logging, CORS, and friends come from the
-              <a href="middleware/index.html">Middleware</a>,
-              <a href="http/index.html">HTTP</a>,
-              <a href="security/index.html">Security</a>, and
-              <a href="observability/index.html">Observability</a> packages.
-            </p>
-          </section>
           <section aria-labelledby="where-to-go-next">
             <h2 id="where-to-go-next">
               <a href="#where-to-go-next"
@@ -347,15 +360,15 @@ bun run check # prettier --check + oxlint + tsc</code></pre>
       <aside class="toc">
         <nav aria-label="On this page">
           <p>ON THIS PAGE</p>
-          <a href="#install-the-packages">Install the packages</a>
-          <a href="#write-a-pipeline">Write a pipeline</a>
-          <a href="#serve-http">Serve HTTP</a>
-          <a href="#add-validation">Add validation</a>
-          <a href="#start-from-the-template">Start from the template</a>
-          <a href="#the-pattern">The pattern</a>
+          <a href="#clone-the-template">Clone the template</a>
           <a href="#run-it">Run it</a>
+          <a href="#whats-inside">What&#8217;s inside</a>
+          <a href="#the-pattern">The pattern</a>
           <a href="#test-it">Test it</a>
           <a href="#grow-the-app">Grow the app</a>
+          <a href="#under-the-hood">Under the hood</a>
+          <a href="#serve-http">Serve HTTP</a>
+          <a href="#add-validation">Add validation</a>
           <a href="#where-to-go-next">Where to go next</a>
         </nav>
       </aside>
