@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="Every export of @rhythmjs/ws: the RhythmWs class, WsRoute handlers, guards, behavior tuning, and supporting types."
+      content="Every export of @rhythmjs/ws: the RhythmWs class, WsRoute handlers, middleware, behavior tuning, and supporting types."
     />
     <meta name="color-scheme" content="light dark" />
     <title>API reference · RhythmJS</title>
@@ -14,13 +14,13 @@
     <meta property="og:title" content="API reference · RhythmJS" />
     <meta
       property="og:description"
-      content="Every export of @rhythmjs/ws: the RhythmWs class, WsRoute handlers, guards, behavior tuning, and supporting types."
+      content="Every export of @rhythmjs/ws: the RhythmWs class, WsRoute handlers, middleware, behavior tuning, and supporting types."
     />
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content="API reference · RhythmJS" />
     <meta
       name="twitter:description"
-      content="Every export of @rhythmjs/ws: the RhythmWs class, WsRoute handlers, guards, behavior tuning, and supporting types."
+      content="Every export of @rhythmjs/ws: the RhythmWs class, WsRoute handlers, middleware, behavior tuning, and supporting types."
     />
     <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -307,8 +307,8 @@
               <pre><code>new RhythmWs(options?: RhythmWsOptions);
 
 route&lt;Data extends object = WsParams&gt;(path: string, route: WsRoute&lt;Data&gt;): this;
-guard(fn: WsGuard): this;
-merge(child: RhythmWs): this;
+use(fn: WsMiddleware): this;
+middleware(): WsMiddleware;
 get routes(): readonly string[];
 upgrade: (request: Request, server: Server) =&gt; Promise&lt;Response | undefined&gt; | null;
 get websocket(): Bun.WebSocketHandler&lt;never&gt;;</code></pre>
@@ -322,22 +322,27 @@ get websocket(): Bun.WebSocketHandler&lt;never&gt;;</code></pre>
                 Throws <code>TypeError</code> for a non-object handlers
                 argument.
               </dd>
-              <dt>guard(fn)</dt>
+              <dt>use(fn)</dt>
               <dd>
-                Adds an instance-wide guard, run in registration order before
-                every matched route&#39;s upgrade. Guards never run for
-                unmatched paths.
+                Adds middleware, the router&#39;s convention:
+                <code>(ctx, next)</code> over
+                <code>RhythmWsContext</code>. Middleware and routes interleave
+                in registration order and never run for unmatched paths.
+                Mounting another instance is <code>use(child.middleware())</code>.
+                Throws <code>TypeError</code> for a non-function argument.
               </dd>
-              <dt>merge(child)</dt>
+              <dt>middleware()</dt>
               <dd>
-                Copies the child&#39;s routes under this instance&#39;s prefix,
-                snapshotting the child&#39;s guards at merge time and nesting
-                them inside this instance&#39;s own. Later changes to the child
-                do not propagate.
+                Compiles the instance into one mountable
+                <code>WsMiddleware</code>, snapshotting its middleware and
+                routes. A parent that mounts it gains the child&#39;s routes
+                for matching, while the child&#39;s middleware stays scoped to
+                its own pipeline. The child declares its own full prefix.
               </dd>
               <dt>routes</dt>
               <dd>
-                The compiled route paths, prefix applied, in registration order.
+                The route paths this instance serves — its own, prefix
+                applied, plus mounted children&#39;s — in registration order.
               </dd>
               <dt>upgrade(request, server)</dt>
               <dd>
@@ -346,9 +351,10 @@ get websocket(): Bun.WebSocketHandler&lt;never&gt;;</code></pre>
                 <code>upgrade: websocket</code> header or matches no route;
                 otherwise resolves to <code>undefined</code> once
                 <code>server.upgrade()</code> succeeds, the rejecting
-                <code>Response</code> from a guard or the route&#39;s
-                <code>upgrade</code>, or <code>500 Upgrade failed</code> when
-                Bun refuses the socket.
+                <code>Response</code> set by middleware or returned by the
+                route&#39;s <code>upgrade</code>, <code>403 Forbidden</code>
+                when the chain ends without upgrading (fail-closed), or
+                <code>500 Upgrade failed</code> when Bun refuses the socket.
               </dd>
               <dt>websocket</dt>
               <dd>
@@ -393,22 +399,29 @@ get websocket(): Bun.WebSocketHandler&lt;never&gt;;</code></pre>
               statically or computed per request.
             </p>
           </section>
-          <section aria-labelledby="wsguard-type">
-            <h2 id="wsguard-type">
-              <a href="#wsguard-type"
-                >type WsGuard<span aria-hidden="true"> #</span></a
+          <section aria-labelledby="wsmiddleware-type">
+            <h2 id="wsmiddleware-type">
+              <a href="#wsmiddleware-type"
+                >RhythmWsContext and WsMiddleware<span aria-hidden="true">
+                  #</span
+                ></a
               >
             </h2>
             <figure class="code-block">
-              <pre><code>type WsGuard = (
-  request: Request,
-  server: Server,
-) =&gt; Response | undefined | void | Promise&lt;Response | undefined | void&gt;;</code></pre>
+              <pre><code>interface RhythmWsContext {
+  readonly request: Request;
+  readonly server: Server;
+  response: Response | undefined;
+}
+
+type WsMiddleware = Middleware&lt;RhythmWsContext&gt;; // (ctx, next) from @rhythmjs/rhythm</code></pre>
             </figure>
             <p>
-              A pre-upgrade check. Returning a <code>Response</code> rejects the
-              handshake with it; any other return continues to the next guard,
-              then the route&#39;s <code>upgrade</code>.
+              The upgrade pipeline&#39;s context. Middleware sets
+              <code>ctx.response</code> to reject the handshake and calls
+              <code>next()</code> to continue; a set response always wins over
+              a later upgrade attempt, and a chain that ends without upgrading
+              answers <code>403</code> — fail-closed either way.
             </p>
           </section>
           <section aria-labelledby="wsbehavior-interface">
@@ -450,7 +463,8 @@ interface RhythmWsOptions extends WsBehavior {
             </p>
             <p>
               <code>origin</code> validates the handshake&#39;s
-              <code>Origin</code> header before guards run, guarding against
+              <code>Origin</code> header before middleware runs, guarding
+              against
               cross-site WebSocket hijacking (browsers attach cookies to
               handshakes, and WebSocket is exempt from CORS). The default
               <code>&quot;same-origin&quot;</code> requires a present
@@ -502,7 +516,7 @@ type Server = Bun.Server&lt;unknown&gt;;</code></pre>
           <p>ON THIS PAGE</p>
           <a href="#rhythmws-class">class RhythmWs</a>
           <a href="#wsroute-interface">interface WsRoute</a>
-          <a href="#wsguard-type">type WsGuard</a>
+          <a href="#wsmiddleware-type">RhythmWsContext and WsMiddleware</a>
           <a href="#wsbehavior-interface">WsBehavior, RhythmWsOptions</a>
           <a href="#supporting-types">Supporting types</a>
         </nav>

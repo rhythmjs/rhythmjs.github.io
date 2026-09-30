@@ -413,19 +413,19 @@ rateLimit({ keyOf: async (request) =&gt; (await sessionOf(request))?.userId ?? &
             <p>
               <code>rateLimitWs()</code> applies the same limiter to WebSocket
               handshakes. It is shaped exactly like an
-              <code>@rhythmjs/ws</code> guard -
-              <code>(request) =&gt; Promise&lt;Response | undefined&gt;</code> -
-              returning <code>undefined</code> while the budget lasts and the
-              full <code>429 Response</code> (with <code>Retry-After</code> and
-              the <code>RateLimit-*</code> headers) once it is spent, so it
-              plugs into <code>guard()</code> directly:
+              <code>@rhythmjs/ws</code> middleware —
+              <code>(ctx, next)</code>, calling <code>next()</code> while the
+              budget lasts and setting the full <code>429 Response</code> (with
+              <code>Retry-After</code> and the <code>RateLimit-*</code>
+              headers) on <code>ctx.response</code> once it is spent — so it
+              plugs into <code>use()</code> directly:
             </p>
             <figure class="code-block">
               <pre><code>import { RhythmWs } from &quot;@rhythmjs/ws&quot;;
 import { rateLimitWs } from &quot;@rhythmjs/security/rate-limit&quot;;
 
 const ws = new RhythmWs()
-  .guard(rateLimitWs({ limit: 10, windowMs: 60_000 }))
+  .use(rateLimitWs({ limit: 10, windowMs: 60_000 }))
   .route(&quot;/chat&quot;, { message(peer, message) { peer.send(String(message)); } });</code></pre>
             </figure>
           </section>

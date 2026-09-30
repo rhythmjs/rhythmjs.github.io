@@ -423,23 +423,29 @@ const ws = new RhythmWs({ prefix: &quot;/ws&quot;, idleTimeout: 120 })
 // new WebSocket(url, [&quot;json&quot;, &quot;text&quot;]) negotiates socket.protocol === &quot;json&quot;</code></pre>
             </figure>
           </section>
-          <section aria-labelledby="guards">
-            <h2 id="guards">
-              <a href="#guards">Guards<span aria-hidden="true"> #</span></a>
+          <section aria-labelledby="middleware">
+            <h2 id="middleware">
+              <a href="#middleware">Middleware<span aria-hidden="true"> #</span></a>
             </h2>
             <p>
-              <code>guard(fn)</code> registers
-              <code>(request, server) =&gt; Response | undefined</code>. Guards
-              are instance-wide: they run in registration order before
-              <em>every matched</em> route of the instance, never for unmatched
-              paths, so a miss costs nothing. Returning (or throwing nothing but
-              returning) a <code>Response</code> rejects the handshake with it;
-              returning <code>undefined</code> continues. The
-              <code>server</code> argument gives guards access to server-level
+              <code>use(fn)</code> registers Rhythm middleware over the
+              upgrade, the router&#39;s own convention:
+              <code>(ctx, next)</code> with
+              <code>ctx = { request, server, response }</code>
+              (<code>RhythmWsContext</code>). Set <code>ctx.response</code> to
+              reject the handshake; call <code>next()</code> to continue toward
+              the routes. Middleware and routes interleave in registration
+              order, and nothing runs for unmatched paths, so a miss costs
+              nothing. The chain is <em>fail-closed</em>: returning without
+              <code>next()</code> rejects with <code>403</code>, and a set
+              <code>response</code> wins even if <code>next()</code> is still
+              called — the upgrade only happens when the chain reaches a
+              matched route with no response set. The
+              <code>server</code> member gives middleware access to server-level
               facilities such as <code>server.requestIP()</code>.
             </p>
             <p>
-              Before any guard runs, the instance validates the handshake&#39;s
+              Before any middleware runs, the instance validates the handshake&#39;s
               <code>Origin</code> header (the <code>origin</code> constructor
               option, default <code>&quot;same-origin&quot;</code>): a
               cross-origin browser handshake is answered with
@@ -451,40 +457,42 @@ const ws = new RhythmWs({ prefix: &quot;/ws&quot;, idleTimeout: 120 })
             </p>
             <figure class="code-block">
               <pre><code>const ws = new RhythmWs()
-  .guard((request) =&gt;
-    new URL(request.url).searchParams.get(&quot;token&quot;) === &quot;good&quot;
-      ? undefined
-      : new Response(&quot;Unauthorized&quot;, { status: 401 }),
-  )
+  .use(async (ctx, next) =&gt; {
+    if (new URL(ctx.request.url).searchParams.get(&quot;token&quot;) === &quot;good&quot;) await next();
+    else ctx.response = new Response(&quot;Unauthorized&quot;, { status: 401 });
+  })
   .route(&quot;/guarded&quot;, { open: (ws) =&gt; void ws.send(&quot;in&quot;) });</code></pre>
             </figure>
           </section>
-          <section aria-labelledby="merging-instances">
-            <h2 id="merging-instances">
-              <a href="#merging-instances"
-                >Merging instances<span aria-hidden="true"> #</span></a
+          <section aria-labelledby="mounting-instances">
+            <h2 id="mounting-instances">
+              <a href="#mounting-instances"
+                >Mounting instances<span aria-hidden="true"> #</span></a
               >
             </h2>
             <p>
-              <code>merge(child)</code> copies another instance&#39;s routes
-              under this instance&#39;s prefix (<code>/ws</code> +
-              <code>/rooms/:id</code> becomes <code>/ws/rooms/:id</code>) and
-              keeps the child&#39;s guards nested inside the parent&#39;s own:
-              parent guards run first, then the child&#39;s, then the
-              route&#39;s <code>upgrade</code>. The merge is a snapshot; routes
-              or guards added to the child afterwards stay out of the parent.
-              Different protection levels therefore compose as separate
-              instances merged into one root.
+              <code>middleware()</code> compiles an instance (its middleware
+              and routes) into one mountable middleware, exactly like
+              <code>RhythmRouter</code>. A parent mounts a child with
+              <code>use(child.middleware())</code>: the child&#39;s routes join
+              the parent&#39;s matching (so <code>upgrade()</code> still
+              answers <code>null</code> synchronously for paths nobody
+              serves), while the child&#39;s own middleware stays scoped inside
+              its compiled pipeline. As with the router, the child declares its
+              own full <code>prefix</code> — the parent&#39;s prefix is not
+              prepended. The mount is a snapshot; routes added to the child
+              afterwards stay out of the parent. Different protection levels
+              therefore compose as separate instances mounted into one root.
             </p>
             <figure class="code-block">
-              <pre><code>const rooms = new RhythmWs({ prefix: &quot;/rooms&quot; })
-  .guard(requireAuth)
+              <pre><code>const rooms = new RhythmWs({ prefix: &quot;/ws/rooms&quot; })
+  .use(requireAuth)
   .route(&quot;/:id&quot;, roomHandlers);
 
 const root = new RhythmWs({ prefix: &quot;/ws&quot; })
-  .guard(requireTenant) // runs first, for every matched route
-  .merge(rooms) // /ws/rooms/:id, behind requireTenant then requireAuth
-  .route(&quot;/live&quot;, liveHandlers); // parent routes skip the child's guards</code></pre>
+  .use(requireTenant) // runs first for everything reaching this instance
+  .use(rooms.middleware()) // /ws/rooms/:id, behind requireTenant then requireAuth
+  .route(&quot;/live&quot;, liveHandlers);</code></pre>
             </figure>
           </section>
         </div>
@@ -506,8 +514,8 @@ const root = new RhythmWs({ prefix: &quot;/ws&quot; })
           <a href="#routes-are-bun-handlers">Routes are Bun handlers</a>
           <a href="#typed-connection-data">Typed connection data</a>
           <a href="#handshake-headers">Handshake headers</a>
-          <a href="#guards">Guards</a>
-          <a href="#merging-instances">Merging instances</a>
+          <a href="#middleware">Middleware</a>
+          <a href="#mounting-instances">Mounting instances</a>
         </nav>
       </aside>
     </div>

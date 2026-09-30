@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="Test RhythmWs without sockets: upgradeWs runs guards, upgrade, and headers against a mock server; mockWs records everything handlers do; fire* dispatches real events."
+      content="Test RhythmWs without sockets: upgradeWs runs middleware, upgrade, and headers against a mock server; mockWs records everything handlers do; fire* dispatches real events."
     />
     <meta name="color-scheme" content="light dark" />
     <title>The WebSocket harness · RhythmJS</title>
@@ -14,13 +14,13 @@
     <meta property="og:title" content="The WebSocket harness · RhythmJS" />
     <meta
       property="og:description"
-      content="Test RhythmWs without sockets: upgradeWs runs guards, upgrade, and headers against a mock server; mockWs records everything handlers do; fire* dispatches real events."
+      content="Test RhythmWs without sockets: upgradeWs runs middleware, upgrade, and headers against a mock server; mockWs records everything handlers do; fire* dispatches real events."
     />
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content="The WebSocket harness · RhythmJS" />
     <meta
       name="twitter:description"
-      content="Test RhythmWs without sockets: upgradeWs runs guards, upgrade, and headers against a mock server; mockWs records everything handlers do; fire* dispatches real events."
+      content="Test RhythmWs without sockets: upgradeWs runs middleware, upgrade, and headers against a mock server; mockWs records everything handlers do; fire* dispatches real events."
     />
     <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -308,7 +308,7 @@
               <code>upgradeWs&lt;Data&gt;(ws, request)</code> from
               <code>@rhythmjs/testing/ws</code> drives a
               <a href="../ws/index.html"><code>RhythmWs</code></a> upgrade
-              against a mock server: guards, the route&#39;s
+              against a mock server: middleware, the route&#39;s
               <code>upgrade</code>, and <code>headers</code> all run for real;
               only <code>server.upgrade()</code> is captured instead of taking a
               socket. A plain path gets the

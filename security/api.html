@@ -408,9 +408,10 @@ function memoryRateLimitStore(): RateLimitStore</code></pre>
                 <code
                   >{ &quot;success&quot;: false, &quot;status&quot;: 429,
                   &quot;message&quot;: ... }</code
-                >. <code>rateLimitWs</code> returns that as a
-                <code>Response</code> from a WebSocket upgrade middleware chain
-                instead.
+                >. <code>rateLimitWs</code> is a ws-shaped middleware
+                (<code>(ctx, next)</code>) that sets the same
+                <code>429 Response</code> on <code>ctx.response</code> instead,
+                for <code>RhythmWs.use()</code>.
               </dd>
             </dl>
           </section>
