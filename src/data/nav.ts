@@ -246,7 +246,7 @@ export const sections: NavSection[] = [
         repo: "https://github.com/rhythmjs/rhythm",
         items: [
           { id: "integrations/ai-sdk", label: "AI SDK", repo: "https://github.com/rhythmjs/router" },
-          { id: "integrations/better-auth", label: "Better Auth", repo: "https://github.com/rhythmjs/security" },
+          { id: "integrations/better-auth", label: "Better Auth", repo: "https://github.com/rhythmjs/better-auth" },
           { id: "integrations/bullmq", label: "BullMQ", repo: "https://github.com/rhythmjs/tasks" },
           { id: "integrations/file-upload", label: "File upload", repo: "https://github.com/rhythmjs/http" },
           { id: "integrations/nodemailer", label: "Nodemailer" },
