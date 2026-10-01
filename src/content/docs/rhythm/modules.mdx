@@ -50,4 +50,24 @@ Registration includes child setup and teardown in the parent provider sequence. 
 
 ## Mount controllers flat
 
-`RhythmRouter` and `RhythmCli` are standalone controllers, not `Rhythm` modules: they have no `provide()` or `register()`, and they cannot be passed to `register()` either; it composes `Rhythm` instances only. Mount their middleware into a core module with `use(router.routes())` or `use(cli.commands())`, and nest controller into controller with `use(child)`. Complete nested controllers before mounting them; their existing entries are copied when nested.
+`RhythmRouter` and `RhythmCli` are standalone controllers, not `Rhythm` modules: they have no `provide()` or `register()`, and they cannot be passed to `register()` either; it composes `Rhythm` instances only. Mount them into a core module with `use(router.middleware())` or `use(cli.middleware())`, and nest controller into controller the same way. The mount is opaque, so a nested controller carries its own full prefix.
+
+## Inspect the app [#inspect]
+
+Middleware is opaque, so tooling cannot ask a function what it is. Instead, a middleware can be tagged with the object it was built from using `withSource(fn, source)` from `@rhythmjs/rhythm/source`. `RhythmRouter#middleware()`, `RhythmCli#middleware()` and `Rhythm#middleware()` tag themselves; anything else, such as a future extension, can do the same.
+
+`use()` records the tag, and `register()` records the child module. `module.sources` then lists the tagged sources below a module in order, with each registered module replaced by its own sources, and `module.parent` points back up. A module reads these lazily, when it first needs them, so controllers mounted after it are still found.
+
+```ts
+const usersModule = new Rhythm<RhythmHttpContext>({ name: "users" }).use(usersController.middleware());
+
+const appModule = new Rhythm<RhythmHttpContext>({ name: "app" })
+  .register(usersModule)
+  .use(healthController.middleware());
+
+appModule.sources; // [usersController, healthController]
+usersModule.sources; // [usersController]
+usersModule.parent; // appModule
+```
+
+A module sees only its own scope: a module registered in `apiModule` inspects `apiModule` and below, never its siblings. This is how `openapiModule` documents one group of routes, or the whole app, depending on where it is registered. The [OpenAPI](/openapi/document/) page shows it in use.
