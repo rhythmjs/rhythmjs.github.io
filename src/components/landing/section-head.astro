@@ -1,0 +1,23 @@
+---
+interface Props {
+  id: string;
+  eyebrow: string;
+  title: string;
+  lead?: string;
+}
+
+const { id, eyebrow, title, lead } = Astro.props;
+---
+
+<header class="section-head">
+  <p class="eyebrow">
+    <span>{eyebrow}</span>
+  </p>
+  <h2 id={id}>
+    {title}
+    <a class="anchor" href={`#${id}`} aria-label={`Link to ${title}`} data-pagefind-ignore>
+      #
+    </a>
+  </h2>
+  {lead && <p class="lead">{lead}</p>}
+</header>

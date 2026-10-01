@@ -1,0 +1,79 @@
+---
+title: "Jobs as values, one entry point"
+lead: "Declare cron, interval, and timeout jobs as plain values; run them all through one service with overlap skipping, error capture, and per-job state; arm them with the in-process scheduler."
+description: "Declaring cron, interval, and timeout jobs as values, the schedule service's run/runDue/state surface, and the in-process scheduler on Bun timers."
+---
+
+## Install the package
+
+`@rhythmjs/schedule` is task scheduling for Rhythm on Bun: cron, interval, and timeout jobs declared as plain values, served by a kernel module, and driven by an in-process scheduler. Four subpaths: the root, `/types`, `/scheduler`, and `/cron`; the engine has [its own page](/schedule/cron/).
+
+```bash
+bun add @rhythmjs/schedule @rhythmjs/rhythm
+```
+
+The design splits *what runs* from *who decides when*: every trigger, the scheduler or your own code, reduces to `scheduleService.run(name)`, so job semantics (overlap skipping, error capture, per-job state) live in one place.
+
+## Declare jobs as values [#declare-jobs]
+
+Three factories build immutable `ScheduleJob` values. `cronJob(name, pattern, handler, options?)` takes a cron expression; `intervalJob(name, ms, handler, options?)` and `timeoutJob(name, ms, handler, options?)` take milliseconds. A non-function handler throws a `TypeError` at declaration, not at run time.
+
+```ts
+import { cronJob, intervalJob, timeoutJob, cronPatterns } from "@rhythmjs/schedule";
+
+const jobs = [
+  cronJob("cleanup", "0 3 * * *", () => purgeExpired(), { timezone: "Europe/Paris" }),
+  cronJob("report", cronPatterns.hourly, () => buildReport()),
+  intervalJob("heartbeat", 30_000, () => beat()),
+  timeoutJob("warmup", 5_000, () => warmCaches()),
+];
+```
+
+Options: `timezone` (cron only, DST-correct), `overlap` (`"skip"`, the default, or `"allow"`), and `disabled`. `cronPatterns` covers the common expressions - `everySecond` (a 6-field pattern), `everyMinute`, `every5Minutes`, `every10Minutes`, `every30Minutes`, `hourly`, `daily`, `weekly`, `monthly`, `yearly`.
+
+## The schedule service [#the-service]
+
+`createScheduleService(...jobs)` builds the registry; duplicate names throw at registration, unknown names throw on access. `run(name)` is the universal entry point. It returns `{ name, ran: false }` without touching the handler when the job is `disabled`, or already running with `overlap: "skip"`. Otherwise it runs the handler and returns `{ name, ran: true, durationMs }` - and on failure adds `error` with the message instead of throwing. Success clears `lastError`; every completed run bumps `runs` and stamps `lastRun`.
+
+```ts
+const result = await scheduleService.run("cleanup");
+// { name: "cleanup", ran: true, durationMs: 12 }
+// { name: "cleanup", ran: true, durationMs: 3, error: "db unreachable" }
+// { name: "cleanup", ran: false }: disabled, or overlap-skipped
+```
+
+`runDue(date?)` runs every enabled cron job due in that minute: manual catch-up, or an external tick. `nextRun(name, from?)` returns the next occurrence for cron jobs (`null` otherwise). `state(name)` reports `{ running, runs, lastRun?, lastError?, nextRun? }`, which pairs naturally with a health indicator. `add` and `remove` mutate the registry; a scheduler started earlier keeps its snapshot: restart it to pick up added jobs, while a removed job's timer cancels itself on its next fire without running the handler. `jobs` lists the registry.
+
+## Run the in-process scheduler [#run-the-scheduler]
+
+`startScheduler(service)` from `@rhythmjs/schedule/scheduler` arms every enabled job. Cron jobs run on `setTimeout` chains: each fire calls `service.run` and re-arms from the engine's `nextRun` only after the run settles, so a slow handler never stacks timers. Intervals use `setInterval`; timeouts fire once. Delays past the 32-bit `setTimeout` ceiling (2,147,483,647 ms) are chunked, so far-future runs never fire early.
+
+```ts
+import { startScheduler } from "@rhythmjs/schedule/scheduler";
+
+const scheduler = startScheduler(scheduleService);
+// ... on shutdown:
+scheduler.stop();
+```
+
+`stop()` clears every timer and prevents re-arming; a run already in flight completes. Overlap policy is enforced by the service, not the timers; even overlapping fires reduce to `run(name)` and its skip logic.
+
+## The kernel module
+
+`scheduleModule.forRoot(...jobs)` provides `scheduleService` on the kernel context (`ScheduleContext`).
+
+```ts
+import { Rhythm } from "@rhythmjs/rhythm";
+import { scheduleModule } from "@rhythmjs/schedule";
+import { startScheduler } from "@rhythmjs/schedule/scheduler";
+
+const app = new Rhythm().register(
+  scheduleModule.forRoot(...jobs),
+  ({ scheduleService }) => ({ scheduleService }),
+);
+await app.setup();
+const { scheduleService } = await app.run({});
+const scheduler = startScheduler(scheduleService);
+```
+
+Distributed one-instance locking, persistent job queues, and platform schedulers are out of scope by design: this package is coupled to Bun on purpose. For durable, replica-safe repeats, see [@rhythmjs/queue](/queue/), whose cron repeats run through [this same engine](/schedule/cron/).

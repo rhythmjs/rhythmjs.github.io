@@ -1,0 +1,68 @@
+---
+title: "Filter exceptions"
+lead: "Wrap the chain in a try/catch: thrown HttpErrors become their status, everything else becomes a safe 500."
+description: "Turn thrown errors into HTTP responses: HttpError statuses, safe 500s, and custom error mapping."
+---
+
+## Catch everything downstream [#catch-everything]
+
+`filter(onError?)` wraps the rest of the chain in a try/catch and turns anything thrown downstream into an HTTP response. Register it first, before any routes, so it forms the outermost onion layer and sees every error, including ones thrown by other middleware.
+
+```ts
+import { RhythmRouter } from "@rhythmjs/router";
+import { filter, HttpError } from "@rhythmjs/middleware/filter";
+
+const router = new RhythmRouter().use(filter()).get("/users/:id", (ctx) => {
+  throw new HttpError(404, "user not found");
+});
+// GET /users/1 => 404 {"success":false,"status":404,"message":"user not found"}
+```
+
+## HttpError and the default mapping [#httperror]
+
+A thrown `HttpError(status, message, details?)` maps to its status with a JSON `FilterFailure` body; `details` is included only when defined, so simple errors stay small. Anything else thrown (a plain `Error`, a string, a rejected promise) maps to a generic 500 with the message `"Internal Server Error"`: the original message is *never* leaked to the client.
+
+```ts
+throw new HttpError(422, "cannot ship yet", { missing: ["address"] });
+// => 422 {"success":false,"status":422,"message":"cannot ship yet","details":{"missing":["address"]}}
+```
+
+## Custom error mapping [#custom-mapping]
+
+Passing an `onError(error, ctx)` hook replaces the default mapping *entirely*: the hook is responsible for writing the response (or rethrowing to an outer layer). Use it to log, translate domain errors into statuses, or forward to an error tracker:
+
+```ts
+router.use(
+  filter(async (error, ctx) => {
+    log.error(error);
+    if (error instanceof NotFoundInDb) {
+      ctx.response.status = 404;
+      ctx.response.headers.set("content-type", "application/json");
+      ctx.response.body = JSON.stringify({ success: false, status: 404, message: "not found" });
+      return;
+    }
+    throw error; // let an outer filter or serve()'s error handler take it
+  }),
+);
+```
+
+## Composing the three modules [#compose-them]
+
+The modules compose freely on one router. `filter` goes first so it wraps everything; error responses are non-2xx, so [intercept](/middleware/intercept/) skips them; and [validate](/middleware/) runs per route ahead of the handler:
+
+```ts
+const router = new RhythmRouter()
+  .use(filter())
+  .use(intercept(PublicUser))
+  .post<Validated<"body", typeof createUser>>(
+    "/users",
+    validate("body", createUser),
+    async (ctx) => {
+      const user = await users.create(ctx.valid.body);
+      if (!user) throw new HttpError(409, "user already exists");
+      ctx.response.body = JSON.stringify(user);
+    },
+  );
+```
+
+See the [API reference](/middleware/api/) for every export on the three subpaths.

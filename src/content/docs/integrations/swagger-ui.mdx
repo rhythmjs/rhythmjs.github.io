@@ -1,0 +1,49 @@
+---
+title: Swagger UI
+lead: "Choose Swagger UI instead of Scalar with one option, or serve both from different paths."
+description: "Serve Swagger UI for a Rhythm router with apiReference({ ui: 'swagger' }), including running it alongside Scalar."
+---
+
+## Install
+
+[Swagger UI](https://swagger.io/tools/swagger-ui/) is the long-standing reference UI for OpenAPI documents, with a built-in "Try it out" console. `@rhythmjs/openapi` serves it from the same `apiReference` middleware as Scalar, selected with `ui: "swagger"`.
+
+```bash
+bun add @rhythmjs/openapi @rhythmjs/rhythm @rhythmjs/router
+```
+
+## Serve Swagger UI
+
+The document comes from `apiDocument`, exactly as in the [Scalar recipe](/integrations/scalar/). Only the reference middleware changes.
+
+```ts
+import { Rhythm } from "@rhythmjs/rhythm";
+import type { RhythmHttpContext } from "@rhythmjs/router/context";
+import { apiDocument, apiReference } from "@rhythmjs/openapi/docs";
+import { config } from "./config";
+import { users } from "./users";
+
+export const app = new Rhythm<RhythmHttpContext>()
+  .use(apiDocument({ router: users, config }))
+  .use(apiReference({ ui: "swagger", title: "Users API" }))
+  .use(users.middleware());
+// GET /openapi.json => the document, GET /docs => Swagger UI
+```
+
+## Offer both UIs
+
+Each `apiReference` answers only its own path and lets every other request fall through, so you can mount two with different paths and let people choose.
+
+```ts
+new Rhythm<RhythmHttpContext>()
+  .use(apiDocument({ router: users, config }))
+  .use(apiReference({ path: "/docs", title: "Users API" })) // Scalar
+  .use(apiReference({ path: "/swagger", ui: "swagger", title: "Users API" }))
+  .use(users.middleware());
+```
+
+## Things to check
+
+- **Swagger UI loads from a CDN.** The page pulls its script and styles from `unpkg.com`, so the browser needs network access and a strict Content-Security-Policy must allow that host for the docs path.
+- **"Try it out" sends real requests.** Calls go to the server the document lists under `servers`, so set `servers` in `defineDocument` to an address the browser can reach.
+- **Which UI.** Scalar is the default and reads well as documentation; Swagger UI is familiar and has the console built in. Both read the same document, so you can switch with one option.

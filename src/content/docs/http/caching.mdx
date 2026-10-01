@@ -1,0 +1,60 @@
+---
+title: "Caching & compression"
+lead: "Make responses cheap to repeat: ETags with 304s, declarative Cache-Control, a keyed server-side cache, and negotiated compression on Bun’s native codecs."
+description: "ETag revalidation, Cache-Control helpers, a server-side response cache, and zstd/gzip compression on Bun's native codecs."
+---
+
+## ETags and revalidation [#etags]
+
+`etag(options?)` hashes successful string bodies with a synchronous `Bun.CryptoHasher` SHA-1 and sets the `ETag` header (`weak: true` prefixes `W/`). When the request’s `If-None-Match` list contains the computed tag, the response collapses to `304 Not Modified` with the body cleared. Non-2xx responses, non-string bodies, and responses that already carry an `ETag` pass through untouched.
+
+```ts
+import { etag } from "@rhythmjs/http/etag";
+
+router.use(etag()).get("/report", (ctx) => {
+  ctx.json(buildReport()); // second fetch with If-None-Match => 304, no body
+});
+```
+
+## Declaring cache policy [#cache-control]
+
+`cacheControl(options)` sets a `Cache-Control` header from typed directives - `maxAge`, `sMaxAge`, `staleWhileRevalidate`, `staleIfError`, `public`, `private`, `noCache`, `noStore`, `mustRevalidate`, `immutable`, and never overwrites a header a handler already set. `formatCacheControl(options)` exposes the formatter on its own.
+
+```ts
+import { cacheControl } from "@rhythmjs/http/cache";
+
+router.use(cacheControl({ public: true, maxAge: 60, staleWhileRevalidate: 600 }));
+// => cache-control: public, max-age=60, stale-while-revalidate=600
+```
+
+## The server-side cache [#server-cache]
+
+`cache(options?)` memoizes whole responses. Only `GET` and `HEAD` pass through it; the default key is `method + pathname + search`, and `vary: ["accept-language"]` folds chosen request headers into the key. A hit replays the stored status, headers, and body with `Age` and `x-cache: HIT`; a miss runs the chain, tags `x-cache: MISS`, and stores the response for `ttl` seconds (default 60).
+
+```ts
+import { cache } from "@rhythmjs/http/cache";
+
+router.use(cache({ ttl: 30, vary: ["accept-language"] })).get("/pricing", (ctx) => {
+  ctx.json(computeExpensivePricing()); // once per language per 30s
+});
+```
+
+Responses are skipped when they are not `200`, have no body, say `no-store` or `private`, are server-sent events, carry `Vary: *` or `Set-Cookie`, have a stream body, answer a request with `Authorization` (unless the response opts in with `public`, `s-maxage`, or `must-revalidate`), or when your `filter(ctx)` hook returns false — a shared cache must never replay one user's response to another. The `CacheStore` contract (`get`/`set`/`delete`) is async-friendly; the bundled `memoryCacheStore()` is an LRU capped at `maxEntries` (default 1024) entries of at most `maxEntryBytes` (default 1 MiB) each, and sweeps expired entries opportunistically.
+
+## Compression on Bun’s native codecs [#compression]
+
+`compress(options?)` negotiates `zstd`, `gzip`, and `deflate` against `Accept-Encoding` (respecting `;q=0`) in that default preference order. Buffered bodies are compressed *synchronously* with `Bun.zstdCompressSync` / `Bun.gzipSync`; streaming bodies pipe through `CompressionStream`, which cannot speak zstd, so a streaming response falls to gzip. HTTP `deflate` means zlib-wrapped, which `Bun.deflateSync` does not produce, so deflate always takes the stream path too.
+
+```ts
+import { compress } from "@rhythmjs/http/compress";
+
+router.use(compress({ threshold: 2048 })).get("/api/data", (ctx) => {
+  ctx.json(bigPayload); // zstd for modern clients, gzip otherwise
+});
+```
+
+Guardrails: bodies under `threshold` bytes (default 1024; streams always compress since their size is unknown), `204`/`304`, already-encoded responses, `text/event-stream`, and non-compressible content types are all left alone; the default type filter covers text, JSON, JavaScript, XML, SVG, and wasm and is replaceable with `filter(contentType)`. `Vary: Accept-Encoding` is appended wherever negotiation applies.
+
+## Stacking the three [#stack-order]
+
+Register `compress` before `etag` so the tag is computed over the uncompressed body and stays stable across encodings; put `cache` outside both to store the original response and let each client negotiate its own encoding on replay.

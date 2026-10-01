@@ -1,0 +1,116 @@
+---
+title: "MongoDB, no ORM"
+lead: "The official driver straight into the provider graph: the Db is public, the MongoClient hides behind a hash-key, and zod at the edges replaces the schema the database doesn't have."
+description: "Wire the native MongoDB driver into Rhythm: the client hidden behind a hash-key, ObjectId documents mapped to DTOs, and zod contracts instead of a schema."
+---
+
+## Install
+
+```bash
+bun add mongodb zod @rhythmjs/middleware
+```
+
+## The hash-key provider [#hash-key-provider]
+
+The interesting Rhythm mechanic here: a provider's value can carry keys prefixed with `#`. Those keys are stripped from the request context and from the provider graph — downstream code sees only `db` — but the dispose hook receives the value whole, so the client it must close is right there. Handles you need at teardown but nowhere else belong under a hash-key. Being schemaless, there is no migration step either: the startup factory is also where the collection's index is ensured.
+
+```ts
+// src/database.ts
+import { MongoClient, type Db } from "mongodb";
+
+const mongoUrl = process.env.MONGODB_URL ?? "mongodb://localhost:27017";
+const dbName = process.env.MONGODB_DB ?? "notes_mongodb";
+
+export interface DatabaseValue {
+  db: Db;
+  "#client": MongoClient;
+}
+
+export async function createDatabase(): Promise<DatabaseValue> {
+  const client = new MongoClient(mongoUrl);
+  await client.connect();
+  const db = client.db(dbName);
+  await db.collection("notes").createIndex({ createdAt: -1 });
+  return { db, "#client": client };
+}
+
+export async function closeDatabase(value: DatabaseValue): Promise<void> {
+  await value["#client"].close();
+}
+```
+
+## Documents in, DTOs out [#documents-and-dtos]
+
+Driver types stop at the service boundary. Internally documents carry `_id: ObjectId`; outward the service maps them to `id: string` DTOs, and an `ObjectId.isValid` guard turns malformed ids into a plain not-found instead of a thrown `BSONError`. `findOneAndUpdate` with `returnDocument: "after"` makes the update a single round trip.
+
+```ts
+// src/notes/notes.service.ts
+function toObjectId(id: string): ObjectId | undefined {
+  return ObjectId.isValid(id) ? new ObjectId(id) : undefined;
+}
+
+export function createNotesService(db: Db) {
+  const collection: Collection<NoteDocument> = db.collection("notes");
+
+  return {
+    async list() {
+      const docs = await collection.find().sort({ createdAt: -1 }).toArray();
+      return docs.map(toNote);
+    },
+    async get(id: string) {
+      const _id = toObjectId(id);
+      if (!_id) return null;
+      const doc = await collection.findOne({ _id });
+      return doc && toNote(doc);
+    },
+    async create(input: CreateNoteInput) {
+      const now = new Date();
+      const doc: NoteDocument = { _id: new ObjectId(), ...input, createdAt: now, updatedAt: now };
+      await collection.insertOne(doc);
+      return toNote(doc);
+    },
+    async update(id: string, patch: UpdateNoteInput) {
+      const _id = toObjectId(id);
+      if (!_id) return null;
+      const doc = await collection.findOneAndUpdate(
+        { _id },
+        { $set: { ...patch, updatedAt: new Date() } },
+        { returnDocument: "after" },
+      );
+      return doc && toNote(doc);
+    },
+    async remove(id: string) {
+      const _id = toObjectId(id);
+      if (!_id) return false;
+      const result = await collection.deleteOne({ _id });
+      return result.deletedCount > 0;
+    },
+  };
+}
+```
+
+## zod is the schema
+
+With no database schema, the zod contracts in `src/notes/notes.schema.ts` do the guarding: `validate("body", createNoteSchema)` keeps malformed documents out of the collection, and `intercept(notesResponseSchema)` keeps stray document fields from leaking into responses. The module wiring is the shared pattern from the [overview](/data/) page, with `({ db }) => …` feeding the service.
+
+```ts
+// src/notes/notes.schema.ts
+export const createNoteSchema = z.object({
+  title: z.string().trim().min(1, "title must be a non-empty string"),
+  content: z.string().default(""),
+});
+
+export const noteSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  content: z.string(),
+  createdAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime(),
+});
+
+export const notesResponseSchema = z.union([noteSchema, z.array(noteSchema)]);
+```
+
+## Where to next [#next-steps]
+
+The relational recipes: [Drizzle](/data/drizzle/), [Prisma](/data/prisma/), and [MikroORM](/data/mikro-orm/). The full app is [examples/mongodb](https://github.com/rhythmjs/examples/tree/main/examples/mongodb).

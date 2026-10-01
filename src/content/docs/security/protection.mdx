@@ -1,0 +1,52 @@
+---
+title: "CORS & CSRF"
+lead: "Cross-origin resource sharing with preflight handling, and origin-checked CSRF protection for form submissions, with no token bookkeeping."
+description: "CORS with preflight handling and origin-checked CSRF protection for Rhythm routers."
+---
+
+## CORS basics
+
+`@rhythmjs/security/cors` sets the `Access-Control-*` headers on every response and answers preflights before the router runs. The `origin` option accepts the wildcard `"*"` (the default), one origin string, an array of origins, or an `(origin) => string | null` function for dynamic rules. A non-wildcard origin is echoed back only when the request's `Origin` matches, and `Vary: Origin` is appended so shared caches keep per-origin responses apart.
+
+```ts
+import { RhythmRouter } from "@rhythmjs/router";
+import { cors } from "@rhythmjs/security/cors";
+
+new RhythmRouter()
+  .use(cors({ origin: ["https://app.example.com"], credentials: true, maxAge: 600 }))
+  .get("/api/data", (ctx) => {
+    ctx.json({ ok: true });
+  });
+```
+
+## Preflight requests
+
+An `OPTIONS` request short-circuits with `204 No Content` before any handler runs. The preflight answer carries `Access-Control-Allow-Methods` (default `GET, HEAD, PUT, POST, DELETE, PATCH, QUERY`), `Access-Control-Max-Age` when `maxAge` is set, and `Access-Control-Allow-Headers`: either your configured `allowHeaders` or, when the option is empty, a reflection of the browser's `Access-Control-Request-Headers`, with `Vary: Access-Control-Request-Headers` appended for caches. Any stray `Content-Type` and `Content-Length` headers are stripped from the 204.
+
+## Credentials and exposed headers [#credentials-and-exposure]
+
+`credentials: true` sets `Access-Control-Allow-Credentials` so cookies and `Authorization` headers cross origins; pair it with explicit origins, never the wildcard. `exposeHeaders` lists response headers scripts may read beyond the CORS-safelisted set (for example `ETag` or the draft `RateLimit-*` family from the [rate limiter](/security/hardening/)).
+
+## The CSRF model [#csrf-model]
+
+`@rhythmjs/security/csrf` blocks cross-site form submissions by checking the `Origin` header instead of managing tokens. A request is rejected only when all three hold: the method is unsafe (anything but `GET` or `HEAD`), the content type is form-shaped (`application/x-www-form-urlencoded`, `multipart/form-data`, or `text/plain` - what a plain HTML form can send), and the `Origin` is missing or not allowed. The rejection is a `403` with a JSON body of `{ success: false, status: 403, message: "Forbidden" }`.
+
+JSON and other non-form content types pass through untouched, because a cross-site page cannot send them without a CORS preflight; that path is [CORS's](#cors-basics) job, not CSRF's.
+
+## Allowed origins [#csrf-origins]
+
+By default only same-origin form posts are allowed: the `Origin` must equal the request URL's own origin. The `origin` option widens that: a string, an array of strings, or an `(origin) => boolean` predicate.
+
+```ts
+import { csrf } from "@rhythmjs/security/csrf";
+
+new RhythmRouter()
+  .use(csrf({ origin: ["https://app.example.com", "https://admin.example.com"] }))
+  .post("/submit", (ctx) => {
+    ctx.text("submitted");
+  });
+```
+
+## Using both together [#using-both]
+
+The two protect different edges: CORS governs what browser scripts may read across origins, CSRF governs what cross-site pages may write. Mount `cors()` first so preflights are answered before `csrf()` ever sees them (preflights are `OPTIONS`, which CSRF ignores anyway), then `csrf()`, then your routes.

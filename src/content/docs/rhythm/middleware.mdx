@@ -1,0 +1,67 @@
+---
+title: "Middleware & context"
+lead: "Control execution before, during, and after the next step."
+---
+
+## Follow the onion
+
+Middleware receives `(ctx, next)`. Awaiting `next()` runs the remaining steps, then resumes the current step. Omitting it stops downstream execution.
+
+```ts
+const app = new Rhythm()
+  .use(async (_ctx, next) => {
+    console.log("before");
+    await next();
+    console.log("after");
+  })
+  .use(() => console.log("inside"));
+
+await app.run({});
+// before → inside → after
+```
+
+## Extend the context
+
+Pass fields to `next(extra)` to merge them into the context. Supply the `use<TExtra>` generic to expose those additions to subsequent middleware; the extra type is not inferred from the body of your callback.
+
+```ts
+const app = new Rhythm<{ userId: string }>()
+  .use<{ user: { id: string; name: string } }>(async (ctx, next) => {
+    await next({ user: { id: ctx.userId, name: "Ada" } });
+  })
+  .use((ctx) => console.log(ctx.user.name));
+
+await app.run({ userId: "u1" });
+```
+
+## Handle errors
+
+Register an error-handling wrapper before the handlers it should protect. Wrap `await next()` in a try/catch to handle downstream failures. Use `finally` for per-run cleanup. Calling `next()` more than once in the same middleware dispatch rejects with an error.
+
+```ts
+const guarded = new Rhythm().use(async (_ctx, next) => {
+  try {
+    await next();
+  } catch (error) {
+    console.error("Pipeline failed", error);
+    throw error;
+  }
+});
+```
+
+## Readonly by default
+
+Context properties are deeply readonly at the type level, including arrays, maps, and sets. Function values remain callable. Objects branded with `readonly [RhythmMutable] = true` opt out; the router and CLI response classes use this mechanism.
+
+## Use the dispatcher directly
+
+`compose(middleware)` creates the standalone onion dispatcher. It does not initialize providers or manage lifecycle.
+
+```ts
+import { compose } from "@rhythmjs/rhythm";
+
+const dispatch = compose<{ message: string }>([
+  (ctx) => console.log(ctx.message),
+]);
+await dispatch({ message: "Hello" });
+```

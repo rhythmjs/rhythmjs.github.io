@@ -1,0 +1,88 @@
+---
+import BaseLayout from "./base-layout.astro";
+import Header from "../components/header.astro";
+import Sidebar from "../components/sidebar.astro";
+import Breadcrumbs from "../components/breadcrumbs.astro";
+import Pagination from "../components/pagination.astro";
+import Footer from "../components/footer.astro";
+import Icon from "../components/icon.astro";
+import { Badge } from "@/components/ui/badge";
+import TableOfContents, { type TocItem } from "../components/react/table-of-contents";
+import type { PageContext } from "../lib/docs";
+
+interface Props {
+  id: string;
+  title: string;
+  lead: string;
+  description?: string;
+  page: PageContext;
+  toc: TocItem[];
+}
+
+const { id, title, lead, description, page, toc } = Astro.props;
+const { section, group } = page;
+const step =
+  group.id === "tutorial"
+    ? `Step ${group.items.findIndex((entry) => entry.id === id) + 1} of ${group.items.length}`
+    : undefined;
+---
+
+<BaseLayout title={page.documentTitle} description={description ?? lead}>
+  <Header section={section} currentId={id} />
+  <div class="shell site-width">
+    <aside class="sidebar" data-pagefind-ignore>
+      <Sidebar section={section} currentId={id} />
+    </aside>
+    <main id="main" class="main" tabindex="-1">
+      <div class="main-inner">
+        <article class="doc" data-pagefind-body data-pagefind-meta={`group:${group.label}`}>
+          <Breadcrumbs crumbs={page.crumbs} />
+          <header class="page-header">
+            <p class="eyebrow">
+              <span>{step ? `Tutorial · ${step}` : group.label}</span>
+              {group.pkg && (
+                <a href={group.repo} title="View the source on GitHub">
+                  <Badge variant="secondary" className="gap-1 normal-case tracking-normal">
+                    {group.pkg} <Icon name="arrow-up-right" class="size-3" />
+                  </Badge>
+                </a>
+              )}
+            </p>
+            <h1 data-pagefind-meta="title">{title}</h1>
+            <p class="lead">{lead}</p>
+          </header>
+          {toc.length > 1 && (
+            <details class="mobile-toc" data-pagefind-ignore>
+              <summary>On this page</summary>
+              <ul>
+                {toc.map((entry) => (
+                  <li>
+                    <a href={`#${entry.id}`}>{entry.text}</a>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
+          <div class="prose">
+            <slot />
+          </div>
+          <div class="doc-meta" data-pagefind-ignore>
+            <a href={page.editUrl}>
+              <Icon name="pencil" /> Edit this page
+            </a>
+            <a href={group.repo}>
+              <Icon name="github" /> {group.pkg ?? "Source"} on GitHub
+            </a>
+          </div>
+          <div data-pagefind-ignore>
+            <Pagination prev={page.prev} next={page.next} />
+          </div>
+        </article>
+        <Footer />
+      </div>
+      <aside class="toc" data-pagefind-ignore>
+        <TableOfContents client:idle items={toc} />
+      </aside>
+    </main>
+  </div>
+</BaseLayout>

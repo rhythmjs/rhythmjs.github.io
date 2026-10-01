@@ -1,0 +1,63 @@
+---
+title: "Modules"
+lead: "Split features into encapsulated modules and compose them into a tree."
+description: "Encapsulated features, registered imports, and the forRoot pattern."
+---
+
+## Feature modules
+
+As features multiply, each one becomes its own module: a `Rhythm` instance with `{ type: "module", name }` that owns its providers and controllers. The notes feature now ships as one unit:
+
+```ts
+// src/notes/notes.module.ts
+export const notesModule = new Rhythm<RhythmHttpContext>({ name: "notes", type: "module" })
+  .provide(() => ({ notesService: createNotesService() }))
+  .use(notesController.middleware());
+```
+
+## Register and export
+
+`register(module, exportValue?)` mounts another module inside this one. The child's providers set up with the parent (and tear down with it), its middleware runs in place, and its context stays *encapsulated*: nothing leaks to the parent unless `exportValue` picks it out. Explicit boundaries, not folder conventions:
+
+```ts
+export const appModule = new Rhythm<RhythmHttpContext>({ name: "app", type: "module" })
+  .register(notesModule, ({ notesService }) => ({ notesService })) // export the service
+  .register(auditModule)                                          // keep everything private
+  .use((ctx) => {
+    // ctx.notesService is available and typed here; auditModule&#x27;s internals are not
+  });
+```
+
+A registered module that fails to set up fails the whole app loudly at startup — `registered module "notes" failed` with the original error as `cause` — never a silent half-boot.
+
+## The forRoot pattern
+
+Reusable modules follow one naming convention: a `somethingModule.forRoot(options)` factory returning a configured `Rhythm` module. Every @rhythmjs package that provides a service ships one, and your own shared modules should too:
+
+```ts
+export const cacheModule = {
+  forRoot(options: { ttl?: number } = {}) {
+    return new Rhythm({ type: "module", name: "cache" }).provide(
+      () => ({ cacheService: createCacheService(options) }),
+      (value) => value.cacheService.close(),
+    );
+  },
+};
+
+appModule.register(cacheModule.forRoot({ ttl: 300 }), (v) => v);
+```
+
+## The app as a tree
+
+The finished shape is a tree of modules with the app module at the root — setup flows down, teardown flows back up in reverse, and every request runs the flattened onion top to bottom:
+
+```text
+appModule
+├─ configModule.forRoot(...)     // step 7
+├─ notesModule                   // service + controller
+├─ mailerModule.forRoot(...)     // your own — next step
+├─ eventsModule.forRoot(...)     // step 11
+└─ 404 tail
+```
+
+Read [Encapsulated modules](/rhythm/modules/) for the full semantics — what is hidden, what `exportValue` sees, and how module errors propagate. The next step turns this pattern around: instead of consuming ready-made modules, you author your own.

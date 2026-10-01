@@ -1,0 +1,97 @@
+---
+title: AI SDK
+lead: "Stream model output from a Rhythm route with the Vercel AI SDK: the SDK builds a streaming Response, and a small helper copies it into ctx.response."
+description: "Use the Vercel AI SDK with Rhythm: a streaming chat endpoint with streamText, a bridge from Response to ctx.response, cancellation, and guarding a paid endpoint."
+---
+
+## Install
+
+The [AI SDK](https://ai-sdk.dev) calls language models through one API and returns Web-standard streams, which fits Rhythm's response model. Install the core package and the provider you want; this page uses OpenAI, and any provider works the same way.
+
+```bash
+bun add ai @ai-sdk/openai @rhythmjs/rhythm @rhythmjs/router
+```
+
+Bun loads `.env` automatically, so putting `OPENAI_API_KEY` there is enough for the provider to find it.
+
+## Bridge a Response into the context [#bridge]
+
+A Rhythm handler does not return a `Response`; it fills `ctx.response`, and the final `Response` is created when the app is served. The AI SDK gives you a ready-made `Response`, so a four-line helper copies its status, headers and stream across. The body is a `ReadableStream`, which `ctx.response.body` accepts, so nothing is buffered.
+
+```ts
+import type { RhythmHttpContext } from "@rhythmjs/router/context";
+
+export function send(ctx: RhythmHttpContext, response: Response): void {
+  ctx.response.status = response.status;
+  response.headers.forEach((value, key) => ctx.response.headers.set(key, value));
+  ctx.response.body = response.body;
+}
+```
+
+## Stream a chat reply [#streaming]
+
+`streamText` starts the model call and returns immediately; `toUIMessageStreamResponse()` turns the result into a streaming `Response` that the AI SDK's chat hooks understand. Convert the incoming UI messages with `convertToModelMessages` first; it is async, so await it.
+
+```ts
+import { openai } from "@ai-sdk/openai";
+import { convertToModelMessages, streamText, type UIMessage } from "ai";
+import { RhythmRouter } from "@rhythmjs/router";
+import { send } from "./send";
+
+export const chat = new RhythmRouter({ prefix: "/api" }).post("/chat", async (ctx) => {
+  const { messages }: { messages: UIMessage[] } = await ctx.request.json();
+
+  const result = streamText({
+    model: openai("gpt-4o-mini"),
+    system: "You are a concise assistant.",
+    messages: await convertToModelMessages(messages),
+    abortSignal: ctx.request.signal,
+  });
+
+  send(ctx, result.toUIMessageStreamResponse());
+});
+```
+
+Passing `ctx.request.signal` as `abortSignal` stops the model call when the client disconnects, so you stop paying for tokens nobody will read. On the client, `useChat` from `@ai-sdk/react` with a `DefaultChatTransport({ api: "/api/chat" })` talks to this route unchanged.
+
+## Return a complete answer
+
+When you do not need streaming, `generateText` waits for the whole reply and you answer with `ctx.json` as for any other route.
+
+```ts
+import { generateText } from "ai";
+
+router.post("/summarize", async (ctx) => {
+  const { text } = await ctx.request.json();
+  const result = await generateText({
+    model: openai("gpt-4o-mini"),
+    prompt: `Summarize in one sentence: ${text}`,
+    abortSignal: ctx.request.signal,
+  });
+  ctx.json({ summary: result.text });
+});
+```
+
+## Protect a paid endpoint [#protect]
+
+Every request to a model costs money, so treat these routes as the ones to lock down first. Register the guards before the route, since middleware wraps only what comes after it: authenticate the caller, cap how often one client can call, and cap the request size.
+
+```ts
+import { bodyLimit } from "@rhythmjs/http/body-limit";
+import { requireAuthentication } from "@rhythmjs/security/authentication";
+import { withUser } from "./session";
+
+export const chat = new RhythmRouter({ prefix: "/api" })
+  .use(withUser)
+  .use(requireAuthentication())
+  .use(bodyLimit(64 * 1024))
+  .post("/chat", handleChat);
+```
+
+See [rate limiting](/security/hardening/) for the per-client limiter, and [Better Auth](/integrations/better-auth/) for a session-based `withUser`.
+
+## Things to check
+
+- **Compression and caching.** The chat stream is sent as server-sent events (`text/event-stream`), and `compress` and `cache` skip those responses by design, so tokens reach the browser as they are produced. See [streaming](/http/streaming/).
+- **Timeouts.** `timeout(ms)` answers `504` but does not abort the work behind it. Pass an `AbortSignal` to the model call, as above, so a slow generation is actually cancelled.
+- **Keys stay on the server.** Call the provider from your route, never from the browser, and read keys from the environment.

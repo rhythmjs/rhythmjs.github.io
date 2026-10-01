@@ -1,0 +1,101 @@
+---
+title: Better Auth
+lead: "Mount Better Auth's handler in front of your Rhythm app, then turn its session into ctx.user for the rest of the pipeline."
+description: "Use Better Auth with Rhythm: serve its endpoints from Bun.serve, resolve the session with attachUser, and guard routes with requireAuthentication."
+---
+
+## Install
+
+[Better Auth](https://www.better-auth.com) is a framework-agnostic authentication library. It exposes a Web-standard handler and a server-side API, which is exactly what Rhythm composes with. Configure Better Auth (database, providers, plugins) as its own documentation describes.
+
+```bash
+bun add better-auth @rhythmjs/security @rhythmjs/rhythm @rhythmjs/router
+```
+
+```ts
+// auth.ts
+import { betterAuth } from "better-auth";
+
+export const auth = betterAuth({
+  emailAndPassword: { enabled: true },
+  // database, social providers, plugins: see the Better Auth documentation
+});
+```
+
+## Serve the auth endpoints
+
+`auth.handler` takes a `Request` and returns a `Response`, and by default it answers under `/api/auth`. Rhythm has no server wrapper, so you route to it in the `fetch` function you give to `Bun.serve`, before the Rhythm app sees the request. Requests that are not auth requests continue to the app untouched.
+
+```ts
+import { toFetchHandler, errorToResponse } from "@rhythmjs/router/fetch";
+import { auth } from "./auth";
+import { app } from "./app";
+
+const handler = toFetchHandler(app);
+
+Bun.serve({
+  port: 3000,
+  async fetch(request) {
+    if (new URL(request.url).pathname.startsWith("/api/auth/")) return auth.handler(request);
+    try {
+      return await handler(request);
+    } catch (error) {
+      return errorToResponse(error);
+    }
+  },
+});
+```
+
+## Turn the session into ctx.user [#session]
+
+`attachUser` runs your resolver once per request and derives `ctx.user` onto the context. Better Auth's `auth.api.getSession` reads the session from the request headers (the cookie) and returns `{ session, user }` or `null`, which is the shape `attachUser` expects once you return the `user`.
+
+```ts
+import { attachUser } from "@rhythmjs/security/authentication";
+import { auth } from "./auth";
+
+export type User = typeof auth.$Infer.Session.user;
+
+export const withUser = attachUser<User>(async (ctx) => {
+  const session = await auth.api.getSession({ headers: ctx.request.headers });
+  return session?.user ?? null;
+});
+```
+
+## Guard routes
+
+Derive the user once in the app module, so every controller mounted after it sees `ctx.user`, and have the controller declare it in its context type. Guard a route by putting `requireAuthentication()` in front of its handler: anonymous requests are answered with `401` before the handler runs, and `ctx.user` is non-null inside it. Use `redirectTo` instead when the route serves pages rather than an API.
+
+```ts
+// app.module.ts
+import { Rhythm } from "@rhythmjs/rhythm";
+import type { RhythmHttpContext } from "@rhythmjs/router/context";
+import { account } from "./account";
+import { withUser } from "./session";
+
+export const app = new Rhythm<RhythmHttpContext>().use(withUser).use(account.middleware());
+```
+
+```ts
+// account.ts
+import { RhythmRouter } from "@rhythmjs/router";
+import type { RhythmHttpContext } from "@rhythmjs/router/context";
+import { requireAuthentication, type UserContext } from "@rhythmjs/security/authentication";
+import type { User } from "./session";
+
+export type AccountContext = RhythmHttpContext & UserContext<User>;
+
+export const account = new RhythmRouter<AccountContext>({ prefix: "/api" })
+  .get("/health", (ctx) => ctx.json({ ok: true, signedIn: ctx.user !== null })) // public
+  .get("/me", requireAuthentication(), (ctx) => ctx.json(ctx.user)); // ctx.user is non-null here
+```
+
+Put the guard on the route rather than on the router with `router.use(requireAuthentication())`: a router-level guard narrows the router's context, and a router that requires a non-null `user` no longer type-checks when mounted in an app whose `user` can be `null`.
+
+For roles, add `requireRoles(["admin"])` next to the guard, as described in [Authentication & authorization](/security/#roles-and-permissions). It reads `user.roles` by default, and Better Auth's admin plugin keeps a single `role` string on the user, so pass an extractor: `{ roles: (user) => [user.role ?? "user"] }`.
+
+## Things to check
+
+- **Cookies and origins.** If your frontend runs on another origin, list it in Better Auth's `trustedOrigins` and allow credentials in [CORS](/security/protection/); the two sides must agree.
+- **Rate limiting.** Apply [rate limiting](/security/hardening/) to the auth path as well; the endpoints for sign-in and password reset are the usual targets. Because `auth.handler` runs before the Rhythm app, a Rhythm middleware does not see those requests, so use Better Auth's own rate limit setting for them.
+- **Tests.** Resolve the user with a fake `getSession` in tests; see [testing](/testing/) for the router client.

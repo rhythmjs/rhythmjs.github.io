@@ -1,0 +1,56 @@
+---
+title: "Providers & lifecycle"
+lead: "Initialize shared dependencies once, then dispose of them deliberately."
+---
+
+## Declare a provider
+
+`provide(factory, dispose?)` accepts a factory returning an object or a promise of an object. Factories receive the previously resolved provider fields, not the input of an individual run. The resolved value joins the context at the provider's position in the chain: only middleware and mounted controllers registered after it see the value.
+
+```ts
+const app = new Rhythm()
+  .provide(() => ({ config: { serviceName: "jobs" } }))
+  .provide((deps) => ({
+    logger: {
+      info: (message: string) =>
+        console.log(`[${deps.config.serviceName}] ${message}`),
+    },
+  }))
+  .use((ctx) => ctx.logger.info("ready"));
+```
+
+## Keep cleanup handles private
+
+Keys starting with `#` are excluded from the context and subsequent provider dependencies. The disposer receives the full factory result, including those private keys.
+
+```ts
+const app = new Rhythm().provide(
+  () => {
+    const timer = setInterval(() => {}, 1000);
+    return { serviceName: "jobs", "#timer": timer };
+  },
+  (value) => clearInterval(value["#timer"]),
+);
+
+try {
+  await app.run({});
+} finally {
+  await app.teardown();
+}
+```
+
+## Initialize predictably
+
+`setup()` resolves providers in declaration order and shares the same promise across calls. `run()` and the callback initialize automatically. If setup fails, its promise is cleared so a later call can retry.
+
+<Callout title="Handle partial initialization">
+
+A failed setup does not automatically roll back resources already created. A retry runs the factories again. Design factories and cleanup for this possibility.
+
+</Callout>
+
+## Dispose in reverse
+
+`teardown()` awaits disposers in reverse registration order. It does not reset setup or automatically make a disposed instance reusable. Call it once at the end of the instance’s lifetime; create a new instance to start again.
+
+If a disposer throws, later disposers are not reached. Keep cleanup robust. Flat-mounted middleware needs explicit child teardown; registered modules participate in the parent lifecycle.

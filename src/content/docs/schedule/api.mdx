@@ -1,0 +1,100 @@
+---
+title: "API reference"
+lead: "Every export across the four subpaths: job factories and the service on the root, the shared types, the Cron engine on /cron, and startScheduler on /scheduler."
+description: "Every export of @rhythmjs/schedule: job factories, cronPatterns, the schedule service, the Cron engine, and the in-process scheduler."
+---
+
+## @rhythmjs/schedule [#root-subpath]
+
+```ts
+function cronJob(name: string, schedule: string, handler: JobHandler, options?: JobOptions): ScheduleJob;
+function intervalJob(name: string, ms: number, handler: JobHandler, options?: JobOptions): ScheduleJob;
+function timeoutJob(name: string, ms: number, handler: JobHandler, options?: JobOptions): ScheduleJob;
+```
+
+Job factories. Each validates that `handler` is a function and freezes the options into the job value: `timezone` is kept only when given, `overlap` defaults to `"skip"`, `disabled` to `false`.
+
+```ts
+const cronPatterns: {
+  everySecond: "* * * * * *"; everyMinute: "* * * * *";
+  every5Minutes: "*/5 * * * *"; every10Minutes: "*/10 * * * *";
+  every30Minutes: "*/30 * * * *"; hourly: "0 * * * *";
+  daily: "0 0 * * *"; weekly: "0 0 * * 0";
+  monthly: "0 0 1 * *"; yearly: "0 0 1 1 *";
+};
+```
+
+```ts
+function createScheduleService(...jobs: ScheduleJob[]): ScheduleService;
+```
+
+Builds the registry and state map. Throws on duplicate job names; every service method that takes a name throws `unknown job "name"` for unregistered names.
+
+```ts
+const scheduleModule: {
+  forRoot(...jobs: ScheduleJob[]): Rhythm<...>; // provides { scheduleService }
+};
+```
+
+All types below are re-exported from the root as well.
+
+## ScheduleService [#schedule-service]
+
+```ts
+interface ScheduleService {
+  readonly jobs: readonly ScheduleJob[];
+  add(job: ScheduleJob): void;
+  remove(name: string): void;
+  run(name: string): Promise<JobRunResult>;
+  runDue(date?: Date): Promise<JobRunResult[]>;
+  nextRun(name: string, from?: Date): Date | null;
+  state(name: string): JobState;
+}
+```
+
+<DefList>
+<Def sig="run(name)" id="run">Executes one job now. Returns `{ name, ran: false }` when the job is disabled, or already running with `overlap: "skip"`. Otherwise runs the handler, records `lastRun` and `runs`, captures a thrown error's message into `lastError` and the result, and always reports `durationMs` (rounded).</Def>
+<Def sig="runDue(date?)" id="rundue">For every enabled cron job, computes the occurrence in the minute containing `date` (default now) and runs the job when that occurrence falls at or before `date`. Returns the results in registry order.</Def>
+<Def sig="nextRun(name, from?)" id="nextrun">The next occurrence of a cron job strictly after `from` (default now); `null` for interval and timeout jobs, or when the pattern can never occur again.</Def>
+<Def sig="state(name)" id="state">`{ running, runs, lastRun?, lastError? }` plus `nextRun` for cron jobs. `lastError` clears on the next successful run.</Def>
+<Def sig="add(job) / remove(name) / jobs" id="add">Dynamic registry. `add` throws on duplicates; `remove` throws on unknown names, and a running scheduler's timer for a removed job cancels itself on its next fire; `jobs` returns a fresh array.</Def>
+</DefList>
+
+## @rhythmjs/schedule/types [#types-subpath]
+
+<DefList>
+<Def sig="JobHandler" id="jobhandler">`() => void | Promise<void>`.</Def>
+<Def sig="JobKind" id="jobkind">`"cron" | "interval" | "timeout"`.</Def>
+<Def sig="OverlapPolicy" id="overlappolicy">`"skip" | "allow"`.</Def>
+<Def sig="JobOptions" id="joboptions">`{ timezone?: string; overlap?: OverlapPolicy; disabled?: boolean }`.</Def>
+<Def sig="ScheduleJob" id="schedulejob">The frozen job value: `{ name, kind, schedule: string | number, handler, timezone?, overlap, disabled }`.</Def>
+<Def sig="JobState" id="jobstate">`{ running: boolean; runs: number; lastRun?: Date; lastError?: string; nextRun?: Date }`.</Def>
+<Def sig="JobRunResult" id="jobrunresult">`{ name: string; ran: boolean; durationMs?: number; error?: string }`.</Def>
+<Def sig="ScheduleContext" id="schedulecontext">`{ scheduleService: ScheduleService }`, the context slice the module provides.</Def>
+</DefList>
+
+## @rhythmjs/schedule/cron [#cron-subpath]
+
+```ts
+interface CronOptions { timezone?: string }
+
+class Cron {
+  readonly pattern: string;
+  constructor(pattern: string, options?: CronOptions);
+  nextRun(from?: Date): Date | null;
+}
+```
+
+The dependency-free cron engine. The constructor throws on malformed patterns (field counts other than 5 or 6, out-of-range values, reversed ranges, zero steps, unknown names) and on unknown timezones. Accepted syntax per field: `*`, values, names (`jan-dec`, `sun-sat`), lists (`a,b,c`), ranges (`a-b`), steps (`*/n`, `a-b/n`, `a/n` meaning `a` to max), plus the `@yearly`, `@annually`, `@monthly`, `@weekly`, `@daily`, `@hourly` aliases. Six fields add leading seconds; five fields imply second zero. Day-of-week `7` is Sunday.
+
+`nextRun(from?)` returns the next occurrence strictly after `from` at second resolution. When both day-of-month and day-of-week are restricted (neither starts with `*`), a date matching either is due. With `timezone` set, wall-clock fields are evaluated in that zone via `Intl.DateTimeFormat`; a time erased by a DST spring-forward gap is skipped to the next real occurrence. The search is bounded (about eight years); an impossible date such as February 30 returns `null`.
+
+## @rhythmjs/schedule/scheduler [#scheduler-subpath]
+
+```ts
+interface Scheduler { stop(): void }
+
+function startScheduler(service: ScheduleService): Scheduler;
+```
+
+Snapshots `service.jobs` and arms every enabled job: cron jobs via a `setTimeout` chain that re-arms after each run (`service.run` enforces the overlap policy), intervals via `setInterval`, timeouts via a single `setTimeout`. Delays above `2³¹−1` ms re-arm in chunks instead of firing early. `stop()` clears every timer and prevents re-arming; a run already in flight completes.

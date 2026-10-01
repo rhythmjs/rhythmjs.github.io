@@ -1,0 +1,78 @@
+---
+title: "Rate limiting & headers"
+lead: "Fixed-window request budgets with standard RateLimit-* headers and pluggable stores, plus helmet-style secure headers applied after every handler."
+description: "Fixed-window rate limiting with RateLimit-* headers, pluggable stores, WebSocket upgrade limits, and secure headers for Rhythm."
+---
+
+## Fixed-window rate limits [#fixed-window-limits]
+
+`@rhythmjs/security/rate-limit` counts requests per key in a fixed window: `limit` requests (default `100`) per `windowMs` (default `60 000`). Within the window each request increments the key's counter; once the counter passes the limit, the middleware answers `429` with a `Retry-After` header holding the seconds until the window resets and a JSON body of `{ success: false, status: 429, message }` (`message` defaults to `"Too Many Requests"`). A `skip(request)` predicate exempts requests (health probes, allowlisted callers) before any counting happens.
+
+```ts
+import { rateLimit } from "@rhythmjs/security/rate-limit";
+
+new RhythmRouter()
+  .use(rateLimit({ limit: 100, windowMs: 60_000, skip: (request) => new URL(request.url).pathname === "/health" }))
+  .get("/api", handler);
+```
+
+## RateLimit-\* headers [#ratelimit-headers]
+
+Unless `headers: false`, every response, allowed or rejected, carries the draft-standard trio: `RateLimit-Limit`, `RateLimit-Remaining` (never negative), and `RateLimit-Reset` (seconds until the current window ends). Clients can pace themselves before ever hitting a 429.
+
+## Choosing keys
+
+The default key is the client IP: `request.ip`, which you expose in your own `Bun.serve` fetch (`Object.defineProperty(request, "ip", { get: () => server.requestIP(request)?.address })`), then the literal key `"global"` as a last resort (one shared bucket). `X-Forwarded-For` is *ignored* unless you set `trustProxy` — anyone can send that header, and a limiter keyed on it hands every client an unlimited supply of fresh buckets.
+
+Behind a reverse proxy you must set `trustProxy` to the number of hops you operate (`true` means one): the key becomes the `X-Forwarded-For` entry that many hops from the *right* — the one your own proxy appended — so spoofed client-supplied prefixes never reach the key. Without it, every client shares the proxy's `request.ip` bucket and a single abuser exhausts the site-wide budget for everyone. Alternatively replace the key entirely with `keyOf`; an authenticated user id gives fairer buckets than an IP.
+
+```ts
+rateLimit({ trustProxy: true }); // one trusted hop (nginx, a load balancer)
+rateLimit({ keyOf: async (request) => (await sessionOf(request))?.userId ?? "anonymous" });
+```
+
+## Stores
+
+Counting goes through the `RateLimitStore` interface - `increment(key, windowMs)` returning `{ count, resetAt }` and `reset(key)`, so the backend is pluggable. The default `memoryRateLimitStore()` keeps counters in a Map and lazily sweeps expired entries at most once per window; it is per-process, which is exactly right for one instance and an undercount across replicas. For shared limits, implement the two methods over a shared store (Bun's native `Bun.redis` client and an `INCR`/`PEXPIRE` pair fit in a dozen lines) and pass it as `store`.
+
+## WebSocket upgrades
+
+`rateLimitWs()` applies the same limiter to WebSocket handshakes. It is shaped exactly like an `@rhythmjs/ws` middleware — `(ctx, next)`, calling `next()` while the budget lasts and setting the full `429 Response` (with `Retry-After` and the `RateLimit-*` headers) on `ctx.response` once it is spent — so it plugs into `use()` directly:
+
+```ts
+import { RhythmWs } from "@rhythmjs/ws";
+import { rateLimitWs } from "@rhythmjs/security/rate-limit";
+
+const ws = new RhythmWs()
+  .use(rateLimitWs({ limit: 10, windowMs: 60_000 }))
+  .route("/chat", { message(peer, message) { peer.send(String(message)); } });
+```
+
+## Secure headers
+
+`@rhythmjs/security/secure-headers` applies helmet-style response headers after your handlers run, so nothing downstream can lose them. Ten headers are on by default; `contentSecurityPolicy` and `crossOriginEmbedderPolicy` ship off and are set only when you configure them. Every option takes a string to override the value or `false` to drop the header entirely.
+
+<DefList>
+<Def sig="cross-origin-opener-policy" id="cross">`same-origin`</Def>
+<Def sig="cross-origin-resource-policy" id="cross-2">`same-origin`</Def>
+<Def sig="referrer-policy" id="referrer">`no-referrer`</Def>
+<Def sig="strict-transport-security" id="strict">`max-age=15552000; includeSubDomains`</Def>
+<Def sig="x-content-type-options" id="x">`nosniff`</Def>
+<Def sig="x-dns-prefetch-control" id="x-2">`off`</Def>
+<Def sig="x-download-options" id="x-3">`noopen`</Def>
+<Def sig="x-frame-options" id="x-4">`SAMEORIGIN`</Def>
+<Def sig="x-permitted-cross-domain-policies" id="x-5">`none`</Def>
+<Def sig="x-xss-protection" id="x-6">`0` (the legacy auditor, explicitly disabled)</Def>
+</DefList>
+
+```ts
+import { secureHeaders } from "@rhythmjs/security/secure-headers";
+
+new RhythmRouter().use(
+  secureHeaders({
+    contentSecurityPolicy: "default-src 'self'",
+    xFrameOptions: "DENY",
+    strictTransportSecurity: false, // dropped, e.g. behind a TLS-terminating proxy that sets it
+  }),
+);
+```

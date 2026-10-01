@@ -1,0 +1,140 @@
+---
+title: "Drizzle on Bun's native SQL"
+lead: "The database is a provider with a dispose hook, the queries live in a service factory, and Drizzle talks to PostgreSQL through Bun.SQL — no driver package."
+description: "Wire Drizzle ORM into Rhythm on Bun's native SQL driver: the database as a disposable provider, a service factory, and drizzle-kit migrations."
+---
+
+## Install
+
+Drizzle's `drizzle-orm/bun-sql` entry runs on Bun's built-in `SQL` class, so PostgreSQL needs no `pg` or `postgres.js` dependency — `drizzle-kit` is only a dev tool for generating and applying migrations. The wiring below follows the shared shape from the [overview](/data/).
+
+```bash
+bun add drizzle-orm zod @rhythmjs/middleware
+bun add -d drizzle-kit
+```
+
+## The database provider [#database-provider]
+
+The factory returns the drizzle instance under `db` and the raw client under the hash-key `"#client"`. Hash-prefixed keys never reach the request context or the provider graph, but the dispose hook receives the *whole* value — so the pool stays private and still gets closed when the module tears down.
+
+```ts
+// src/database.ts
+import { SQL } from "bun";
+import { drizzle, type BunSQLDatabase } from "drizzle-orm/bun-sql";
+import * as schema from "./notes/notes.table";
+
+const databaseUrl = process.env.DATABASE_URL ?? "postgres://postgres:postgres@localhost:5432/notes_drizzle";
+
+export type Database = BunSQLDatabase<typeof schema>;
+
+export interface DatabaseValue {
+  db: Database;
+  "#client": SQL;
+}
+
+export function createDatabase(): DatabaseValue {
+  const client = new SQL(databaseUrl);
+  return { db: drizzle({ client, schema }), "#client": client };
+}
+
+export async function closeDatabase(value: DatabaseValue): Promise<void> {
+  await value["#client"].close();
+}
+```
+
+## Table and service
+
+Everything notes-related lives under `src/notes/`: the table, the zod schemas, the service, and the controller. Ids are plain `text` columns defaulted from `crypto.randomUUID()` in JavaScript, so a malformed id in the URL is an empty result instead of a database type error.
+
+```ts
+// src/notes/notes.table.ts
+import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
+
+export const notes = pgTable("notes", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  title: text("title").notNull(),
+  content: text("content").notNull().default(""),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type Note = typeof notes.$inferSelect;
+```
+
+The service is a factory over the typed database. It owns every query; nothing else in the app touches drizzle. `returning()` turns updates and deletes into found-or-not answers without a second round trip.
+
+```ts
+// src/notes/notes.service.ts
+export function createNotesService(db: Database) {
+  return {
+    list: () => db.select().from(notes).orderBy(desc(notes.createdAt)),
+    async get(id: string) {
+      const [note] = await db.select().from(notes).where(eq(notes.id, id));
+      return note;
+    },
+    async create(input: CreateNoteInput) {
+      const [note] = await db.insert(notes).values(input).returning();
+      return note;
+    },
+    async update(id: string, patch: UpdateNoteInput) {
+      const [note] = await db
+        .update(notes)
+        .set({ ...patch, updatedAt: new Date() })
+        .where(eq(notes.id, id))
+        .returning();
+      return note;
+    },
+    async remove(id: string) {
+      const deleted = await db.delete(notes).where(eq(notes.id, id)).returning({ id: notes.id });
+      return deleted.length > 0;
+    },
+  };
+}
+
+export type NotesService = ReturnType<typeof createNotesService>;
+```
+
+## Wiring the module [#module-wiring]
+
+The app module chains it together: a [`filter()`](/middleware/filter/) error boundary first, then the database provider, then the service provider — which receives `db` from the provider graph — then the controller. Handlers throw `HttpError` for missing notes; `validate("body", …)` guards the writes and `intercept(…)` enforces the response contract.
+
+```ts
+// src/app.module.ts
+export const appModule = new Rhythm<RhythmHttpContext>({ name: "app", type: "module" })
+  .use(filter())
+  .provide(createDatabase, closeDatabase)
+  .provide(({ db }) => ({ notesService: createNotesService(db) }))
+  .use(notesController.middleware())
+  .use(() => {
+    throw new HttpError(404, "Route not found");
+  });
+```
+
+On shutdown, `appModule.teardown()` disposes providers in reverse order: the service (nothing to do) and then the pool.
+
+## Migrations
+
+`drizzle-kit generate` diffs `notes.table.ts` against the last snapshot and emits a SQL migration into `drizzle/` — no database needed. `drizzle-kit migrate` applies whatever is pending.
+
+```ts
+// drizzle.config.ts
+import { defineConfig } from "drizzle-kit";
+
+export default defineConfig({
+  dialect: "postgresql",
+  schema: "./src/notes/notes.table.ts",
+  out: "./drizzle",
+  dbCredentials: { url: process.env.DATABASE_URL ?? "postgres://postgres:postgres@localhost:5432/notes_drizzle" },
+});
+```
+
+```bash
+bun run db:generate   # emit drizzle/0001_*.sql after editing the table
+bun run db:migrate    # apply pending migrations
+```
+
+## Where to next [#next-steps]
+
+The same shape with a generated client: [Prisma](/data/prisma/). A unit-of-work ORM that forks per request: [MikroORM](/data/mikro-orm/). No ORM at all: [MongoDB](/data/mongodb/). The full app is [examples/drizzle-postgres](https://github.com/rhythmjs/examples/tree/main/examples/drizzle-postgres).

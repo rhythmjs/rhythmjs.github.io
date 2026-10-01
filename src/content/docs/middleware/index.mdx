@@ -1,0 +1,74 @@
+---
+title: "Validate requests"
+lead: "One middleware per request part: check it against any Standard Schema and read the typed output from ctx.valid."
+description: "Validate request bodies, query strings, and route params against any Standard Schema, typed straight onto the context."
+---
+
+## Install the package
+
+`@rhythmjs/middleware` is a middleware collection for Rhythm routers and handlers: request validation (`/validate`), response transformation (`/intercept`), and exception handling (`/filter`). Each module lives on its own subpath export; there is no root barrel export.
+
+```bash
+bun add @rhythmjs/middleware @rhythmjs/rhythm @rhythmjs/router
+```
+
+## One request part, one schema [#one-part-one-schema]
+
+`validate(target, schema)` checks one part of the request against any [Standard Schema v1](https://standardschema.dev) schema: zod, valibot, arktype, or anything else implementing the spec, including asynchronous schemas. The target selects what gets extracted:
+
+- **`"body"`**: the JSON request body, read from `ctx.request.clone()` so the handler can still read the original body itself.
+- **`"query"`**: URL search params collected into an object; a key that repeats becomes an array of its values.
+- **`"param"`**: the route params matched by the router (`ctx.params`; an empty object when nothing matched).
+
+```ts
+import { RhythmRouter } from "@rhythmjs/router";
+import { validate, type Validated } from "@rhythmjs/middleware/validate";
+import { z } from "zod";
+
+const createUser = z.object({ name: z.string().min(1), age: z.coerce.number().int() });
+
+const router = new RhythmRouter().post<Validated<"body", typeof createUser>>(
+  "/users",
+  validate("body", createUser),
+  (ctx) => {
+    // ctx.valid.body is typed as { name: string; age: number }
+    ctx.response.body = JSON.stringify(ctx.valid.body);
+  },
+);
+```
+
+## The typed context [#typed-context]
+
+On success the schema’s *output* (after coercions and transforms) is merged into the context as `ctx.valid[target]`. The merge is a spread over the previous `ctx.valid`, so chained validators compose: validate the body and the query on one route and both results are present, each under its own key.
+
+The `Validated<Target, Schema>` helper type plugs into a route handler’s `TExtra` parameter (or a router’s `use<T>`) to give `ctx.valid` its precise shape. Intersect it to chain:
+
+```ts
+router.get<Validated<"query", typeof paging> & Validated<"param", typeof userParams>>(
+  "/users/:id/posts",
+  validate("param", userParams),
+  validate("query", paging),
+  (ctx) => {
+    ctx.valid.param.id; // string, validated
+    ctx.valid.query.page; // number, coerced
+  },
+);
+```
+
+## The failure shape [#failure-shape]
+
+On failure the chain short-circuits with status 400, `content-type: application/json`, and a `ValidationFailure` body. Schema issues are serialized to `{ message, path? }`: property-key path segments are unwrapped to their keys and symbol segments are dropped, so the payload is always JSON-safe.
+
+```json
+{
+  "success": false,
+  "target": "body",
+  "issues": [{ "message": "Too small: expected string to have >=1 characters", "path": ["name"] }]
+}
+```
+
+A body that is not valid JSON never reaches the schema: it fails early with a single issue reading `"Malformed JSON in request body"`.
+
+## Where to next [#next-steps]
+
+[Intercept](/middleware/intercept/) is the response-side counterpart: validate and reshape what leaves the handler. [Filter](/middleware/filter/) turns thrown errors into HTTP responses. The [API reference](/middleware/api/) lists every export on the three subpaths.

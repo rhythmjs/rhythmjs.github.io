@@ -1,0 +1,55 @@
+{
+  "name": "rhythmjs-docs",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Documentation site for the RhythmJS ecosystem, built with Astro, MDX and React islands.",
+  "license": "ISC",
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build && bun scripts/build-search.ts",
+    "preview": "astro preview",
+    "check": "bun run fmt:check && bun run lint && bun run check:names && bun run typecheck",
+    "typecheck": "astro check",
+    "lint": "oxlint src scripts",
+    "fmt": "prettier --write .",
+    "fmt:check": "prettier --check .",
+    "check:links": "bun scripts/check-links.ts",
+    "check:names": "bun scripts/check-filenames.ts"
+  },
+  "engines": {
+    "node": ">=22.12.0",
+    "bun": ">=1.2.0"
+  },
+  "dependencies": {
+    "@astrojs/markdown-satteri": "^0.4.2",
+    "@astrojs/mdx": "^8.0.2",
+    "@astrojs/react": "^7.0.0",
+    "@astrojs/sitemap": "^3.7.4",
+    "@base-ui/react": "^1.8.0",
+    "@fontsource-variable/geist": "^5.3.0",
+    "@fontsource-variable/jetbrains-mono": "^5.3.0",
+    "@phosphor-icons/react": "^2.1.10",
+    "@tailwindcss/vite": "^4.3.3",
+    "astro": "^7.3.5",
+    "class-variance-authority": "^0.7.1",
+    "cmdk": "^1.1.1",
+    "cn": "^0.4.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "shadcn": "^4.21.0",
+    "tailwindcss": "^4.3.3",
+    "tw-animate-css": "^1.4.0"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.10",
+    "@types/bun": "^1.4.2",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "oxlint": "^1.86.0",
+    "pagefind": "^1.5.2",
+    "prettier": "^3.9.9",
+    "prettier-plugin-astro": "^1.1.0",
+    "typescript": "^6"
+  }
+}

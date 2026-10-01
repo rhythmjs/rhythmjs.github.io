@@ -1,0 +1,49 @@
+---
+title: "WebSockets, socketless"
+lead: "Run the whole upgrade for real against a mock server, hand the attached ws.data to a recording peer, and fire lifecycle events through the real dispatch."
+description: "Test RhythmWs without sockets: upgradeWs runs middleware, upgrade, and headers against a mock server; mockWs records everything handlers do; fire* dispatches real events."
+---
+
+## Upgrade without sockets
+
+`upgradeWs<Data>(ws, request)` from `@rhythmjs/testing/ws` drives a [`RhythmWs`](/ws/) upgrade against a mock server: middleware, the route's `upgrade`, and `headers` all run for real; only `server.upgrade()` is captured instead of taking a socket. A plain path gets the `upgrade: websocket` header implied; pass a full `Request` to control headers yourself.
+
+```ts
+import { upgradeWs } from "@rhythmjs/testing/ws";
+
+const result = await upgradeWs<Chat>(chat, "/rooms/7?token=good");
+// {
+// matched: true, false => RhythmWs returned null (no route / not an upgrade)
+// upgraded: true, server.upgrade() was called and no rejection Response
+// response: null, the rejecting Response otherwise
+// data: { room: "7", topic: "room:7" }, the ws.data that was attached
+// headers: null, captured 101 headers when the route sets them
+// }
+```
+
+## The recording peer
+
+`mockWs(data)` builds a recording stand-in for Bun's `ServerWebSocket<Data>` around the exact `data` an upgrade attached. It records everything handlers do: `sent` and `published` (both return byte counts like Bun), `topics` with `isSubscribed()`, `closed` with code and reason, `terminated`, and a `readyState` that moves from open to closed. `remoteAddress` is `127.0.0.1`.
+
+## Firing lifecycle events [#firing-events]
+
+`fireOpen`, `fireMessage`, `fireClose`, and `fireDrain` dispatch through the instance's real `websocket` behavior - the same data-identity routing production uses, so a wrong route wired to a connection fails the test. `fireMessage` accepts a string, bytes (delivered as a `Buffer`, Bun's binary shape), or any object, which is JSON-serialized. `fireClose` defaults to code `1000` with an empty reason.
+
+```ts
+import { upgradeWs, mockWs, fireOpen, fireMessage, fireClose } from "@rhythmjs/testing/ws";
+
+const { data } = await upgradeWs<Chat>(chat, authed("/chat/dev"));
+const peer = mockWs(data!);
+
+await fireOpen(chat, peer);
+await fireMessage(chat, peer, "hi");
+expect(peer.isSubscribed("room:dev")).toBe(true);
+expect(peer.sent).toEqual(["joined dev", "echo: hi"]);
+
+await fireClose(chat, peer, 1001, "bye");
+expect(peer.published).toEqual([{ topic: "room:dev", data: "left" }]);
+```
+
+## What to assert where [#what-to-assert]
+
+Rejections are `upgradeWs` assertions (`response?.status`, `matched`); connection behavior is peer assertions (`sent`, `published`, subscriptions); negotiated handshakes are `headers` assertions. The full serving contract, the sync-`null` fall-through and the shared behavior, is documented on the [Serving & pub/sub](/ws/serving/) page and is exactly what the mock server exercises.

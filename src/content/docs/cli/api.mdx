@@ -1,0 +1,28 @@
+---
+title: "CLI API reference"
+lead: "Command routing, argv parsing, prompts, and Bun runner exports for @rhythmjs/cli."
+---
+
+## RhythmCli
+
+<DefList>
+<Def sig={"new RhythmCli({ prefix? })"} id="rhythmcli">Create a command controller with an optional space-separated prefix, joined onto every command registered on this instance. A cli does not extend Rhythm; it compiles commands and middleware down to a single middleware.</Def>
+<Def sig="command(path, ...handlers)" id="command">Add a command pattern with named `:tokens` captured into `ctx.args`. A trailing `:token?` is optional (left out of `ctx.args` when absent, e.g. `"new :name?"`), and a trailing `**` captures the remaining arguments into `ctx.args._`, joined by spaces (e.g. `"run :script **"`). Order is required, then optional, then at most one `**`; anything else throws when the command is registered. One or more handlers compose left to right; a leading derive middleware types the context for the handlers after it.</Def>
+<Def sig="use(fn)" id="use">Add a middleware. It takes only functions; mount a nested cli as `use(child.middleware())`; the mount is opaque, so the child carries its own full prefix. A middleware wraps only the commands registered after it. There is no `provide()` or `register()`; providers live on the host Rhythm app.</Def>
+<Def sig="middleware()" id="middleware">Compile this cli to a plain middleware: the one form that mounts anywhere, into a Rhythm app or into another cli.</Def>
+</DefList>
+
+`RhythmCliContext` and `RhythmCliResponse` are exported from `@rhythmjs/cli/context`. `parseArgv` and `ParsedArgv` are available from `@rhythmjs/cli/argv`.
+
+## Running, parsing, and prompts
+
+<DefList>
+<Def sig="toCliHandler(app)" id="toclihandler">From `@rhythmjs/cli/run`: takes the Rhythm host app and returns `(argv: string[]) => Promise<number>`. Piped stdin arrives via `Bun.stdin.stream()`; a TTY leaves `ctx.stdin` null.</Def>
+<Def sig="createPrompt()" id="createprompt">From `@rhythmjs/cli/run`: returns `{ prompt, close }`, reading answers through Bun's async-iterable `console`.</Def>
+<Def sig="createPrompt(io)" id="createprompt-2">The lower-level `@rhythmjs/cli/prompt` export takes `ask`, `write`, and optional `close` functions.</Def>
+<Def sig="parseArgv(argv)" id="parseargv">The `@rhythmjs/cli/argv` export returns `{ positionals, flags }`. Flag values are strings or booleans; `--` switches to raw positionals.</Def>
+<Def sig="RhythmCliOptions / RhythmCliCommandContext" id="rhythmclioptions">Root type exports describing constructor options and matched command arguments (`ctx.args`).</Def>
+<Def sig="RhythmPrompt / RhythmPromptIO" id="rhythmprompt">Prompt method and I/O interfaces exported from `@rhythmjs/cli/prompt`.</Def>
+</DefList>
+
+Subpath exports: `@rhythmjs/cli`, `./argv`, `./prompt`, `./context`, and `./run`, plus the compatibility aliases `./adapters/context` and `./adapters/bun`. See [interactive prompts](/cli/prompts/) and [Running on Bun](/cli/run/) for examples and cleanup.

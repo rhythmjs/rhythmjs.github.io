@@ -1,0 +1,37 @@
+---
+title: "Encapsulated modules"
+lead: "Make context boundaries explicit with registration and exports."
+---
+
+## Register a child
+
+A child receives the parent context as its input. Its added top-level fields stay inside the child unless an export function returns them. The parent context must satisfy the child’s input type.
+
+```ts
+import { Rhythm } from "@rhythmjs/rhythm";
+
+const identity = new Rhythm<{ userId: string }>({ name: "identity" })
+  .provide(() => ({ source: "local" }))
+  .use<{ user: { name: string } }>(async (_ctx, next) => {
+    await next({ user: { name: "Ada" } });
+  });
+
+const app = new Rhythm<{ userId: string }>()
+  .register(identity, (result) => ({ user: result.user }))
+  .use((ctx) => console.log(ctx.user.name));
+
+await app.run({ userId: "u1" });
+await app.teardown();
+```
+
+## Export deliberately
+
+Without an export function, no child-added fields are merged back into the parent. Exported fields become part of the parent’s inferred context. The boundary is shallow: nested input objects remain shared references, so registration is not a deep clone.
+
+## Own the lifecycle
+
+Registration includes child setup and teardown in the parent provider sequence. Errors thrown by a registered child during dispatch are wrapped with its type and name; the original error is available as `cause`.
+
+## Mount controllers flat
+
+`RhythmRouter` and `RhythmCli` are standalone controllers, not `Rhythm` modules: they have no `provide()` or `register()`, and they cannot be passed to `register()` either; it composes `Rhythm` instances only. Mount their middleware into a core module with `use(router.routes())` or `use(cli.commands())`, and nest controller into controller with `use(child)`. Complete nested controllers before mounting them; their existing entries are copied when nested.

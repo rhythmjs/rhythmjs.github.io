@@ -1,0 +1,68 @@
+---
+title: "Full BullMQ, typed"
+lead: "The same typed job map and kernel module as @rhythmjs/queue, on full BullMQ: stalled-job recovery, Redis-durable work, and every BullMQ option passed through untouched."
+description: "The @rhythmjs/bullmq kernel module: the same typed job map as @rhythmjs/queue on full BullMQ, with connection options, JobsOptions passthrough, workers, and lifecycle."
+---
+
+## Install the package
+
+`@rhythmjs/bullmq` is BullMQ-backed job queues for Rhythm: the same typed job map and kernel-module discipline as [@rhythmjs/queue](/queue/), on full [BullMQ](https://docs.bullmq.io). It requires Redis and brings BullMQ's ioredis dependency with it.
+
+```bash
+bun add @rhythmjs/bullmq @rhythmjs/rhythm
+docker run --rm -p 6379:6379 redis
+```
+
+## Why BullMQ instead of @rhythmjs/queue [#why-bullmq]
+
+Choose this package for BullMQ's production machinery: Redis-durable jobs, **stalled-job recovery** with lock renewal (a job whose worker dies is picked up again), Lua-scripted atomic state transitions, replica-coordinated Job Schedulers, per-job history and retention options, and the Bull Board / Taskforce ecosystem. Choose [@rhythmjs/queue](/queue/) when you want zero queue dependencies on Bun natives.
+
+The two packages provide the same `queueService` context key with the same method surface, so switching is a one-line change at the registration site; handlers and producers do not move. The honest differences: here job ids are `string | undefined` (BullMQ's own typing), and job options are BullMQ's `JobsOptions` passed through untouched.
+
+## The kernel module
+
+```ts
+import { Rhythm } from "@rhythmjs/rhythm";
+import { bullmqModule } from "@rhythmjs/bullmq";
+import type { AppJobs } from "./jobs";
+
+const app = new Rhythm().register(
+  bullmqModule.forRoot<AppJobs>({
+    name: "app",
+    connection: { host: "127.0.0.1", port: 6379 }, // ioredis ConnectionOptions
+    defaultJobOptions: { attempts: 3, backoff: { type: "exponential", delay: 1000 }, removeOnComplete: 100 },
+  }),
+  ({ queueService }) => ({ queueService }),
+);
+```
+
+Options: `name` (queue name, default `rhythm`), `connection` (ioredis `ConnectionOptions`: an options object or an existing instance; default `127.0.0.1:6379`), `prefix` (Redis key prefix), and `defaultJobOptions` (BullMQ defaults for every job). The module owns the BullMQ lifecycle: on the kernel's `teardown()` every worker closes first, then the queue, in reverse provider order.
+
+## Produce and process
+
+```ts
+await queueService.add("email.send", { to: "a@b.c", subject: "hi" }, { delay: 5000 });
+await queueService.addBulk([
+  { name: "email.send", payload: { to: "x@y.z", subject: "s" } },
+  { name: "order.process", payload: { orderId: "o1" }, options: { priority: 1 } },
+]);
+
+const worker = queueService.process(
+  {
+    "email.send": async (payload, job) => sendMail(payload),
+    "order.process": async (payload, job) => fulfil(payload.orderId),
+  },
+  {
+    concurrency: 4,
+    onCompleted: (name, id) => metrics.increment(`jobs.${name}.ok`),
+    onFailed: (name, id, error) => log.error(`job ${name}#${id} failed`, error),
+  },
+);
+await worker.close();
+```
+
+Job options are BullMQ's own `JobsOptions`, passed through untouched: `delay`, `attempts`, `backoff`, `priority`, `removeOnComplete`/`removeOnFail`, `jobId`, `lifo`, deduplication, and everything else BullMQ accepts. Each `process()` call creates one BullMQ `Worker` on the queue, dispatching to processors by name with a typed payload and `JobInfo` (`{ id, name, attemptsMade }`; the id can be `undefined`).
+
+A job with no registered processor throws `no processor registered for job "…"` and lands in BullMQ's retry/failed flow like any other failure. `onCompleted` and `onFailed` wrap the worker's own `completed`/`failed` events; a failed event that arrives without a job reports the name as `"unknown"`. `counts()` forwards `getJobCounts()`: waiting, active, delayed, completed, failed, and the rest of BullMQ's states.
+
+Replica-safe repeatable schedules and everything the facade does not wrap live on the next page: [Schedulers & queue access](/bullmq/schedulers/).

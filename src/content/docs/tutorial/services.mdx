@@ -1,0 +1,100 @@
+---
+title: "Services & providers"
+lead: "Business logic in factories, injected once at startup, disposed in reverse."
+description: "Business logic in factories, injected once, disposed in reverse."
+---
+
+## Factories over classes
+
+Business logic lives in services: plain objects or factory functions, never classes with decorators. A factory takes its dependencies as arguments and returns the service object; the service's type is derived, not declared twice:
+
+```ts
+// src/notes/notes.service.ts
+export interface Note {
+  id: string;
+  title: string;
+  content: string;
+}
+
+export function createNotesService(store: Map<string, Note> = new Map()) {
+  return {
+    list(): Note[] {
+      return [...store.values()];
+    },
+    get(id: string): Note | undefined {
+      return store.get(id);
+    },
+    create(input: { title: string; content?: string }): Note {
+      const note: Note = { id: crypto.randomUUID(), title: input.title, content: input.content ?? "" };
+      store.set(note.id, note);
+      return note;
+    },
+    remove(id: string): boolean {
+      return store.delete(id);
+    },
+  };
+}
+
+export type NotesService = ReturnType<typeof createNotesService>;
+```
+
+## Provide once, use everywhere
+
+`provide()` registers a provider: its factory runs once at startup (in declaration order), and the returned object is merged onto every request context of everything mounted afterwards. Later factories receive earlier providers as their argument — dependency injection as a plain function parameter:
+
+```ts
+export const appModule = new Rhythm<RhythmHttpContext>({ name: "app", type: "module" })
+  .provide(() => ({ notesService: createNotesService() }))
+  .provide(({ notesService }) => ({ statsService: createStatsService(notesService) }))
+  .use(notesController.middleware());
+```
+
+The controller declares what it needs in its context type and reads it off `ctx`:
+
+```ts
+export type NotesContext = RhythmHttpContext & {
+  notesService: NotesService;
+};
+
+export const notesController = new RhythmRouter<NotesContext>({ prefix: "/api/notes" })
+  .get("/", (ctx) => {
+    ctx.json(ctx.notesService.list());
+  });
+```
+
+## Disposal
+
+A provider can take a second argument: a dispose function, called on `teardown()` in reverse declaration order — the database closes after everything that used it. Keys prefixed with `#` stay internal: they are stripped before the value reaches request contexts or module exports, so handles nobody should touch stay private:
+
+```ts
+export function createDatabase() {
+  const client = connect(process.env.DATABASE_URL!);
+  return { db: wrap(client), "#client": client };
+}
+
+export function closeDatabase(value: ReturnType<typeof createDatabase>) {
+  return value["#client"].close();
+}
+
+appModule.provide(createDatabase, closeDatabase);
+// handlers see ctx.db; nobody sees ctx["#client"]
+```
+
+## Per-request values
+
+Providers are per-application. For per-request values — the current user, a request id, a scoped transaction — use `derive()`: a middleware whose return value extends the context, with the extension visible to the type system downstream:
+
+```ts
+import { derive } from "@rhythmjs/rhythm";
+
+const withRequestMeta = derive((ctx: RhythmHttpContext) => ({
+  startedAt: Date.now(),
+  ua: ctx.request.headers.get("user-agent") ?? "unknown",
+}));
+
+router.use(withRequestMeta).get("/", (ctx) => {
+  ctx.json({ ua: ctx.ua }); // typed
+});
+```
+
+The rule of thumb: `provide()` for things built once and shared, `derive()` for things computed per request. Both put values on `ctx`; only their lifetimes differ.

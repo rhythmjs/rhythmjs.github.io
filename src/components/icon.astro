@@ -1,0 +1,13 @@
+---
+import { iconMap, type IconName } from "./icons";
+
+interface Props {
+  name: IconName;
+  class?: string;
+}
+
+const { name, class: className } = Astro.props;
+const Glyph = iconMap[name];
+---
+
+<Glyph class:list={["size-4 shrink-0", className]} aria-hidden="true" />

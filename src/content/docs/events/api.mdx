@@ -1,0 +1,72 @@
+---
+title: "API reference"
+lead: "Every export of @rhythmjs/events and @rhythmjs/events/types: the bus factory, the EventBus surface, the pattern matcher, the kernel module, and the event-map type utilities."
+description: "Every export of @rhythmjs/events: createEventBus, the EventBus interface, matchesPattern, eventsModule, and the typed event-map utilities."
+---
+
+## createEventBus [#create-event-bus]
+
+```ts
+function createEventBus<TEvents extends EventMap>(
+  options?: EventBusOptions,
+): EventBus<TEvents>;
+```
+
+Creates a standalone bus. `options.onError(error, event, payload)` receives every listener failure (synchronous throws and rejected promises alike) from `on`/`once` handlers dispatched by `emit`. When omitted, the default hook rethrows the error inside `queueMicrotask`, so failures become unhandled errors rather than silent drops. `emitAsync` bypasses the hook and reports failures to the caller instead.
+
+## EventBus\<TEvents\> [#event-bus]
+
+```ts
+interface EventBus<TEvents extends EventMap> {
+  on<P extends EventPattern<TEvents>>(pattern: P, handler, options?: OnOptions): () => void;
+  once<P extends EventPattern<TEvents>>(pattern: P, handler, options?: OnOptions): () => void;
+  once<P extends EventPattern<TEvents>>(pattern: P, options?: OnOptions): Promise<MatchingPayload<TEvents, P>>;
+  off<P extends EventPattern<TEvents>>(pattern: P, handler): void;
+  emit<K extends keyof TEvents & string>(event: K, payload: TEvents[K]): void;
+  emitAsync<K extends keyof TEvents & string>(event: K, payload: TEvents[K]): Promise<void>;
+  listenerCount(pattern?: string): number;
+}
+```
+
+<DefList>
+<Def sig="on(pattern, handler, options?)" id="on">Subscribes `handler` to every event matching `pattern` and returns an unsubscribe function. The handler receives `(payload, event)`, both narrowed by the pattern. `options.signal` unsubscribes on abort; a signal that is already aborted subscribes nothing and returns a no-op.</Def>
+<Def sig="once(pattern, handler, options?)" id="once">Handler form: like `on`, but the subscription removes itself before the first delivery runs, so a handler can safely re-emit without re-triggering itself.</Def>
+<Def sig="once(pattern, options?)" id="once-2">Promise form: resolves with the next matching payload. If `options.signal` aborts first, the promise rejects with `signal.reason` (or an `Error("aborted")` fallback); a signal already aborted rejects immediately.</Def>
+<Def sig="off(pattern, handler)" id="off">Removes one subscription by pattern and handler reference. Unknown pairs are ignored.</Def>
+<Def sig="emit(event, payload)" id="emit">Synchronous fan-out. Exact-name subscribers run first, then every matching wildcard pattern in registration order. Once-subscriptions are unsubscribed before their handler runs. Sync throws are caught and routed to `onError`; a returned promise is watched and its rejection routed there too. The remaining listeners always run.</Def>
+<Def sig="emitAsync(event, payload)" id="emitasync">Collects every matching handler (removing once-subscriptions), awaits them all via `Promise.allSettled`, and throws an `AggregateError` listing every rejection when at least one failed. The message reads `N listener(s) failed for event "name"`.</Def>
+<Def sig="listenerCount(pattern?)" id="listenercount">The number of live subscriptions for one exact pattern string, or the total across all patterns when called without arguments. The argument is a registry key, not a match query: `listenerCount("order.*")` counts subscriptions registered as `order.*`.</Def>
+</DefList>
+
+## matchesPattern [#matches-pattern]
+
+```ts
+function matchesPattern(pattern: string, event: string): boolean;
+```
+
+The matcher behind the bus, exported for reuse. Equality matches immediately; a pattern without `*` matches nothing else. Otherwise both strings split on `.` and compare segment by segment: `*` accepts exactly one segment, a literal must match exactly, and `**` accepts the rest of the event, but only when it is the pattern's final segment. Segment counts must line up unless `**` ends the pattern.
+
+## eventsModule [#events-module]
+
+```ts
+const eventsModule: {
+  forRoot<TEvents extends EventMap>(options?: EventBusOptions): Rhythm<...>;
+};
+```
+
+Returns an encapsulated Rhythm module (name `events`) whose provider builds one `createEventBus<TEvents>(options)` and exposes it as `eventBus`. Register it with `app.register(eventsModule.forRoot<AppEvents>(), ({ eventBus }) => ({ eventBus }))`.
+
+## @rhythmjs/events/types [#types-subpath]
+
+Every type is exported from the root as well; the subpath exists for type-only imports.
+
+<DefList>
+<Def sig="EventMap" id="eventmap">`object`, the constraint for event maps: keys are event names, values are payload types.</Def>
+<Def sig={"EventPattern<TEvents>"} id="eventpattern">What `on`/`once`/`off` accept: an exact key of the map, or any string containing `*`.</Def>
+<Def sig={"EventHandler<TPayload, TName>"} id="eventhandler">`(payload: TPayload, event: TName) => void | Promise<void>`.</Def>
+<Def sig={"MatchingEvents<TEvents, P>"} id="matchingevents">The submap of `TEvents` whose keys match pattern `P`, computed with template-literal types mirroring the runtime matcher (segment-wise `*`, trailing `**`).</Def>
+<Def sig={"MatchingNames<TEvents, P> / MatchingPayload<TEvents, P>"} id="matchingnames">The union of matching event names, and the union of their payloads: the types a wildcard handler's `(payload, event)` arguments carry.</Def>
+<Def sig="OnOptions" id="onoptions">`{ signal?: AbortSignal }`.</Def>
+<Def sig="EventBusOptions" id="eventbusoptions">`{ onError?: (error: unknown, event: string, payload: unknown) => void }`.</Def>
+<Def sig={"EventsContext<TEvents>"} id="eventscontext">`{ eventBus: EventBus<TEvents> }`, the context slice the module provides.</Def>
+</DefList>

@@ -1,0 +1,46 @@
+---
+title: "Mock the kernel"
+lead: "Typed module fakes that drop into register(), and a one-middleware driver that reports whether next() ran - no ports, no processes."
+description: "Test the Rhythm kernel in isolation: mockModule swaps real modules for typed fakes with teardown assertions, and runMiddleware drives one middleware against any context."
+---
+
+## Install the package
+
+`@rhythmjs/testing` is the test toolkit for the whole ecosystem, one harness per layer, each on its own subpath export with no root barrel: `/rhythm` for the kernel (this page), [`/router`](/testing/router/) for HTTP, [`/cli`](/testing/cli/) for commands, and [`/ws`](/testing/ws/) for WebSockets. Everything runs in-process on `bun test`; nothing listens on a port.
+
+```bash
+bun add -D @rhythmjs/testing
+```
+
+## Mock kernel modules
+
+`mockModule(values, dispose?)` builds a Rhythm module that provides exactly the object you pass: the drop-in replacement for a real module in `register()`. Its return type exposes `values`' shape as both the module's context and its exports, so the `register()` pick callback stays fully typed. The optional `dispose` runs on teardown *with the same values object*, so a fake can assert its own cleanup.
+
+```ts
+import { mockModule } from "@rhythmjs/testing/rhythm";
+
+const sent: string[] = [];
+const app = new Rhythm().register(
+  mockModule(
+    { mailer: { send: async (to: string) => void sent.push(to) } },
+    (values) => expect(values.mailer).toBeDefined(), // teardown assertion
+  ),
+  ({ mailer }) => ({ mailer }),
+);
+```
+
+Swap it for the real module at the one `register()` call site; providers, handlers, and every downstream middleware are untouched.
+
+## Run one middleware
+
+`runMiddleware(middleware, ctx)` drives a single middleware against a context you construct: no kernel, no composition. It resolves to `{ ctx, nextCalled }`: the same (mutated) context back, and whether the middleware called `next()`. The provided `next` resolves to the context itself, matching the kernel's contract, so onion-style middleware that reads state after `await next()` behaves normally.
+
+```ts
+import { runMiddleware } from "@rhythmjs/testing/rhythm";
+
+const { ctx, nextCalled } = await runMiddleware(audit(), { user: "ada", log: [] });
+expect(nextCalled).toBe(true);
+expect(ctx.log).toContain("audited ada");
+```
+
+Guards are the negative case: a middleware that short-circuits reports `nextCalled: false`. For HTTP middleware specifically, prefer [`runHttpMiddleware`](/testing/router/#single-middleware), which seeds a real HTTP context and renders the response.

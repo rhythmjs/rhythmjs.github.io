@@ -1,0 +1,66 @@
+---
+title: Resend
+lead: "Send email through Resend's HTTP API: one provider holds the client, and routes see a typed mail service."
+description: "Use Resend with Rhythm: a provider for the Resend client, sending from a route, and handling the error result."
+---
+
+## Install
+
+[Resend](https://resend.com) sends email through an HTTP API, so there is no SMTP connection to manage. Create an API key in the Resend dashboard and verify the domain you will send from.
+
+```bash
+bun add resend
+```
+
+## Provide the client [#provider]
+
+The client holds only your API key, so there is nothing to dispose. Build it once as a [provider](/rhythm/providers/) and expose a small service so handlers do not touch the SDK directly. Passing the client into a factory (`createAppModule(client)`) lets tests hand in a fake.
+
+```ts
+import { Resend } from "resend";
+import { Rhythm } from "@rhythmjs/rhythm";
+import type { RhythmHttpContext } from "@rhythmjs/router/context";
+
+export function createMailer() {
+  const resend = new Resend(process.env.RESEND_API_KEY);
+  return {
+    mailer: {
+      send: (to: string, subject: string, html: string) =>
+        resend.emails.send({ from: "RhythmJS <hello@example.com>", to, subject, html }),
+    },
+  };
+}
+
+export type Mailer = ReturnType<typeof createMailer>["mailer"];
+
+export const mailModule = new Rhythm<RhythmHttpContext>({ name: "mail", type: "module" }).provide(createMailer);
+```
+
+## Send and handle the result [#send]
+
+`emails.send` does not throw for API errors. It resolves to `{ data, error }`, so check `error` and answer with an honest status instead of reporting success.
+
+```ts
+import { RhythmRouter } from "@rhythmjs/router";
+import type { Mailer } from "./mail";
+
+type MailContext = RhythmHttpContext & { mailer: Mailer };
+
+export const contact = new RhythmRouter<MailContext>({ prefix: "/api" }).post("/contact", async (ctx) => {
+  const { email, message } = await ctx.request.json();
+
+  const { data, error } = await ctx.mailer.send(email, "We got your message", `<p>${escapeHtml(message)}</p>`);
+  if (error) {
+    ctx.error(502, "Could not send the email");
+    return;
+  }
+  ctx.json({ id: data.id }, 202);
+});
+```
+
+## Things to check
+
+- **Escape user input** before putting it in HTML, as `escapeHtml` does above (write it, or use a template library).
+- **Send from a verified domain.** Until the domain is verified, Resend limits what you can send and to whom.
+- **Keep it off the critical path.** For mail that is not part of the response, use a [queue](/queue/) so a slow API call does not slow the request.
+- **Tests.** Provide a fake `mailer` that records calls, so [tests](/testing/) never hit the network.

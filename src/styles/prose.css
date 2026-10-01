@@ -1,0 +1,438 @@
+.crumbs ol {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.15rem 0.5rem;
+  margin: 0 0 1.25rem;
+  padding: 0;
+  list-style: none;
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+}
+
+.crumbs li + li::before {
+  content: "/";
+  margin-right: 0.5rem;
+  opacity: 0.5;
+}
+
+.crumbs a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.crumbs a:hover {
+  color: var(--primary);
+}
+
+.page-header {
+  margin-bottom: 2.5rem;
+}
+
+.eyebrow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  margin: 0 0 0.9rem;
+  color: var(--primary);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.page-header h1 {
+  margin: 0;
+  font-size: clamp(1.75rem, 1.3rem + 1.8vw, 2.5rem);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+
+.page-header h1::before {
+  content: "> ";
+  color: var(--primary);
+}
+
+.lead {
+  max-width: 40rem;
+  margin: 1.1rem 0 0;
+  color: var(--muted-foreground);
+  font-family: var(--font-sans);
+  font-size: 1.125rem;
+  line-height: 1.6;
+  text-wrap: pretty;
+}
+
+.prose {
+  overflow-wrap: break-word;
+}
+
+.prose > :first-child {
+  margin-top: 0;
+}
+
+.prose p,
+.prose ul {
+  margin: 0 0 1.15rem;
+  text-wrap: pretty;
+}
+
+.prose p,
+.prose li {
+  font-family: var(--font-sans);
+}
+
+.prose ul {
+  padding-left: 1.35rem;
+  list-style: square;
+}
+
+.prose li {
+  margin: 0.4rem 0;
+  padding-left: 0.25rem;
+}
+
+.prose li::marker {
+  color: var(--primary);
+}
+
+.prose strong {
+  font-weight: 650;
+}
+
+.prose a {
+  color: var(--primary);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in oklab, var(--primary) 40%, transparent);
+  text-underline-offset: 0.22em;
+  transition: text-decoration-color 0.12s;
+}
+
+.prose a:hover {
+  text-decoration-color: currentColor;
+}
+
+.prose h2,
+.prose h3 {
+  position: relative;
+  margin: 3rem 0 1rem;
+  font-weight: 650;
+  line-height: 1.25;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+}
+
+.prose h2 {
+  font-size: 1.5rem;
+}
+
+.prose h3 {
+  font-size: 1.2rem;
+}
+
+.prose h2::before {
+  content: "# ";
+  color: var(--primary);
+  opacity: 0.75;
+}
+
+.prose h3::before {
+  content: "## ";
+  color: var(--primary);
+  opacity: 0.75;
+}
+
+.prose h2 .anchor,
+.prose h3 .anchor,
+.def .anchor {
+  margin-left: 0.5rem;
+  color: var(--muted-foreground);
+  font-weight: 500;
+  text-decoration: none;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+
+.prose :is(h2, h3):hover .anchor,
+.def:hover .anchor,
+.prose .anchor:focus-visible {
+  opacity: 1;
+}
+
+.prose .anchor:hover {
+  color: var(--primary);
+}
+
+.prose :not(pre) > code {
+  padding: 0.12em 0.4em;
+  background: var(--secondary);
+  color: var(--foreground);
+  font-family: var(--font-mono);
+  font-size: 0.84em;
+  font-variant-ligatures: none;
+  word-break: break-word;
+}
+
+.prose a > code {
+  background: color-mix(in oklab, var(--primary) 14%, transparent);
+  color: inherit;
+}
+
+.code {
+  margin: 1.4rem 0;
+  background: var(--muted);
+  overflow: hidden;
+}
+
+.code-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 2.25rem;
+  padding: 0 0.4rem 0 1rem;
+  background: var(--secondary);
+  color: var(--muted-foreground);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.55rem;
+  border: 0;
+  background: transparent;
+  color: var(--muted-foreground);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  cursor: pointer;
+  transition:
+    color 0.12s,
+    background-color 0.12s;
+}
+
+.copy:hover {
+  color: var(--foreground);
+  background: var(--accent);
+}
+
+.copy .when-copied,
+.copy[data-copied] .when-idle {
+  display: none;
+}
+
+.copy[data-copied] {
+  color: var(--primary);
+}
+
+.copy[data-copied] .when-copied {
+  display: inline;
+}
+
+.code pre {
+  margin: 0;
+  padding: 1rem 1.1rem 1.1rem;
+  overflow-x: auto;
+  background: transparent;
+  color: var(--foreground);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  font-variant-ligatures: none;
+  line-height: 1.7;
+  tab-size: 2;
+}
+
+.code pre code {
+  display: block;
+  width: max-content;
+  min-width: 100%;
+  font: inherit;
+}
+
+.astro-code span {
+  color: var(--shiki-light, inherit);
+}
+
+.dark .astro-code span {
+  color: var(--shiki-dark, inherit);
+}
+
+.callout {
+  --c: var(--primary);
+  margin: 1.6rem 0;
+  padding: 1rem 1.2rem 1rem 1.3rem;
+  background: color-mix(in oklab, var(--c) 9%, var(--background));
+  box-shadow: inset 3px 0 0 var(--c);
+}
+
+.callout[data-type="tip"] {
+  --c: var(--tip);
+}
+
+.callout[data-type="warning"] {
+  --c: var(--warn);
+}
+
+.callout [data-slot="alert-title"] {
+  color: var(--c);
+  font-size: 0.8125rem;
+  font-weight: 650;
+}
+
+.callout [data-slot="alert-description"] {
+  font-family: var(--font-sans);
+  font-size: 0.9375rem;
+  color: var(--foreground);
+}
+
+.callout [data-slot="alert-description"] p:last-child {
+  margin-bottom: 0;
+}
+
+.deflist {
+  display: grid;
+  gap: 0.25rem;
+  margin: 1.4rem 0 1.75rem;
+}
+
+.def {
+  padding: 0.9rem 1.15rem 1rem;
+  background: var(--muted);
+}
+
+.def:target {
+  background: color-mix(in oklab, var(--primary) 14%, var(--background));
+}
+
+.def dt {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin: 0 0 0.35rem;
+}
+
+.def dt code {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.sig-name {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.sig-rest {
+  color: var(--muted-foreground);
+}
+
+.def dd {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-family: var(--font-sans);
+  font-size: 0.9375rem;
+  line-height: 1.6;
+}
+
+.def dd p {
+  margin: 0 0 0.6rem;
+}
+
+.def dd > :last-child {
+  margin-bottom: 0;
+}
+
+.doc-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.5rem;
+  margin-top: 3rem;
+  font-size: 0.75rem;
+}
+
+.doc-meta a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--muted-foreground);
+  text-decoration: none;
+}
+
+.doc-meta a:hover {
+  color: var(--primary);
+}
+
+.pagination {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+}
+
+@media (min-width: 40rem) {
+  .pagination {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.pagination a {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 1rem 1.15rem;
+  background: var(--muted);
+  text-decoration: none;
+  transition: background-color 0.15s;
+}
+
+.pagination a:hover {
+  background: color-mix(in oklab, var(--primary) 12%, var(--background));
+}
+
+.pagination a[rel="next"] {
+  grid-column: 2;
+  text-align: right;
+}
+
+.pagination .dir {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--muted-foreground);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.pagination a[rel="next"] .dir {
+  justify-content: flex-end;
+}
+
+.pagination .label {
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.pagination .kicker {
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+}
+
+.pagination a:hover .label {
+  color: var(--primary);
+}
+
+@media (min-width: 40rem) {
+  .pagination a[rel="prev"]:only-child {
+    grid-column: 1;
+  }
+}

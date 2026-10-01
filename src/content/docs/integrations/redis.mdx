@@ -1,0 +1,71 @@
+---
+title: Redis
+lead: "Bun ships a Redis client. Build it once as a provider, close it on teardown, and use it for caching and short-lived state."
+description: "Use Redis with Rhythm through Bun's built-in RedisClient: a provider with disposal, a typed controller context, and a cache-aside pattern."
+---
+
+## Install
+
+Nothing to install: `RedisClient` is part of Bun, which is why Rhythm does not wrap it. Point it at any Redis-compatible server through a connection URL.
+
+```bash
+bun run dev   # with REDIS_URL=redis://localhost:6379 in your .env
+```
+
+## Provide one client [#provider]
+
+Create the client once as a [provider](/rhythm/providers/) so every request shares one connection, and close it in the dispose function so `teardown()` shuts it down after everything that used it. The controller names the dependency in its context type and reads it as `ctx.redis`.
+
+```ts
+import { RedisClient } from "bun";
+import { Rhythm } from "@rhythmjs/rhythm";
+import { RhythmRouter } from "@rhythmjs/router";
+import type { RhythmHttpContext } from "@rhythmjs/router/context";
+
+export type RedisContext = RhythmHttpContext & { redis: RedisClient };
+
+export const cacheModule = new Rhythm<RhythmHttpContext>({ name: "cache", type: "module" }).provide(
+  () => ({ redis: new RedisClient(process.env.REDIS_URL ?? "redis://localhost:6379") }),
+  (value) => value.redis.close(),
+);
+
+export const products = new RhythmRouter<RedisContext>({ prefix: "/api/products" });
+```
+
+Mount the controller after the provider (`cacheModule.use(products.middleware())`), because a provider's value only reaches what is registered after it.
+
+## Cache a result [#cache-aside]
+
+The common pattern is cache-aside: look in Redis first, compute on a miss, then store the value with an expiry so it cannot go stale forever. Redis stores strings, so serialize to JSON on the way in and out.
+
+```ts
+products.get("/:id", async (ctx) => {
+  const key = `product:${ctx.params.id}`;
+
+  const hit = await ctx.redis.get(key);
+  if (hit !== null) {
+    ctx.response.headers.set("x-cache", "hit");
+    ctx.json(JSON.parse(hit));
+    return;
+  }
+
+  const product = await loadProduct(ctx.params.id); // your database call
+  if (!product) {
+    ctx.error(404);
+    return;
+  }
+
+  await ctx.redis.set(key, JSON.stringify(product));
+  await ctx.redis.expire(key, 60);
+  ctx.response.headers.set("x-cache", "miss");
+  ctx.json(product);
+});
+```
+
+Remove the entry when the data changes, so the next read refreshes it: `await ctx.redis.del(key)`.
+
+## Things to check
+
+- **Redis is optional for correctness.** Treat a cache failure as a miss: catch errors around `get` and fall through to the database, so an outage slows requests down instead of failing them.
+- **One client per process.** Do not create a client per request. If a queue or scheduler also uses Redis, give it its own connection settings as its docs describe, rather than sharing this client.
+- **Tests.** Provide a small in-memory stand-in with the same `get`, `set`, `expire` and `del` methods when you [test the module](/testing/), so tests do not need a server.

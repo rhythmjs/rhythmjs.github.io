@@ -1,0 +1,9 @@
+---
+const bars = [10, 18, 7, 14];
+---
+
+<svg class="brand-mark size-6" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+  {bars.map((height, i) => (
+    <rect x={7 + i * 5} y={26 - height} width="3" height={height} fill="var(--primary)" />
+  ))}
+</svg>

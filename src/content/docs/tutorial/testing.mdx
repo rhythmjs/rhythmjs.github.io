@@ -1,0 +1,91 @@
+---
+title: "Testing"
+lead: "Prove all of it works: in-process clients, module mocks, and WS harnesses."
+description: "In-process clients, module mocks, and WebSocket harnesses."
+---
+
+## An in-process client
+
+`@rhythmjs/testing` tests the real pipeline without opening a socket: `createTestClient` dispatches `Request` objects straight into the app's fetch handler. Tests are plain `bun:test`:
+
+```ts
+import { describe, expect, test } from "bun:test";
+import { createTestClient } from "@rhythmjs/testing/router";
+import { appModule } from "../src/app.module";
+
+describe("notes api", () => {
+  test("creates and lists notes", async () => {
+    const client = createTestClient(appModule);
+
+    const created = await client.post("/api/notes", { json: { title: "first" } });
+    expect(created.status).toBe(201);
+
+    const list = await client.get("/api/notes");
+    expect(await list.json()).toHaveLength(1);
+
+    await client.teardown(); // disposes providers
+  });
+
+  test("rejects invalid input", async () => {
+    const client = createTestClient(appModule);
+    const res = await client.post("/api/notes", { json: { title: "" } });
+    expect(res.status).toBe(400);
+    await client.teardown();
+  });
+});
+```
+
+## Swap modules with mocks
+
+Because dependencies are providers, faking one is building a smaller pipeline. `mockModule(values)` wraps any exports object as a module, so a controller tests against a stub service with no database anywhere:
+
+```ts
+import { mockModule } from "@rhythmjs/testing/rhythm";
+
+const stubNotes = mockModule({
+  notesService: {
+    list: () => [{ id: "1", title: "stub", content: "" }],
+    get: () => undefined,
+    create: (input: { title: string }) => ({ id: "2", title: input.title, content: "" }),
+    update: () => undefined,
+    remove: () => false,
+  } satisfies NotesService,
+});
+
+const testApp = new Rhythm<RhythmHttpContext>({ name: "test" })
+  .use(filter())
+  .register(stubNotes, (v) => v)
+  .use(notesController.middleware());
+
+const client = createTestClient(testApp);
+```
+
+## Test the WebSockets
+
+The WS harness drives upgrades and events without sockets: `upgradeWs` runs middleware, the route's `upgrade`, and headers for real; `mockWs` records everything a handler does; the `fire*` helpers dispatch through `.websocket` exactly like Bun would:
+
+```ts
+import { fireMessage, fireOpen, mockWs, upgradeWs } from "@rhythmjs/testing/ws";
+import { notesWs } from "../src/notes/notes.ws";
+
+test("the feed subscribes on open", async () => {
+  const result = await upgradeWs(notesWs, "/ws/notes?token=good");
+  expect(result.upgraded).toBe(true);
+
+  const peer = mockWs(result.data!);
+  await fireOpen(notesWs, peer);
+  expect(peer.isSubscribed("notes")).toBe(true);
+});
+
+test("a bad ticket is rejected", async () => {
+  const result = await upgradeWs(notesWs, "/ws/notes");
+  expect(result.upgraded).toBe(false);
+  expect(result.response?.status).toBe(401);
+});
+```
+
+## Where you are now
+
+You have built the whole arc: a controller on a Bun-native router, services and modules with explicit boundaries, validated input and output, typed configuration, a real database with clean teardown, a hardened edge, live WebSockets, background work, a generated API document, production observability — and proof that it works. Everything was middleware, providers, and modules on one small kernel.
+
+From here, the [package docs](/rhythm/) are the depth pass for each layer, the [philosophy](/#philosophy) explains why the pieces are shaped this way, and the [example repositories](https://github.com/rhythmjs) hold complete runnable versions of these patterns.

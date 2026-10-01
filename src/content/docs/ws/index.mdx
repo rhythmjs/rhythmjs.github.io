@@ -1,0 +1,97 @@
+---
+title: "Route the connection"
+lead: "Routes are Bun websocket handlers under rou3 paths; upgrade decides what each connection's typed ws.data is: the route params by default."
+description: "Route WebSocket upgrades to Bun's own handlers: typed ws.data per route, rou3 patterns, handshake headers, guards, and merged instances."
+---
+
+## Install the package
+
+`@rhythmjs/ws` routes WebSocket connections for `Bun.serve`. It is built directly on Bun's WebSocket model and adds exactly the two things Bun leaves to you: matching upgrade requests to endpoints, and deciding what each connection's `ws.data` is. Everything else *is* Bun: handlers are Bun `WebSocketHandler` members receiving Bun's `ServerWebSocket`, and fan-out is Bun's native pub/sub. The only dependency is rou3, the route matcher shared with the router. Wiring the compiled instance into a server is the [Serving & pub/sub](/ws/serving/) page.
+
+```bash
+bun add @rhythmjs/ws
+```
+
+## Routes are Bun handlers
+
+`route<Data>(path, handlers)` registers an endpoint. Paths use rou3 patterns (`:param`, `:param?`, `*`, `**`), the instance's `prefix` is prepended, and a static segment always beats a param segment regardless of registration order. The handlers object carries Bun's own lifecycle members (`open`, `message`, `drain`, `close`, `ping`, `pong`) with Bun's exact signatures (`message` receives `string | Buffer`, `close` receives `code` and `reason`), plus two upgrade-time members covered below.
+
+```ts
+import { RhythmWs } from "@rhythmjs/ws";
+
+interface Chat {
+  user: string;
+  room: string;
+}
+
+const ws = new RhythmWs({ prefix: "/ws", idleTimeout: 120 })
+  .route<Chat>("/rooms/:id", {
+    upgrade(request, params) {
+      const user = userFrom(request);
+      if (!user) return new Response("Forbidden", { status: 403 });
+      return { user, room: params.id! }; // becomes ws.data
+    },
+    open(ws) {
+      ws.subscribe(`room:${ws.data.room}`);
+    },
+    message(ws, message) {
+      ws.publish(`room:${ws.data.room}`, `${ws.data.user}: ${message}`);
+    },
+    close(ws) {
+      ws.publish(`room:${ws.data.room}`, `${ws.data.user} left`);
+    },
+  });
+```
+
+## Typed connection data
+
+`upgrade(request, params, server)` runs before the handshake and returns this connection's `ws.data` (any object) or a `Response` to reject. The route's `Data` type parameter flows into every lifecycle member, so `ws.data.user` above is a typed `string`. Without an `upgrade` member, `Data` defaults to the route params: `ws.data.id` on `/rooms/:id` just works.
+
+Dispatch is keyed on the data object's *identity* (a module-level `WeakMap` maps it to the route), so `upgrade` must return an object, fresh per connection - the default params object already is one. Returning `undefined` at runtime falls back to the params. `ws.routes` lists the compiled paths for introspection.
+
+## Handshake headers and subprotocols [#handshake-headers]
+
+The optional `headers` member adds headers to the `101 Switching Protocols` response: a `HeadersInit`, or a function of `(request, params)` (async allowed) when the value depends on the connection. This is where subprotocol negotiation and upgrade-time cookies live:
+
+```ts
+const feed = new RhythmWs().route("/feed", {
+  headers: (request) => ({
+    "sec-websocket-protocol":
+      request.headers.get("sec-websocket-protocol")?.split(",")[0]?.trim() ?? "",
+  }),
+  open(ws) {
+    ws.send("ready");
+  },
+});
+// new WebSocket(url, ["json", "text"]) negotiates socket.protocol === "json"
+```
+
+## Middleware
+
+`use(fn)` registers Rhythm middleware over the upgrade, the router's own convention: `(ctx, next)` with `ctx = { request, server, response }` (`RhythmWsContext`). Set `ctx.response` to reject the handshake; call `next()` to continue toward the routes. Middleware and routes interleave in registration order, and nothing runs for unmatched paths, so a miss costs nothing. The chain is *fail-closed*: returning without `next()` rejects with `403`, and a set `response` wins even if `next()` is still called — the upgrade only happens when the chain reaches a matched route with no response set. The `server` member gives middleware access to server-level facilities such as `server.requestIP()`.
+
+Before any middleware runs, the instance validates the handshake's `Origin` header (the `origin` constructor option, default `"same-origin"`): a cross-origin browser handshake is answered with `403`, which closes the classic cross-site WebSocket hijacking hole where an attacker's page opens an authenticated socket with the victim's cookies. Pass an allowlist or predicate for cross-origin frontends, or `false` to opt out.
+
+```ts
+const ws = new RhythmWs()
+  .use(async (ctx, next) => {
+    if (new URL(ctx.request.url).searchParams.get("token") === "good") await next();
+    else ctx.response = new Response("Unauthorized", { status: 401 });
+  })
+  .route("/guarded", { open: (ws) => void ws.send("in") });
+```
+
+## Mounting instances
+
+`middleware()` compiles an instance (its middleware and routes) into one mountable middleware, exactly like `RhythmRouter`. A parent mounts a child with `use(child.middleware())`: the child's routes join the parent's matching (so `upgrade()` still answers `null` synchronously for paths nobody serves), while the child's own middleware stays scoped inside its compiled pipeline. As with the router, the child declares its own full `prefix` — the parent's prefix is not prepended. The mount is a snapshot; routes added to the child afterwards stay out of the parent. Different protection levels therefore compose as separate instances mounted into one root.
+
+```ts
+const rooms = new RhythmWs({ prefix: "/ws/rooms" })
+  .use(requireAuth)
+  .route("/:id", roomHandlers);
+
+const root = new RhythmWs({ prefix: "/ws" })
+  .use(requireTenant) // runs first for everything reaching this instance
+  .use(rooms.middleware()) // /ws/rooms/:id, behind requireTenant then requireAuth
+  .route("/live", liveHandlers);
+```

@@ -1,0 +1,46 @@
+---
+title: "Streaming & timeouts"
+lead: "Header stamping for event streams and long-lived responses, and a race-based deadline that answers 504 when the chain is too slow."
+description: "Server-sent events and streaming response headers, plus a deadline middleware answering 504."
+---
+
+## Server-sent events
+
+`sse(options?)` stamps the headers an EventSource endpoint needs: `content-type: text/event-stream`, `cache-control: no-cache, no-transform`, `connection: keep-alive`, and `x-accel-buffering: no` for nginx-style proxies. It only fills headers the handler has not set, and any `headers` you pass in options always win. Pair it with a `ReadableStream` body:
+
+```ts
+import { sse } from "@rhythmjs/http/sse";
+
+router.use(sse()).get("/ticker", (ctx) => {
+  ctx.response.body = new ReadableStream({
+    async start(controller) {
+      for (let n = 0; ; n++) {
+        controller.enqueue(new TextEncoder().encode(`data: tick ${n}
+
+`));
+        await Bun.sleep(1000);
+      }
+    },
+  });
+});
+```
+
+The rest of the stack cooperates: `compress` and `cache` both skip `text/event-stream` responses by design, so events are never buffered.
+
+## Plain streaming responses [#plain-streams]
+
+`stream(options?)` is the same header-stamping pattern for non-SSE streams such as progress logs, NDJSON, and long exports: `content-type: text/plain`, the same no-buffering trio, plus `x-content-type-options: nosniff`. Override the content type per route or via `options.headers` for NDJSON and friends.
+
+## Deadline the chain [#timeouts]
+
+`timeout(ms)` races the downstream chain against a deadline. If the deadline wins, the response becomes `504 Gateway Timeout` (JSON body); note the downstream work is *not* aborted; its eventual result is discarded and its rejection swallowed. Put it outside slow handlers or around upstream calls you do not control:
+
+```ts
+import { timeout } from "@rhythmjs/http/timeout";
+
+router.use(timeout(5000)).get("/slow-upstream", async (ctx) => {
+  ctx.response.body = await fetchThatMightHang();
+});
+```
+
+For upstream calls that should be truly cancelled, pass an `AbortSignal` (e.g. `AbortSignal.timeout(ms)`) to the outgoing fetch so the work is aborted, not just outraced.

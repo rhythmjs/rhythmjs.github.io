@@ -1,0 +1,53 @@
+---
+title: "Serving files"
+lead: "Static files are Bun's built-in routes: a Response for a known file, a directory route for a folder. Nothing to import; one rule to respect."
+description: "Static files with Bun's built-in routes: a Response for known files, { dir } directory routes for folders, and why a directory must never mount at /*."
+---
+
+## Known files [#known-paths]
+
+A file you can name maps straight to a `Response` over `Bun.file` in `Bun.serve`'s `routes`, served before your `fetch` ever runs:
+
+```ts
+Bun.serve({
+  routes: {
+    "/": new Response(Bun.file("public/index.html")),
+    "/favicon.svg": new Response(Bun.file("public/favicon.svg")),
+  },
+  fetch: toFetchHandler(app),
+});
+```
+
+## Folders: directory routes [#folders]
+
+A whole folder is one route whose path ends in `/*` and whose value is `{ dir }`:
+
+```ts
+Bun.serve({
+  routes: {
+    "/static/*": { dir: "./public" },
+  },
+  fetch: toFetchHandler(app), // everything else is the app
+});
+```
+
+Bun handles, natively:
+
+<DefList>
+<Def sig="Content types" id="content">Set from the file extension.</Def>
+<Def sig="Revalidation" id="revalidation">`Last-Modified` and a weak `ETag` (`W/"<size>-<mtime>"`) on every response; `If-None-Match` / `If-Modified-Since` answer `304 Not Modified`.</Def>
+<Def sig="Range requests" id="range">`Accept-Ranges: bytes` with `Content-Range`; video seeking and resumable downloads work out of the box.</Def>
+<Def sig="Directories" id="directories">A trailing-slash request serves the folder's `index.html`; without the slash Bun answers a `301` redirect that adds it.</Def>
+<Def sig="Safety" id="safety">The path after the prefix is percent-decoded once and opened relative to `dir`; non-canonical paths (`..`, empty segments, encoded slashes) are rejected with `404`.</Def>
+<Def sig="statCache" id="statcache">Per-path stat caching is on by default; pass `{ dir, statCache: false }` to trade \~20 KB per route for always-fresh stats.</Def>
+</DefList>
+
+## Warning: never mount at /\* [#never-mount-at-root]
+
+<Callout title="A directory route answers its own 404s.">
+
+With `"/*": { dir }`, every URL that isn't a file dies in the directory route: your app's `fetch` never runs, and the whole application turns into file-not-found. Misses do *not* fall through.
+
+</Callout>
+
+Keep folders on dedicated prefixes (`/static/*`, `/assets/*`) and let `fetch` stay the app's. Root-level files (favicon, `robots.txt`) are explicit known-file routes, one line each. Route precedence - exact, then `:param`, then wildcard, then catch-all - means `"/"` and `"/static/*"` coexist cleanly.

@@ -1,0 +1,68 @@
+---
+title: "The config service"
+lead: "One validated tree merged at setup, read through dot paths that the compiler checks, and boot failures that report everything at once."
+description: "configModule.forRoot, deep-merged trees, aggregated ConfigError reports, and the dot-path-typed ConfigService."
+---
+
+## Register the module
+
+`configModule.forRoot(...factories)` returns a Rhythm module that runs every factory once at `setup()`, not per run, and deep-merges the outputs into one tree. Plain factories merge at the root; namespaced factories merge under their token; on conflicts, later factories win, with nested plain objects merged key by key (arrays and other values replace wholesale).
+
+```ts
+import { Rhythm } from "@rhythmjs/rhythm";
+import { configModule } from "@rhythmjs/config";
+
+const app = new Rhythm().register(
+  configModule.forRoot(appConfig, databaseConfig),
+  (m) => ({ configService: m.configService }),
+);
+
+await app.setup(); // every factory runs and validates here
+```
+
+## Aggregated failures
+
+Validation does not stop at the first bad file. A factory that throws `ConfigError` contributes its issues and loading continues; after all factories have run, the collected issues are thrown together as one `ConfigError`: a single boot failure reports the whole broken environment, namespaced paths included. Only unexpected errors (not `ConfigError`) abort immediately and propagate as-is.
+
+```text
+ConfigError: Invalid configuration:
+  - port: Invalid input: expected number, received NaN
+  - database.host: Too small: expected string to have >=1 characters
+```
+
+## Read with the service
+
+The provided `configService` is typed from the exact factories you passed. `get(path)` takes a dot path - `"database.port"`, resolved segment by segment; `value` is the whole merged tree. The optional second argument is a fallback applied with `??`, so it kicks in for `null` as well as `undefined` and missing paths. `getOrThrow(path)` throws a `ConfigError` naming the path when the value is null or missing; reach for it at boot for values the app cannot run without.
+
+```ts
+const port = ctx.configService.get("database.port"); // number
+const db = ctx.configService.get("database"); // { host: string; port: number }
+const flag = ctx.configService.get("debug", false); // ?? fallback: covers null too
+const host = ctx.configService.getOrThrow("database.host"); // throws ConfigError when absent
+```
+
+## Typed paths
+
+Both the path and the result are checked at compile time. `ConfigPath<T>` enumerates every reachable dot path: nested objects recurse, arrays are leaves (you get the array, not indices into it), and `ConfigValue<T, P>` resolves the value type at a path. `MergedConfig<TLoad>` computes the merged tree type from the factory tuple, which is what makes `forRoot`'s inference work end to end.
+
+```ts
+ctx.configService.get("databse.port"); // compile error: not a ConfigPath
+ctx.configService.get("database.port", "3000"); // compile error: fallback must be number
+```
+
+## Type-safe consumers
+
+Downstream modules declare what they expect with `ConfigContext<typeof load>`, where `load` is the `as const` tuple of factories the app registers; the module compiles against exactly the configuration shape the host provides. `ConfigType<typeof factory>` extracts one factory's output type for functions that take a config slice directly.
+
+```ts
+import type { ConfigContext, ConfigType } from "@rhythmjs/config";
+
+const load = [appConfig, databaseConfig] as const;
+
+const apiModule = new Rhythm<ConfigContext<typeof load>>().use(async (ctx, next) => {
+  const port: number = ctx.configService.get("database.port");
+  await next();
+});
+
+type DatabaseConfig = ConfigType<typeof databaseConfig>; // { host: string; port: number }
+```

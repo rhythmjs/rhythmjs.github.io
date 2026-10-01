@@ -1,0 +1,60 @@
+---
+title: "CLI commands"
+lead: "Route arguments through the same middleware model, running on Bun."
+---
+
+## Define a command
+
+Command patterns are space-separated tokens. Named `:tokens` populate `ctx.args`; a trailing `:token?` is optional and a trailing `**` captures the remaining arguments into `ctx.args._`, joined by spaces. The first registered matching command wins, and unless it ends in an optional token or `**`, its token count must match the positional arguments exactly.
+
+A cli is a controller, not an app of its own: it compiles down to a single middleware via `middleware()`, and a `Rhythm` host app owns the lifecycle. `toCliHandler` from `@rhythmjs/cli/run` runs it on Bun.
+
+```ts
+import { Rhythm } from "@rhythmjs/rhythm";
+import { RhythmCli } from "@rhythmjs/cli";
+import { toCliHandler } from "@rhythmjs/cli/run";
+import type { RhythmCliContext } from "@rhythmjs/cli/context";
+
+const cli = new RhythmCli().command("deploy :environment", (ctx) => {
+  ctx.response.print(`Deploying to ${ctx.args.environment}`);
+});
+
+const app = new Rhythm<RhythmCliContext>()
+  .use(cli.middleware())
+  .use((ctx) => {
+    ctx.response.exit(1).printError("Unknown command");
+  });
+
+try {
+  process.exitCode = await toCliHandler(app)(process.argv.slice(2));
+} finally {
+  await app.teardown();
+}
+```
+
+## Read flags and stdin
+
+`ctx.flags` holds string or boolean values. `--verbose` is true when no value follows; `--target=prod` supplies a string. A following non-flag token becomes a value, so `--verbose deploy` consumes `deploy`.
+
+`-abc` is a single flag named `abc`, not three short flags. `--` ends flag parsing. No schema validation or numeric coercion is performed.
+
+`ctx.stdin` is a readable byte stream when input is piped (`Bun.stdin.stream()`, Bun's native stdin), or null when stdin is a TTY.
+
+## Nest command groups
+
+`use()` takes only functions, so a nested cli mounts as `use(child.middleware())`. The compiled form is opaque (the mounting cli's prefix is *not* applied to it), so give the child its full prefix. Mounting compiles the child at that moment, so complete the child before mounting it.
+
+```ts
+const remote = new RhythmCli({ prefix: "remote" })
+  .command("add :name :url", (ctx) => {
+    ctx.response.print(`Added ${ctx.args.name}: ${ctx.args.url}`);
+  });
+
+const root = new RhythmCli().use(remote.middleware()); // matches "remote add origin https://…"
+```
+
+## Write output
+
+`print(line)`, `printError(line)`, and `exit(code)` are chainable. They buffer stdout, stderr, and the exit code. `toCliHandler` flushes stdout then stderr after the pipeline completes and returns the exit code (zero by default).
+
+`exit()` sets a value; it does not terminate the process or stop middleware. Return without calling `next()` to stop downstream execution. Registration order is execution order: a `use()` middleware wraps only the commands registered after it.

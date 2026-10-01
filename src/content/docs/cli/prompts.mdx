@@ -1,0 +1,52 @@
+---
+title: "Interactive prompts"
+lead: "Ask for input over Bun's console line iterator and keep the prompt lifecycle under control."
+---
+
+## Provide a prompt
+
+`createPrompt()` from `@rhythmjs/cli/run` returns `{ prompt, close }`, reading answer lines through Bun's async-iterable `console`. Providers live on the host `Rhythm` app, not on the cli: keep the close function in a private provider field there, provide it before mounting `middleware()`, and dispose it via the app's `teardown()`. The cli declares that its handlers expect the prompt through its context generic.
+
+```ts
+import { Rhythm } from "@rhythmjs/rhythm";
+import { RhythmCli } from "@rhythmjs/cli";
+import { createPrompt, toCliHandler } from "@rhythmjs/cli/run";
+import type { RhythmCliContext } from "@rhythmjs/cli/context";
+import type { RhythmPrompt } from "@rhythmjs/cli/prompt";
+
+const cli = new RhythmCli<RhythmCliContext & { prompt: RhythmPrompt }>()
+  .command("init", async (ctx) => {
+    const name = await ctx.prompt.text("Project name?", { default: "my-app" });
+    const confirmed = await ctx.prompt.confirm("Continue?", { default: true });
+    if (confirmed) ctx.response.print(`Created ${name}`);
+  });
+
+const app = new Rhythm<RhythmCliContext>()
+  .provide(
+    () => {
+      const { prompt, close } = createPrompt();
+      return { prompt, "#close": close };
+    },
+    (value) => value["#close"](),
+  )
+  .use(cli.middleware());
+
+try {
+  process.exitCode = await toCliHandler(app)(process.argv.slice(2));
+} finally {
+  await app.teardown();
+}
+```
+
+## Choose an input type
+
+- `text(message, { default? })` returns trimmed text.
+- `confirm(message, { default? })` accepts yes/no input and retries invalid answers.
+- `select(message, choices, { allowCustom? })` asks for one numbered choice.
+- `multiSelect(message, choices, { allowCustom? })` accepts comma-separated choice numbers.
+
+Allowing custom values adds an “Other” choice and a follow-up text prompt. Selection results may therefore be arbitrary strings.
+
+## Supply custom I/O [#supply-custom-i-o]
+
+For custom environments or tests, import `createPrompt` from `@rhythmjs/cli/prompt` instead. This lower-level function requires an I/O object with `ask(query)`, `write(text)`, and optional `close()`; it is exactly what the Bun runner wires to `console` and `process.stdout`.

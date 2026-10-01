@@ -1,0 +1,151 @@
+---
+title: "Quick start"
+lead: "Create a project with one command, run it, and grow it into your application."
+---
+
+## A first look
+
+Providers initialize once. Middleware runs for each input. The resulting context carries your input and dependencies through the pipeline.
+
+```ts
+import { Rhythm } from "@rhythmjs/rhythm";
+
+const app = new Rhythm<{ name: string }>()
+  .provide(() => ({ greeting: "Hello" }))
+  .use((ctx) => {
+    console.log(ctx.greeting + ", " + ctx.name);
+  });
+
+await app.run({ name: "world" }); // Hello, world
+await app.teardown();
+```
+
+## Create a project
+
+Start from the [template](https://github.com/rhythmjs/template) rather than wiring a project up file by file: it is a minimal, runnable application organized the way NestJS organizes its starter, expressed with Rhythm primitives. `rhythmx` clones it into a new directory, names the package after it, starts a fresh git history, and installs the dependencies. Every package is ESM and runs on [Bun](https://bun.com) 1.2 or newer; the ecosystem is built on Bun's native APIs, with no runtime adapters.
+
+```bash
+bunx rhythmx new my-app
+cd my-app
+```
+
+Leave the name off and `rhythmx` asks for it. Pass `--no-install` to skip `bun install`, or `--template <git url or path>` to start from a different template. Prefer to do it by hand? `git clone https://github.com/rhythmjs/template my-app` gives the same files, and GitHub's "Use this template" button works too.
+
+## Run it
+
+Start the watcher; the server answers on port 3000.
+
+```bash
+bun run dev # bun --watch src/main.ts
+
+curl http://localhost:3000/ # Hello World!
+curl http://localhost:3000/missing # {"success":false,"status":404,"message":"Not Found"}
+```
+
+## What’s inside
+
+Five small files cover the whole Nest-style pattern: a module, a controller, a service, a spec, and your own server entry point.
+
+```text
+src/
+  main.ts your own Bun.serve call over toFetchHandler(appModule)
+  app.module.ts Rhythm instance: provides the service, mounts the controller
+  app.controller.ts RhythmRouter instance: routes and handlers
+  app.service.ts plain object holding the business logic
+  app.controller.spec.ts bun:test specs for the controller
+```
+
+## The pattern
+
+The service holds business logic and knows nothing about HTTP. The module provides it with `provide()`, which places it on the request context of everything mounted afterwards. The controller declares that dependency in its context type, so handlers use `ctx.appService` with full type safety: the type-level equivalent of constructor injection.
+
+```ts
+export const appModule = new Rhythm<RhythmHttpContext>({ name: "app", type: "module" })
+  .provide(() => ({ appService }))
+  .use(appController.middleware())
+  .use((ctx) => {
+    ctx.response.status = 404;
+    ctx.response.headers.set("content-type", "application/json");
+    ctx.response.body = JSON.stringify({ success: false, status: 404, message: "Not Found" });
+  });
+```
+
+## Test it
+
+The controller spec builds a small test harness instead of booting the whole application: a fresh Rhythm provides the service, mounts the controller's routes, and is wrapped in a fetch handler. Substituting a stub service proves the controller delegates instead of hardcoding responses.
+
+```bash
+bun test # bun test runner
+bun run typecheck # tsc --noEmit
+bun run check # prettier --check + oxlint + tsc
+```
+
+## Grow the app
+
+Add a feature by repeating the pattern: a `users.service.ts`, a `users.controller.ts` router with a `prefix`, provide the service in the module, and mount the controller before the 404 handler. Validation, sessions, logging, CORS, and friends come from the [Middleware](/middleware/), [HTTP](/http/), [Security](/security/), and [Observability](/observability/) packages.
+
+## Under the hood
+
+There is no scaffolding magic in the template: it is just the kernel and the router, which you could install and wire up yourself.
+
+```bash
+bun add @rhythmjs/rhythm @rhythmjs/router
+```
+
+The kernel alone composes middleware over any input. Providers initialize once; middleware runs per input; the typed context carries both.
+
+```ts
+import { Rhythm } from "@rhythmjs/rhythm";
+
+const app = new Rhythm<{ name: string }>()
+  .provide(() => ({ greeting: "Hello" }))
+  .use((ctx) => {
+    console.log(`${ctx.greeting}, ${ctx.name}`);
+  });
+
+await app.run({ name: "world" }); // Hello, world
+await app.teardown();
+```
+
+## Serve HTTP
+
+The router registers routes with named parameters and mounts into a Rhythm host app via `middleware()`; a plain `Bun.serve` call, written by you in your own `main.ts`, starts the host app. Run it with `bun src/main.ts`.
+
+```ts
+import { Rhythm } from "@rhythmjs/rhythm";
+import { RhythmRouter } from "@rhythmjs/router";
+import { toFetchHandler } from "@rhythmjs/router/fetch";
+import type { RhythmHttpContext } from "@rhythmjs/router/context";
+
+const router = new RhythmRouter().get("/users/:id", (ctx) => {
+  ctx.json({ id: ctx.params.id });
+});
+
+const app = new Rhythm<RhythmHttpContext>().use(router.middleware());
+
+const server = Bun.serve({ port: 3000, fetch: toFetchHandler(app) });
+console.log(`listening on ${server.url}`);
+```
+
+## Add validation
+
+Ecosystem packages drop into the same chain. Here `validate` checks the body against a zod schema and exposes the typed output as `ctx.valid.body`; an invalid body answers 400 before the handler runs.
+
+```ts
+import { validate, type Validated } from "@rhythmjs/middleware/validate";
+import { z } from "zod";
+
+const CreateUser = z.object({ name: z.string().min(1) });
+
+router.post<Validated<"body", typeof CreateUser>>(
+  "/users",
+  validate("body", CreateUser),
+  (ctx) => {
+    ctx.response.body = JSON.stringify(ctx.valid.body);
+  },
+);
+```
+
+## Where to go next
+
+Read the [philosophy](/#philosophy), or browse the package groups: [Middleware](/middleware/), [HTTP](/http/), [Security](/security/), and [Observability](/observability/) each document their modules and full API.

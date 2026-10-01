@@ -1,0 +1,49 @@
+---
+title: "Intercept responses"
+lead: "Run the outgoing body through a schema after the handler: transform it, and guarantee undeclared fields never reach the client."
+description: "Pass outgoing response bodies through a Standard Schema: transform shapes and never leak undeclared fields."
+---
+
+## Shape what leaves the handler [#shape-what-leaves]
+
+`intercept(schema)` is the response-side counterpart of `validate`: it runs *after* `await next()`, in onion order, and passes the outgoing body through a Standard Schema before the client sees it. Because only fields the schema declares survive, it doubles as a serialization guard: a `password` column can never leak through a route wrapped in a public-shape schema.
+
+```ts
+import { RhythmRouter } from "@rhythmjs/router";
+import { intercept } from "@rhythmjs/middleware/intercept";
+import { z } from "zod";
+
+const User = z
+  .object({ first_name: z.string(), last_name: z.string() })
+  .transform((u) => ({ fullName: `${u.first_name} ${u.last_name}` }));
+
+const router = new RhythmRouter().get("/users/ada", intercept(User), (ctx) => {
+  ctx.response.body = JSON.stringify({ first_name: "Ada", last_name: "Lovelace" });
+});
+// GET /users/ada => 200 {"fullName":"Ada Lovelace"}
+```
+
+## What gets intercepted
+
+Only successful responses with string bodies are touched: the status must be 2xx and `ctx.response.body` must be a string. Error responses, streams, buffers, and null bodies pass through untouched, which is also why error payloads written by [filter](/middleware/filter/) (non-2xx) never collide with an intercept schema.
+
+The string body is parsed as JSON first; if parsing fails, the *raw string* is validated instead. That means plain-text routes can be intercepted too: a `z.string()` schema over a text body works.
+
+## Writing the result back [#writing-the-result]
+
+The schema’s output replaces the body. An object or array result is `JSON.stringify`-ed and the `content-type` is set to `application/json`. A string result is written verbatim and the content-type is left alone, so text stays text.
+
+Transforms are first-class: rename fields, derive values, or collapse a database row into an API shape in one place instead of in every handler.
+
+## The failure shape [#failure-shape]
+
+If the outgoing body does not satisfy the schema, the response is replaced with status 500 and an `InterceptFailure` JSON body; the contract between your handlers and your public API is enforced, loudly, on the server side:
+
+```json
+{
+  "success": false,
+  "issues": [{ "message": "Invalid input: expected string, received undefined", "path": ["first_name"] }]
+}
+```
+
+Issues are serialized exactly like validation issues: `{ message, path? }` with symbol path segments dropped.

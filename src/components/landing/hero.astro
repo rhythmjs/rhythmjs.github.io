@@ -1,0 +1,63 @@
+---
+import { site } from "../../data/site";
+import { Badge } from "@/components/ui/badge";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import Icon from "../icon.astro";
+
+const [before, after] = site.tagline.split("composable");
+const large = (variant: "default" | "secondary") => cn(buttonVariants({ variant, size: "lg" }), "h-10 px-4 text-sm");
+---
+
+<section class="hero">
+  <div class="hero-ruler" aria-hidden="true"></div>
+  <div class="landing-inner">
+    <div class="hero-copy">
+      <div class="flex items-center gap-2">
+        <Badge>Built for Bun</Badge>
+        <Badge variant="secondary">v{site.version}</Badge>
+      </div>
+      <h1>
+        {after === undefined ? (
+          site.tagline
+        ) : (
+          <Fragment>
+            {before}
+            <span class="text-primary">composable()</span>
+            {after}
+          </Fragment>
+        )}
+      </h1>
+      <p class="hero-sub">
+        Combine onion-style middleware, shared providers, and encapsulated modules into a pipeline you can understand
+        from top to bottom.
+      </p>
+      <div class="hero-actions">
+        <a class={large("default")} href="/getting-started/">
+          Get started <Icon name="arrow-right" />
+        </a>
+        <a class={large("secondary")} href={site.github}>
+          <Icon name="github" /> GitHub
+        </a>
+      </div>
+      <p class="install">
+        <span class="prompt">$</span>
+        <span>{site.installCommand}</span>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          className="copy"
+          type="button"
+          data-copy={site.installCommand}
+          aria-label="Copy create command"
+        >
+          <Icon name="copy" class="size-3.5" />
+          <span class="when-idle sr-only">Copy</span>
+          <span class="when-copied sr-only" aria-live="polite">
+            Copied
+          </span>
+        </Button>
+      </p>
+    </div>
+  </div>
+</section>

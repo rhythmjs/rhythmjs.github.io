@@ -1,0 +1,26 @@
+---
+interface Props {
+  sig: string;
+  id: string;
+}
+
+const { sig, id } = Astro.props;
+const match = /^((?:new\s+)?[\w.$#]+)([\s\S]*)$/.exec(sig);
+const name = match?.[1] ?? sig;
+const rest = match?.[2] ?? "";
+---
+
+<div class="def" id={id}>
+  <dt>
+    <code>
+      <span class="sig-name">{name}</span>
+      <span class="sig-rest">{rest}</span>
+    </code>
+    <a class="anchor" href={`#${id}`} aria-label={`Link to ${name}`} data-pagefind-ignore>
+      #
+    </a>
+  </dt>
+  <dd>
+    <slot />
+  </dd>
+</div>

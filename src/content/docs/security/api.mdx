@@ -1,0 +1,107 @@
+---
+title: "API reference"
+lead: "Exports of the authentication, authorization, rate-limit, cors, csrf, and secure-headers subpaths of @rhythmjs/security."
+description: "Exports and options for the authentication, authorization, cors, csrf, rate-limit, and secure-headers subpaths of @rhythmjs/security."
+---
+
+## @rhythmjs/security/authentication [#authentication]
+
+```ts
+function attachUser<TUser>(resolve: (ctx) => TUser | null | undefined | Promise<...>): DeriveMiddleware<RhythmHttpContext, UserContext<TUser>>
+function requireAuthentication<TUser>(options?: RequireAuthenticationOptions): DeriveMiddleware<..., { user: TUser }>
+function redirectIfAuthenticated(to: string): Middleware<RhythmHttpContext & UserContext>
+function isAuthenticated<TUser>(ctx: UserContext<TUser>): ctx is ... & { user: TUser }
+function getBearerToken(request: Request): string | null
+function getBasicCredentials(request: Request): BasicCredentials | null
+```
+
+<DefList>
+<Def sig="attachUser(resolve)" id="attachuser">Runs the resolver per request and sets `ctx.user` to its result or null. Throws a TypeError at setup when the resolver is not a function.</Def>
+<Def sig="requireAuthenticationOptions" id="requireauthenticationoptions">`redirectTo` (redirect instead of failing), `status` (default 401), `message`, and `challenge` (sets `WWW-Authenticate`).</Def>
+<Def sig="getBasicCredentials(request)" id="getbasiccredentials">Decodes a `Basic` authorization header into `{ username, password }` (`BasicCredentials`), or null when absent or malformed.</Def>
+</DefList>
+
+## @rhythmjs/security/authorization [#authorization]
+
+```ts
+function authorize<TContext>(check: (ctx: TContext) => boolean | Promise<boolean>, options?: AuthorizeOptions): Middleware<TContext>
+function requireRoles<TUser>(required: readonly string[], options?: RequireRolesOptions<TUser>): Middleware<...>
+function requirePermissions<TUser>(required: readonly string[], options?: RequirePermissionsOptions<TUser>): Middleware<...>
+```
+
+<DefList>
+<Def sig="authorize(check, options?)" id="authorize">Answers `options.status` (default 403) with `options.message` when the predicate refuses; otherwise continues.</Def>
+<Def sig="requireRoles / requirePermissions" id="requireroles">Read `user.roles` / `user.permissions` unless a custom extractor is given; `match` is `"any"` (default) or `"all"`. A null user answers 401; an insufficient one 403.</Def>
+</DefList>
+
+## @rhythmjs/security/rate-limit [#rate-limit]
+
+```ts
+function rateLimit(options?: RateLimitOptions): Middleware<RhythmHttpContext>
+function rateLimitWs(options?: RateLimitOptions): RateLimitWsMiddleware
+function memoryRateLimitStore(): RateLimitStore
+```
+
+<DefList>
+<Def sig="RateLimitOptions" id="ratelimitoptions">`limit` (default 100), `windowMs` (default 60 000), `store` (`RateLimitStore`: `increment(key, windowMs)` returning `RateLimitInfo`, plus `reset`), `keyOf(request)`, `skip(request)`, `headers` (emit `RateLimit-*`; default true), `message`, and `trustProxy` (default `false`; `true` or a hop count enables `X-Forwarded-For` keying).</Def>
+<Def sig="Default key" id="default">With `trustProxy` set, the `X-Forwarded-For` entry that many hops from the right (the trusted proxy's append), truncated to 64 characters; else `request.ip` when your `Bun.serve` fetch exposes it (via `server.requestIP()`), else the literal key `"global"`. `X-Forwarded-For` is never consulted without `trustProxy`, since the client controls it.</Def>
+<Def sig="On refusal" id="on">Status 429 with `Retry-After` (seconds to reset) and the JSON body `{ "success": false, "status": 429, "message": ... }`. `rateLimitWs` is a ws-shaped middleware (`(ctx, next)`) that sets the same `429 Response` on `ctx.response` instead, for `RhythmWs.use()`.</Def>
+</DefList>
+
+## @rhythmjs/security/cors [#cors]
+
+```ts
+function cors(options?: CorsOptions): Middleware<RhythmHttpContext>
+```
+
+Returns middleware that sets `Access-Control-*` headers on every response. A preflight `OPTIONS` request is answered with `204 No Content` directly; downstream middleware never runs for it.
+
+<DefList>
+<Def sig={"origin?: string | string[] | ((origin: string) => string | null)"} id="origin">Default `"*"`. A non-wildcard string or array is echoed back only when the request origin matches; a function returns the origin to allow or `null`. Whenever origin is not `"*"`, `Vary: Origin` is appended to the response.</Def>
+<Def sig="allowMethods?: string[]" id="allowmethods">Default `GET,HEAD,PUT,POST,DELETE,PATCH,QUERY`. Sent as `Access-Control-Allow-Methods` on preflight responses.</Def>
+<Def sig="allowHeaders?: string[]" id="allowheaders">Default: reflect the preflight's `Access-Control-Request-Headers`. When headers are sent, `Vary: Access-Control-Request-Headers` is appended to the preflight response.</Def>
+<Def sig="exposeHeaders?: string[]" id="exposeheaders">Default none. Sent as `Access-Control-Expose-Headers` when non-empty.</Def>
+<Def sig="maxAge?: number" id="maxage">Default unset. Sent as `Access-Control-Max-Age` on preflight responses when provided.</Def>
+<Def sig="credentials?: boolean" id="credentials">Default unset. When true, sets `Access-Control-Allow-Credentials: true`.</Def>
+</DefList>
+
+The `CorsOptions` interface is also exported from the subpath.
+
+## @rhythmjs/security/csrf [#csrf]
+
+```ts
+function csrf(options?: CsrfOptions): Middleware<RhythmHttpContext>
+```
+
+Returns middleware that rejects a request with `403` and the JSON body `{ "success": false, "status": 403, "message": "Forbidden" }` when all three conditions hold: the method is not `GET` or `HEAD`, the content type is a form type (`application/x-www-form-urlencoded`, `multipart/form-data`, or `text/plain`), and the `Origin` header is missing or not allowed. Every other request passes through.
+
+<DefList>
+<Def sig={"origin?: string | string[] | ((origin: string) => boolean)"} id="origin-2">Default: allow only the request URL's own origin. A string allows one origin, an array allows each listed origin, and a predicate returns whether the given origin is allowed.</Def>
+</DefList>
+
+The `CsrfOptions` interface is also exported from the subpath.
+
+## @rhythmjs/security/secure-headers [#secure-headers]
+
+```ts
+function secureHeaders(options?: SecureHeadersOptions): Middleware<RhythmHttpContext>
+```
+
+Returns middleware that awaits `next()` and then sets the resolved headers on the response, so they apply after the handlers run. Every `SecureHeadersOptions` key accepts a string to override the header value or `false` to drop the header. The defaults are:
+
+<DefList>
+<Def sig="crossOriginOpenerPolicy" id="crossoriginopenerpolicy">Cross-Origin-Opener-Policy: same-origin</Def>
+<Def sig="crossOriginResourcePolicy" id="crossoriginresourcepolicy">Cross-Origin-Resource-Policy: same-origin</Def>
+<Def sig="referrerPolicy" id="referrerpolicy">Referrer-Policy: no-referrer</Def>
+<Def sig="strictTransportSecurity" id="stricttransportsecurity">Strict-Transport-Security: max-age=15552000; includeSubDomains</Def>
+<Def sig="xContentTypeOptions" id="xcontenttypeoptions">X-Content-Type-Options: nosniff</Def>
+<Def sig="xDnsPrefetchControl" id="xdnsprefetchcontrol">X-DNS-Prefetch-Control: off</Def>
+<Def sig="xDownloadOptions" id="xdownloadoptions">X-Download-Options: noopen</Def>
+<Def sig="xFrameOptions" id="xframeoptions">X-Frame-Options: SAMEORIGIN</Def>
+<Def sig="xPermittedCrossDomainPolicies" id="xpermittedcrossdomainpolicies">X-Permitted-Cross-Domain-Policies: none</Def>
+<Def sig="xXssProtection" id="xxssprotection">X-XSS-Protection: 0</Def>
+</DefList>
+
+`contentSecurityPolicy` (`Content-Security-Policy`) and `crossOriginEmbedderPolicy` (`Cross-Origin-Embedder-Policy`) default to off and are sent only when configured with a string value.
+
+The `SecureHeadersOptions` interface is also exported from the subpath.

@@ -1,0 +1,72 @@
+---
+import { sections, type NavSection } from "../data/nav";
+import { urlFor } from "../data/redirects";
+import { site } from "../data/site";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import Logo from "./logo.astro";
+import Icon from "./icon.astro";
+import Sidebar from "./sidebar.astro";
+import MobileNav from "./react/mobile-nav";
+import Search from "./react/search";
+import ThemeToggle from "./react/theme-toggle";
+
+interface Props {
+  section?: NavSection;
+  currentId?: string;
+}
+
+const { section, currentId = "" } = Astro.props;
+const tutorial = sections.find((s) => s.id === "tutorial")!;
+const packages = sections.find((s) => s.id === "packages")!;
+const integrations = sections.find((s) => s.id === "integrations")!;
+---
+
+<header
+  class="sticky top-0 z-40 h-(--header-h) border-b border-(--line) bg-background/85 backdrop-blur"
+  data-pagefind-ignore
+>
+  <div class="site-width flex h-full items-center gap-2">
+    <MobileNav client:load currentSection={section?.id ?? "tutorial"}>
+      <Sidebar slot="tutorial" section={tutorial} currentId={currentId} />
+      <Sidebar slot="packages" section={packages} currentId={currentId} />
+      <Sidebar slot="integrations" section={integrations} currentId={currentId} />
+    </MobileNav>
+    <a class="brand flex items-center gap-3 text-sm font-bold tracking-tight" href="/" aria-label="RhythmJS home">
+      <Logo />
+      <span>
+        rhythm<span class="text-primary">js</span>
+      </span>
+    </a>
+    <nav class="ml-3 hidden items-center gap-1 lg:flex" aria-label="Site">
+      {sections.map((entry) => (
+        <a
+          href={urlFor(entry.groups[0]!.items[0]!.id)}
+          aria-current={entry.id === section?.id ? "true" : undefined}
+          class={cn(
+            buttonVariants({ variant: "ghost", size: "sm" }),
+            "aria-[current=true]:bg-primary/12 aria-[current=true]:text-primary",
+          )}
+        >
+          {entry.label}
+        </a>
+      ))}
+    </nav>
+    <span class="flex-1"></span>
+    <div class="flex items-center gap-1">
+      <Search client:load />
+      <a
+        class={buttonVariants({ variant: "ghost", size: "icon" })}
+        href={site.github}
+        aria-label="RhythmJS on GitHub"
+        title="GitHub"
+      >
+        <Icon name="github" />
+      </a>
+      <a class={buttonVariants({ variant: "ghost", size: "icon" })} href={site.x} aria-label="RhythmJS on X" title="X">
+        <Icon name="x" />
+      </a>
+      <ThemeToggle client:load />
+    </div>
+  </div>
+</header>

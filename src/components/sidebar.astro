@@ -1,0 +1,34 @@
+---
+import type { NavSection } from "../data/nav";
+import { urlFor } from "../data/redirects";
+
+interface Props {
+  section: NavSection;
+  currentId: string;
+}
+
+const { section, currentId } = Astro.props;
+const current = (id: string) => (id === currentId ? "page" : undefined);
+const folds = section.id === "packages";
+---
+
+<nav class:list={["nav", folds && "is-packages"]} aria-label={`${section.label} navigation`}>
+  {section.groups.map((group) => {
+    const links = group.items.map((item) => (
+      <a class="nav-link" href={urlFor(item.id)} aria-current={current(item.id)}>
+        {item.label}
+      </a>
+    ));
+    return folds ? (
+      <details class="nav-fold" open={group.items.some((item) => item.id === currentId)}>
+        <summary>{group.label}</summary>
+        <div class="nav-links">{links}</div>
+      </details>
+    ) : (
+      <div>
+        <p class="nav-title">{group.label}</p>
+        <div class="nav-links">{links}</div>
+      </div>
+    );
+  })}
+</nav>

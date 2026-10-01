@@ -1,0 +1,153 @@
+---
+title: "MikroORM without decorators"
+lead: "EntitySchema keeps entities Bun-friendly — no reflect-metadata, no decorator transforms — and the service forks a fresh EntityManager for every operation."
+description: "Wire MikroORM into Rhythm on Bun: decorator-free EntitySchema entities, a forked EntityManager per operation, and Migrator-driven migrations."
+---
+
+## Install
+
+The PostgreSQL driver package re-exports the core; `@mikro-orm/migrations` adds the `Migrator` extension used below.
+
+```bash
+bun add @mikro-orm/core @mikro-orm/postgresql @mikro-orm/migrations zod @rhythmjs/middleware
+```
+
+## Entities without decorators [#entity-schema]
+
+MikroORM's decorator style needs `emitDecoratorMetadata` or a ts-morph discovery pass — machinery Bun's transpiler doesn't owe you. `EntitySchema` sidesteps all of it: the entity is a plain class, the metadata is an explicit object next to it. MikroORM hydrates rows without calling the constructor, so constructor arguments stay a convenience for *creating* notes.
+
+```ts
+// src/notes/note.entity.ts
+import { EntitySchema } from "@mikro-orm/core";
+
+export class Note {
+  id: string = crypto.randomUUID();
+  title: string;
+  content: string;
+  createdAt: Date = new Date();
+  updatedAt: Date = new Date();
+
+  constructor(title: string, content: string = "") {
+    this.title = title;
+    this.content = content;
+  }
+}
+
+export const noteEntitySchema = new EntitySchema<Note>({
+  class: Note,
+  tableName: "notes",
+  properties: {
+    id: { type: "string", primary: true },
+    title: { type: "string" },
+    content: { type: "text", default: "" },
+    createdAt: { type: "datetime", fieldName: "created_at" },
+    updatedAt: { type: "datetime", fieldName: "updated_at", onUpdate: () => new Date() },
+  },
+});
+```
+
+## The database provider [#database-provider]
+
+`MikroORM.init` is async, and providers may be — the factory resolves once at setup, and `orm.close()` is the dispose hook. Registering the `Migrator` extension here means the same config serves the app and the migration runner.
+
+```ts
+// src/database.ts
+import { join } from "node:path";
+import { Migrator } from "@mikro-orm/migrations";
+import { MikroORM } from "@mikro-orm/postgresql";
+import { noteEntitySchema } from "./notes/note.entity";
+
+const clientUrl = process.env.DATABASE_URL ?? "postgres://postgres:postgres@localhost:5432/notes_mikro_orm";
+
+export async function createDatabase(): Promise<{ orm: MikroORM }> {
+  const orm = await MikroORM.init({
+    clientUrl,
+    entities: [noteEntitySchema],
+    extensions: [Migrator],
+    migrations: { path: join(import.meta.dirname, "migrations"), snapshot: false },
+  });
+  return { orm };
+}
+
+export async function closeDatabase({ orm }: { orm: MikroORM }): Promise<void> {
+  await orm.close();
+}
+```
+
+## Fork per operation
+
+MikroORM's `EntityManager` carries an identity map — a unit of work that must not be shared across concurrent requests. The provider holds the long-lived `orm`; every service method starts from `orm.em.fork()`, so each operation gets its own isolated context and the global-context guard never fires.
+
+```ts
+// src/notes/notes.service.ts
+export function createNotesService(orm: MikroORM) {
+  return {
+    list: () => orm.em.fork().find(Note, {}, { orderBy: { createdAt: "desc" } }),
+    get: (id: string) => orm.em.fork().findOne(Note, { id }),
+    async create(input: CreateNoteInput) {
+      const em = orm.em.fork();
+      const note = new Note(input.title, input.content);
+      em.persist(note);
+      await em.flush();
+      return note;
+    },
+    async update(id: string, patch: UpdateNoteInput) {
+      const em = orm.em.fork();
+      const note = await em.findOne(Note, { id });
+      if (!note) return null;
+      em.assign(note, patch);
+      await em.flush();
+      return note;
+    },
+    async remove(id: string) {
+      const em = orm.em.fork();
+      const note = await em.findOne(Note, { id });
+      if (!note) return false;
+      await em.removeAndFlush(note);
+      return true;
+    },
+  };
+}
+```
+
+The module wiring is the shared pattern from the [overview](/data/): `filter()`, the provider pair, the service provider (`({ orm }) => …`), the controller, a thrown 404.
+
+## Migrations
+
+Migrations are classes under `src/migrations/` with `up()` and `down()` built from `this.addSql(…)`. A short script opens the ORM, runs `orm.migrator.up()`, and closes it — MikroORM records applied migrations in a `mikro_orm_migrations` table.
+
+```ts
+// src/migrations/Migration20260930000000_init.ts
+import { Migration } from "@mikro-orm/migrations";
+
+export class Migration20260930000000_init extends Migration {
+  override async up(): Promise<void> {
+    this.addSql(`
+      create table "notes" (
+        "id" varchar(255) not null,
+        "title" varchar(255) not null,
+        "content" text not null default '',
+        "created_at" timestamptz not null,
+        "updated_at" timestamptz not null,
+        constraint "notes_pkey" primary key ("id")
+      );
+    `);
+  }
+
+  override async down(): Promise<void> {
+    this.addSql(`drop table if exists "notes" cascade;`);
+  }
+}
+```
+
+```ts
+// src/migrate.ts
+const { orm } = await createDatabase();
+const migrated = await orm.migrator.up();
+await closeDatabase({ orm });
+console.log(`applied ${migrated.length} migration(s)`);
+```
+
+## Where to next [#next-steps]
+
+Query-builder instead of unit-of-work: [Drizzle](/data/drizzle/). Generated client: [Prisma](/data/prisma/). Document store: [MongoDB](/data/mongodb/). The full app is [examples/mikro-orm-postgres](https://github.com/rhythmjs/examples/tree/main/examples/mikro-orm-postgres).

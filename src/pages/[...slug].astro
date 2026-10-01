@@ -1,0 +1,36 @@
+---
+import { render } from "astro:content";
+import DocsLayout from "../layouts/docs-layout.astro";
+import Callout from "../components/callout.astro";
+import CodeBlock from "../components/code-block.astro";
+import Def from "../components/def.astro";
+import DefList from "../components/def-list.astro";
+import Heading from "../components/heading.astro";
+import { getDocs, getPageContext, slugFor } from "../lib/docs";
+import { splitHeading } from "../lib/headings";
+
+export async function getStaticPaths() {
+  const docs = await getDocs();
+  return [...docs.keys()].map((id) => ({ params: { slug: slugFor(id) }, props: { id } }));
+}
+
+const { id } = Astro.props;
+const entry = (await getDocs()).get(id)!;
+const { Content, headings } = await render(entry);
+
+const toc = headings
+  .filter((heading) => heading.depth === 2)
+  .map((heading) => splitHeading(heading.text, heading.slug));
+const page = getPageContext(id, entry.data.title);
+---
+
+<DocsLayout
+  id={id}
+  title={entry.data.title}
+  lead={entry.data.lead}
+  description={entry.data.description}
+  page={page}
+  toc={toc}
+>
+  <Content components={{ h2: Heading, pre: CodeBlock, Callout, DefList, Def }} />
+</DocsLayout>

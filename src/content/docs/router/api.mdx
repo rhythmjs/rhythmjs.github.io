@@ -1,0 +1,34 @@
+---
+title: "Router API reference"
+lead: "Route methods, response helpers, and Bun serving exports for @rhythmjs/router."
+---
+
+## RhythmRouter
+
+<DefList>
+<Def sig={"new RhythmRouter({ prefix? })"} id="rhythmrouter">Create an HTTP controller. A router does not extend Rhythm; it compiles routes and middleware down to a single middleware. The prefix joins onto every route path registered on this instance.</Def>
+<Def sig="get / post / put / patch / delete(path, ...handlers)" id="get">Add one or more handlers for a method and path; multiple handlers compose left to right, and a leading derive middleware types the context for the handlers after it. Matched parameters are in `ctx.params`.</Def>
+<Def sig="use(fn)" id="use">Add a middleware. It takes only functions; mount a nested router as `use(child.middleware())`; the mount is opaque, so the child carries its own full prefix. Registration order is execution order: a middleware wraps only the routes registered after it. There is no `provide()` or `register()`; providers live on the host Rhythm app.</Def>
+<Def sig="middleware()" id="middleware">Compile this router to a plain middleware: the one form that mounts anywhere, into a Rhythm app or into another router.</Def>
+<Def sig="entries" id="entries">A read-only snapshot of registered middlewares and routes, in order.</Def>
+<Def sig="joinPath(prefix, path)" id="joinpath">The exported prefix-joining helper the router uses internally.</Def>
+</DefList>
+
+<DefList>
+<Def sig="ctx.json(data, status?)" id="ctx-json">Serialize data as the body with an application/json content type; status is optional.</Def>
+<Def sig="ctx.text(body, status?) / ctx.html(body, status?)" id="ctx-text">Set a plain-text or HTML body with the matching content type.</Def>
+<Def sig="ctx.error(status, message?)" id="ctx-error">Set the status and a plain-text message, defaulting the message from the status code.</Def>
+<Def sig="ctx.redirect(url, status?)" id="ctx-redirect">Set the location header with a 302 default and no body.</Def>
+</DefList>
+
+The helpers are sugar over `ctx.response`, built into the context by `createHttpContext`. Context exports (`RhythmHttpContext`, `RhythmResponse`, `RhythmResponseBody`, `createHttpContext`, and `toResponse`) live at `@rhythmjs/router/context`; `@rhythmjs/router/adapters/context` remains as a compatibility alias for the same module.
+
+## Serving exports
+
+<DefList>
+<Def sig="toFetchHandler(app)" id="tofetchhandler">From `@rhythmjs/router/fetch`: takes a Rhythm app and returns `(request: Request) => Promise<Response>`, the raw primitive for composing and testing without a listener.</Def>
+<Def sig="errorToResponse(error)" id="errortoresponse">From `@rhythmjs/router/fetch`: maps a thrown error to a Response: the error's own `status`/`statusCode` when set, else a logged, masked `500`. Call it in your own `try/catch` around the fetch handler.</Def>
+<Def sig="RhythmRouterOptions / RhythmRouterContext" id="rhythmrouteroptions">Root type exports describing constructor options and matched path parameters.</Def>
+</DefList>
+
+Subpath exports: `@rhythmjs/router`, `./context`, and `./fetch`, plus the `./adapters/context` compatibility alias. The package is coupled to Bun on purpose; there are no runtime adapters.

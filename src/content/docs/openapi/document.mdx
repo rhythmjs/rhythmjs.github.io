@@ -1,0 +1,57 @@
+---
+title: "Generate and serve the document"
+lead: "generate() walks the router into an OpenAPI 3.1 document; apiDocument and apiReference serve the JSON and an interactive UI."
+description: "Generate the OpenAPI 3.1 document from a described router (schema resolution, $defs hoisting into components) and serve it with Scalar or Swagger UI."
+---
+
+## Generate the document
+
+`generate(router, config, options?)` walks `router.entries` in registration order (middleware entries contribute inherited fragments, route entries become operations) and emits an OpenAPI object (`openapi: "3.1.2"` unless overridden). Router paths convert to OpenAPI templates: `/users/:id` becomes `/users/{id}` and a bare `*` segment becomes `{wildcard}`. Undocumented routes are included with a default `200` unless `includeUndocumented: false`.
+
+```ts
+import { generate } from "@rhythmjs/openapi/generate";
+
+const document = await generate(users, config);
+// { openapi: "3.1.2", info, paths: { "/users/{id}": { get: {...} } }, components }
+```
+
+## Schema resolution
+
+Standard Schema values resolve through `~standard.jsonSchema`, targeting JSON Schema draft 2020-12. Request-side schemas (bodies, parameters) resolve with the schema's *input* projection and response-side schemas with its *output* projection, so defaults and transforms document correctly on each side. Types JSON Schema cannot express (`File`, `Date`, …) are documented as `{}` via the vendor's `unrepresentable: "any"` escape hatch. A schema whose vendor does not implement the interface throws with a pointed message: use zod `^4.2.0` or pass a raw JSON Schema object, which is always passed through untouched.
+
+## Shared schemas and $defs hoisting [#defs-hoisting]
+
+When a resolved schema carries `$defs` (zod emits them for registered, reused schemas), each definition is hoisted into `components.schemas` and every `#/$defs/…` reference is rewritten to `#/components/schemas/…`. Name collisions are safe: an identical definition is deduplicated, a different one under the same name is renamed with a numeric suffix and its references follow. Shared zod schemas therefore become shared component refs across the whole document.
+
+## Document configuration
+
+The document-level half comes from `defineDocument({...})` (an identity helper for typing): required `info`, plus `servers`, `tags`, `externalDocs`, document-level `security`, `webhooks`, `jsonSchemaDialect`, `x-` `extensions`, and `components`. `securitySchemes` is a top-level convenience merged into `components.securitySchemes`; generated schemas merge into `components.schemas` alongside anything you declared.
+
+```ts
+import { defineDocument } from "@rhythmjs/openapi/document";
+
+const config = defineDocument({
+  info: { title: "Users API", version: "1.0.0" },
+  servers: [{ url: "https://api.example.com" }],
+  securitySchemes: { bearer: { type: "http", scheme: "bearer" } },
+});
+```
+
+## Serve the document
+
+`apiDocument({ router, config, path? })` is a middleware that answers `GET /openapi.json` (exact path match; everything else falls through) with the generated document. The document is generated lazily on the first request and cached as a promise; a failed generation is evicted so the next request retries instead of caching the error. Generation options (`openapi`, `includeUndocumented`) pass through.
+
+## Reference UIs
+
+`apiReference({ path?, specUrl?, ui?, title? })` serves an interactive reference page at `/docs`, Scalar by default, Swagger UI with `ui: "swagger"` - pointing at `specUrl` (default `/openapi.json`; the value is HTML-escaped into the page). Both are static HTML shells loading the UI from a CDN.
+
+```ts
+import { defineDocument } from "@rhythmjs/openapi/document";
+import { apiDocument, apiReference } from "@rhythmjs/openapi/docs";
+
+const app = new Rhythm<RhythmHttpContext>()
+  .use(apiDocument({ router: users, config }))
+  .use(apiReference({ title: "Users API" }))
+  .use(users.middleware());
+// GET /openapi.json => the document; GET /docs => Scalar UI
+```

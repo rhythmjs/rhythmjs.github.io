@@ -1,0 +1,60 @@
+---
+title: "API reference"
+lead: "Every export of the three subpaths: @rhythmjs/middleware/validate, /intercept, and /filter. There is no root barrel export."
+description: "Exports and semantics for the validate, intercept, and filter subpaths of @rhythmjs/middleware."
+---
+
+## @rhythmjs/middleware/validate [#validate-subpath]
+
+```ts
+function validate<TTarget extends ValidationTarget, TSchema extends StandardSchemaV1>(
+  target: TTarget,
+  schema: TSchema,
+): Middleware<ValidationContext>;
+```
+
+Returns middleware that extracts the request part named by `target` and validates it with any Standard Schema v1 schema, sync or async. On success it calls `next({ valid })` with the schema output stored at `ctx.valid[target]`, preserving values from earlier validators. On failure it stops the chain, sets status 400 with content type `application/json`, and writes a `ValidationFailure` body. A body target whose JSON cannot be parsed fails with the single issue `"Malformed JSON in request body"`.
+
+<DefList>
+<Def sig="ValidationTarget" id="validationtarget">"body" | "query" | "param". Body reads ctx.request.clone().json(); query collects URL search params, turning repeated keys into arrays; param reads ctx.params (empty object when absent).</Def>
+<Def sig="ValidationContext" id="validationcontext">The context shape validate runs against: RhythmHttpContext, optional router params, and an optional valid record keyed by target.</Def>
+<Def sig={"Validated<Target, Schema>"} id="validated">Context-extension type for a route handler's TExtra parameter. Resolves to \{ valid: \{ \[target\]: schema output \} \}.</Def>
+<Def sig="ValidationIssue" id="validationissue">Serialized issue: \{ message: string; path?: readonly (string | number)\[\] \}. Symbol path keys are dropped.</Def>
+<Def sig="ValidationFailure" id="validationfailure">The 400 response body: \{ success: false; target: ValidationTarget; issues: readonly ValidationIssue\[\] \}.</Def>
+</DefList>
+
+## @rhythmjs/middleware/intercept [#intercept-subpath]
+
+```ts
+function intercept<TSchema extends StandardSchemaV1>(
+  schema: TSchema,
+): Middleware<RhythmHttpContext>;
+```
+
+Returns middleware that awaits `next()`, then transforms the outgoing response through the schema. It only acts when the response status is 2xx and the body is a string; other responses pass through untouched. The body is parsed as JSON, or handed to the schema as a raw string when parsing fails. A string schema output is written back as-is; any other output is serialized as JSON with content type `application/json`. Undeclared fields do not survive the schema, so the output is exactly what the schema declares.
+
+<DefList>
+<Def sig="InterceptIssue" id="interceptissue">Serialized issue: \{ message: string; path?: readonly (string | number)\[\] \}. Symbol path keys are dropped.</Def>
+<Def sig="InterceptFailure" id="interceptfailure">The body written when the response does not match the schema: \{ success: false; issues: readonly InterceptIssue\[\] \}, with status set to 500.</Def>
+</DefList>
+
+## @rhythmjs/middleware/filter [#filter-subpath]
+
+```ts
+function filter(
+  onError?: (error: unknown, ctx) => void | Promise<void>,
+): Middleware<RhythmHttpContext>;
+
+class HttpError extends Error {
+  constructor(status: number, message: string, details?: unknown);
+  readonly status: number;
+  readonly details?: unknown;
+}
+```
+
+`filter` returns middleware that wraps `next()` in a try/catch; register it first so it is the outermost layer. A caught `HttpError` becomes a JSON `FilterFailure` response with the error's status, message, and details (details is omitted when undefined). Any other thrown value becomes `{ "success": false, "status": 500, "message": "Internal Server Error" }`, so the original error message never reaches the client. When `onError` is provided it replaces the default mapping entirely: it receives the error and the context, may be async, and may rethrow.
+
+<DefList>
+<Def sig="HttpError(status, message, details?)" id="httperror">Error subclass with name "HttpError" and readonly status and details. Throw it anywhere downstream of filter to produce that status.</Def>
+<Def sig="FilterFailure" id="filterfailure">The error response body: \{ success: false; status: number; message: string; details?: unknown \}.</Def>
+</DefList>

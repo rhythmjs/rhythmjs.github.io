@@ -1,0 +1,19 @@
+---
+import { splitHeading } from "../lib/headings";
+
+interface Props {
+  id?: string;
+  as?: "h2" | "h3";
+}
+
+const { as: Tag = "h2" } = Astro.props;
+const rendered = await Astro.slots.render("default");
+const { id, text } = splitHeading(rendered, Astro.props.id ?? "");
+---
+
+<Tag id={id}>
+  <Fragment set:html={text} />
+  <a class="anchor" href={`#${id}`} aria-label="Link to this section" data-pagefind-ignore>
+    #
+  </a>
+</Tag>

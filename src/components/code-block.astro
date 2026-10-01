@@ -1,0 +1,30 @@
+---
+import Icon from "./icon.astro";
+
+const labels: Record<string, string> = {
+  ts: "TypeScript",
+  bash: "Shell",
+  json: "JSON",
+  yaml: "YAML",
+  text: "Text",
+};
+
+const { class: className, "data-language": language = "text" } = Astro.props as {
+  class?: string;
+  "data-language"?: string;
+};
+---
+
+<figure class="code">
+  <figcaption class="code-bar" data-pagefind-ignore>
+    <span>{labels[language] ?? language}</span>
+    <button class="copy" type="button" aria-label="Copy code">
+      <Icon name="copy" />
+      <span class="when-idle">Copy</span>
+      <span class="when-copied" aria-live="polite">
+        Copied
+      </span>
+    </button>
+  </figcaption>
+  <pre class={className} tabindex="0"><slot /></pre>
+</figure>

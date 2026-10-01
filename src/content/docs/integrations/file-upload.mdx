@@ -1,0 +1,87 @@
+---
+title: File upload
+lead: "Accept uploads with the multipart middleware, then store each file on disk or in S3 with Bun's built-in APIs."
+description: "Handle file uploads in Rhythm: multipart parsing with limits, saving to disk with Bun.write, uploading to S3 with Bun's S3Client, and validating files."
+---
+
+## Install
+
+`@rhythmjs/http` provides the multipart parser. Storage needs nothing extra: `Bun.write` writes to disk and `S3Client` is built into Bun.
+
+```bash
+bun add @rhythmjs/http @rhythmjs/rhythm @rhythmjs/router
+```
+
+## Parse the upload [#parse]
+
+`multipart(options)` parses `multipart/form-data` into `ctx.form` and aborts mid-stream when a limit is crossed, so oversized uploads are not buffered. Set the limits for the largest upload you accept.
+
+```ts
+import { RhythmRouter } from "@rhythmjs/router";
+import type { RhythmHttpContext } from "@rhythmjs/router/context";
+import { multipart, type MultipartContext } from "@rhythmjs/http/multipart";
+import type { S3Client } from "bun";
+
+export const uploads = new RhythmRouter<RhythmHttpContext & { s3: S3Client }>({ prefix: "/api/uploads" });
+
+const limits = multipart({ maxBytes: 5 * 1024 * 1024, maxFileSize: 2 * 1024 * 1024, maxFiles: 1 });
+```
+
+## Save to disk [#disk]
+
+`ctx.form.file(name)` returns a standard `File`, and `Bun.write` accepts it directly. Name the stored file yourself; never use the client's filename as a path.
+
+```ts
+uploads.post<MultipartContext>("/avatar", limits, async (ctx) => {
+  const file = ctx.form.file("avatar");
+  if (!file) {
+    ctx.error(400, "avatar missing");
+    return;
+  }
+
+  const key = `${crypto.randomUUID()}.png`;
+  await Bun.write(`uploads/${key}`, file);
+  ctx.json({ key, size: file.size }, 201);
+});
+```
+
+Serve the folder back with [Bun's static routes](/router/static/).
+
+## Upload to S3 [#s3]
+
+For object storage, Bun's `S3Client` works with S3 and S3-compatible services (R2, MinIO, Spaces). Build it once as a [provider](/rhythm/providers/) and write the file under a generated key.
+
+```ts
+import { S3Client } from "bun";
+import { Rhythm } from "@rhythmjs/rhythm";
+
+export const storageModule = new Rhythm<RhythmHttpContext>({ name: "storage", type: "module" }).provide(() => ({
+  s3: new S3Client({
+    accessKeyId: process.env.S3_ACCESS_KEY_ID,
+    secretAccessKey: process.env.S3_SECRET_ACCESS_KEY,
+    bucket: process.env.S3_BUCKET,
+    endpoint: process.env.S3_ENDPOINT,
+  }),
+}));
+
+uploads.post<MultipartContext>("/documents", limits, async (ctx) => {
+  const file = ctx.form.file("document");
+  if (!file) {
+    ctx.error(400, "document missing");
+    return;
+  }
+
+  const key = `documents/${crypto.randomUUID()}`;
+  await ctx.s3.write(key, file, { type: file.type });
+  ctx.json({ key, url: ctx.s3.presign(key, { expiresIn: 3600 }) }, 201);
+});
+```
+
+`presign` returns a temporary download URL, so the file stays private and the browser fetches it straight from storage.
+
+## Things to check
+
+- **The file's type is client-supplied.** `file.type` and the filename come from the browser and can be anything. Allow only the types you expect, and store under a name you generate.
+- **Set every limit.** `maxBytes`, `maxFileSize` and `maxFiles` bound the cost of one request; add [rate limiting](/security/hardening/) so one client cannot send many.
+- **Require a user** with [`requireAuthentication`](/security/) before the route unless uploads are meant to be public.
+- **Do not trust the extension.** If you serve uploads back, set the `content-type` yourself rather than echoing the original, or you may serve a script as a page.

@@ -1,0 +1,183 @@
+---
+title: "API reference"
+lead: "Every subpath export of @rhythmjs/openapi. There is no root barrel export; import each module from its own subpath."
+description: "Every subpath of @rhythmjs/openapi: the request validators, doc-only fragment helpers, metadata layer, schema resolver, generator, and docs middlewares."
+---
+
+## /body [#body-subpath]
+
+```ts
+function apiBody<TSchema extends StandardSchemaV1>(
+  schema: TSchema,
+  options?: ApiBodyOptions,
+): DeriveMiddleware<ValidationContext, Validated<"body", TSchema>>;
+
+interface ApiBodyOptions {
+  description?: string;
+  required?: boolean; // documented; defaults to true
+  contentType?: string; // default "application/json"
+  example?: unknown;
+  examples?: Record<string, ExampleObject | ReferenceObject>;
+  encoding?: Record<string, EncodingObject>;
+  content?: Record<string, MediaTypeSpec>; // full override
+}
+```
+
+Documents the request body and validates it. Extraction follows `contentType`: JSON parses `request.clone().json()` (failure: issue `"Malformed JSON in request body"`), form-data collects entries with repeated keys as arrays, urlencoded parses the text, anything else validates the raw text. This subpath also re-exports the shared validation types: `Validated`, `ValidationContext`, `ValidationTarget` (`"body" | "query" | "param" | "header" | "cookie"`), `ValidationIssue`, and `ValidationFailure`, the 400 body `{ success: false, target, issues }`.
+
+## /query, /param, /header, /cookie [#parameter-subpaths]
+
+```ts
+function apiQuery<TSchema>(schema, options?: { overrides? }): DeriveMiddleware<..., Validated<"query", TSchema>>;
+function apiParam<TSchema>(schema, options?: { overrides? }): DeriveMiddleware<..., Validated<"param", TSchema>>;
+function apiHeader<TSchema>(schema, options?: { overrides? }): DeriveMiddleware<..., Validated<"header", TSchema>>;
+function apiCookie<TSchema>(schema, options?: { overrides? }): DeriveMiddleware<..., Validated<"cookie", TSchema>>;
+```
+
+Each documents one parameter group (`in: query`, `path`, `header`, or `cookie`) and validates the corresponding request part: query params with repeated keys collected as arrays, router `ctx.params`, all request headers as a lowercase record, or parsed cookies. The generator expands the object schema's properties into individual OpenAPI parameters; required from the schema (path parameters are always required), with per-property `overrides` (`ParameterOverride`: description, required, deprecated, style, explode, example, and so on).
+
+## /operation and /tags
+
+```ts
+function apiOperation(options: ApiOperationOptions): Middleware<RhythmHttpContext>;
+// summary, description, operationId, deprecated, externalDocs, servers
+
+function apiTags(...tags: string[]): Middleware<RhythmHttpContext>;
+```
+
+Doc-only fragments. `apiOperation` merges its fields onto the operation; later fragments overwrite earlier ones. `apiTags` appends tags, de-duplicated across inherited and route-level fragments.
+
+## /response [#response-subpath]
+
+```ts
+type ResponseStatus = number | "default" | "1XX" | "2XX" | "3XX" | "4XX" | "5XX";
+
+function apiResponse(status: ResponseStatus, options: ApiResponseOptions): Middleware<RhythmHttpContext>;
+
+interface ApiResponseOptions {
+  description: string; // required by OpenAPI
+  schema?: SchemaLike; // shorthand for content[contentType].schema
+  contentType?: string; // default "application/json"
+  example?: unknown;
+  examples?: Record<string, ExampleObject | ReferenceObject>;
+  content?: Record<string, MediaTypeSpec>; // full override
+  headers?: Record<string, HeaderSpec | ReferenceObject>;
+  links?: Record<string, LinkObject | ReferenceObject>;
+}
+```
+
+One response per call; stack several for several statuses. Response schemas resolve with the schema's *output* type (request schemas use the input type), so zod transforms document what the client actually receives. When no route declares any response, the generator emits a default `200 Successful response`.
+
+## /security [#security-subpath]
+
+```ts
+function apiSecurity(name: string, scopes?: string[]): Middleware;
+function apiBearerAuth(name = "bearer"): Middleware;
+function apiBasicAuth(name = "basic"): Middleware;
+function apiCookieAuth(name = "cookie"): Middleware;
+function apiKeyAuth(name = "api-key"): Middleware;
+function apiOAuth2(scopes: string[], name = "oauth2"): Middleware;
+function apiNoSecurity(): Middleware;
+```
+
+Security requirements referencing the scheme names declared in the document config's `securitySchemes`. Requirements accumulate and de-duplicate across fragments; `apiNoSecurity()` resets them and emits `security: []`, opting the route out of document-level defaults; a later requirement turns security back on.
+
+## /exclude, /extension, /callback [#small-fragments]
+
+```ts
+function apiExclude(): Middleware; // route disappears from the document
+function apiExtension(name: `x-${string}`, value: unknown): Middleware; // throws unless name starts with "x-"
+function apiCallback(name: string, callback: CallbackObject | ReferenceObject): Middleware;
+```
+
+## /document [#document-subpath]
+
+```ts
+function defineDocument(config: OpenAPIConfig): OpenAPIConfig;
+
+interface OpenAPIConfig {
+  info: InfoObject; // required: title, version
+  jsonSchemaDialect?: string;
+  servers?: ServerObject[];
+  tags?: TagObject[];
+  externalDocs?: ExternalDocsObject;
+  security?: SecurityRequirementObject[]; // document-wide default
+  securitySchemes?: Record<string, SecuritySchemeObject | ReferenceObject>;
+  components?: ComponentsObject;
+  webhooks?: Record<string, PathItemObject>;
+  extensions?: Record<`x-${string}`, unknown>;
+}
+```
+
+`defineDocument` is an identity function that exists for inference and autocompletion; the config object is the document-level half of the generated file. `securitySchemes` is a convenience that merges into `components.securitySchemes`.
+
+## /generate [#generate-subpath]
+
+```ts
+function generate(
+  router: RouterSource,
+  config: OpenAPIConfig,
+  options?: GenerateOptions,
+): Promise<OpenAPIObject>;
+
+interface RouterSource {
+  readonly entries: ReadonlyArray<
+    | { kind: "middleware"; fn: unknown }
+    | { kind: "route"; method: string; path: string; handlers: readonly unknown[] }
+  >;
+}
+
+interface GenerateOptions {
+  openapi?: string; // document version string, default "3.1.2"
+  includeUndocumented?: boolean; // default true
+}
+```
+
+Walks the entries in order. A middleware entry carrying a fragment joins the *inherited* list applied to every route after it; each route merges inherited then own fragments. Paths convert `:param` to `{param}` and `*` to `{wildcard}`. Schemas resolve through the resolver, and emitted `$defs` are hoisted into `components.schemas`; identical definitions share a name, conflicting ones get numeric suffixes, and `$ref`s are rewritten to `#/components/schemas/…`. RhythmRouter satisfies `RouterSource` directly via its `entries` getter.
+
+## /docs [#docs-subpath]
+
+```ts
+function apiDocument(options: ApiDocumentOptions): Middleware<RhythmHttpContext>;
+interface ApiDocumentOptions extends GenerateOptions {
+  path?: string; // default "/openapi.json"
+  router: RouterSource;
+  config: OpenAPIConfig;
+}
+
+function apiReference(options?: ApiReferenceOptions): Middleware<RhythmHttpContext>;
+interface ApiReferenceOptions {
+  path?: string; // default "/docs"
+  specUrl?: string; // default "/openapi.json"
+  ui?: "scalar" | "swagger"; // default scalar
+  title?: string; // default "API Reference"
+}
+```
+
+`apiDocument` matches `GET` on its path, generates once, caches the promise, and serves JSON; a rejected generation is evicted so the next request retries. Everything else falls through to `next()`. `apiReference` serves a self-contained HTML page loading Scalar from jsDelivr or Swagger UI from unpkg; `specUrl` and `title` are HTML-escaped.
+
+## /metadata [#metadata-subpath]
+
+```ts
+const OPENAPI_METADATA: symbol; // Symbol.for("rhythmjs.openapi")
+
+function withFragment<TFn>(fn: TFn, fragment: OperationFragment): TFn;
+function fragmentOf(fn: unknown): OperationFragment | undefined;
+function docOnly(fragment: OperationFragment): Middleware<RhythmHttpContext>;
+```
+
+The extension seam for writing custom `api*` helpers. `withFragment` attaches a fragment to any function under the shared symbol; `fragmentOf` reads it back (the generator uses it); `docOnly` wraps a fragment in a pass-through middleware. `OperationFragment` holds the mergeable slices (`operation`, `tags`, `parameters` (`ParameterGroupSpec`), `requestBody` (`RequestBodySpec`), `responses` (`ResponseSpec`), `security` (or `"none"`), `callbacks`, `extensions`, and `exclude`) alongside the spec types `SchemaLike` (Standard Schema or raw `SchemaObject`), `MediaTypeSpec`, `HeaderSpec`, and `ParameterOverride`.
+
+## /resolver [#resolver-subpath]
+
+```ts
+type SchemaIO = "input" | "output";
+function isStandardSchema(value: unknown): value is StandardSchemaV1;
+function resolveSchema(schema: SchemaLike, io: SchemaIO): SchemaObject;
+```
+
+Converts a `SchemaLike` to JSON Schema (draft 2020-12). Raw objects pass through; Standard Schemas must implement the Standard JSON Schema interface (`~standard.jsonSchema`, zod 4.2+) or `resolveSchema` throws with a message naming the vendor. Types JSON Schema cannot express (`File`, `Date`, …) resolve to `{}` instead of throwing; a `$schema` dialect field is stripped.
+
+## /types [#types-subpath]
+
+The complete OpenAPI 3.1 object model as TypeScript interfaces, all supporting `x-` extension fields: `OpenAPIObject`, `InfoObject`, `ContactObject`, `LicenseObject`, `ServerObject`, `ServerVariableObject`, `PathsObject`, `PathItemObject`, `OperationObject`, `ParameterObject` (`ParameterLocation`, `ParameterStyle`), `HeaderObject`, `RequestBodyObject`, `MediaTypeObject`, `EncodingObject`, `ResponseObject`, `ResponsesObject`, `ExampleObject`, `LinkObject`, `CallbackObject`, `TagObject`, `ExternalDocsObject`, `ReferenceObject`, `SchemaObject` (a raw JSON Schema record or boolean), `ComponentsObject`, `SecuritySchemeObject` (apiKey, http, mutualTLS, oauth2 with `OAuthFlowsObject`/`OAuthFlowObject`, openIdConnect), and `SecurityRequirementObject`.

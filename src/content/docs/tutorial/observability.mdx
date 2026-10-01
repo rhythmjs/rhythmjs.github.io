@@ -1,0 +1,95 @@
+---
+title: "Observability"
+lead: "Logs, request ids, health endpoints, and a shutdown that drains cleanly."
+description: "Logs, request ids, health checks, and graceful shutdown."
+---
+
+## See every request
+
+Three middleware from [@rhythmjs/observability](/observability/) cover the request path: `requestId()` puts an id on the context and response, `log()` writes one line per request (method, path, status, duration — never headers or bodies), and `timing()` adds a `Server-Timing` header. Order them first so they wrap everything:
+
+```ts
+import { log } from "@rhythmjs/observability/log";
+import { requestId } from "@rhythmjs/observability/request-id";
+import { timing } from "@rhythmjs/observability/timing";
+
+export const appModule = new Rhythm<RhythmHttpContext>({ name: "app", type: "module" })
+  .use(requestId())
+  .use(log())
+  .use(process.env.NODE_ENV === "production" ? (ctx, next) => next() : timing())
+  .use(filter())
+  /* ... */
+```
+
+## Health checks
+
+The health module separates liveness (the process is up) from readiness (its dependencies answer). Indicators are small objects with a `check()`; results are cached briefly so load balancers cannot hammer your database through the endpoint:
+
+```ts
+import { healthModule, healthRoutes } from "@rhythmjs/observability/health";
+
+const health = healthModule.forRoot({
+  indicators: [
+    {
+      name: "postgres",
+      critical: true,
+      timeout: 2_000,
+      check: async () => {
+        await db.execute(sql`select 1`);
+        return { status: "up" };
+      },
+    },
+    {
+      name: "queue",
+      check: async () => ({ status: "up", details: await queueService.counts() }),
+    },
+  ],
+});
+
+appModule
+  .register(health, ({ healthService }) => ({ healthService }))
+  .use(healthRoutes(healthService).middleware()); // GET /health/live, GET /health/ready
+```
+
+<Callout title="Readiness detail exposure">
+
+Indicator `details` and failure messages appear in the readiness body. Keep them free of connection strings, or mount `healthRoutes` behind auth / an internal listener.
+
+</Callout>
+
+## Graceful shutdown
+
+Production `main.ts` ties it together: an error boundary around the handler, signal-driven shutdown that flips readiness, drains, stops the server, and tears the module tree down in reverse:
+
+```ts
+// src/main.ts
+import { errorToResponse, toFetchHandler } from "@rhythmjs/router/fetch";
+import { gracefulShutdown } from "@rhythmjs/observability/health";
+import { appModule } from "./app.module";
+
+const handler = toFetchHandler(appModule);
+
+const server = Bun.serve({
+  port: Number(process.env.PORT ?? 3000),
+  async fetch(request, srv) {
+    try {
+      return (await notesWs.upgrade(request, srv)) ?? (await handler(request));
+    } catch (error) {
+      return errorToResponse(error); // 5xx bodies are generic; details stay in server logs
+    }
+  },
+  websocket: notesWs.websocket,
+});
+
+gracefulShutdown({
+  healthService,                       // readiness flips down first
+  app: appModule,                      // teardown(): dispose providers in reverse
+  close: () => server.stop(),
+  drainMs: 5_000,
+  timeoutMs: 15_000,
+});
+
+console.log(`listening on ${server.url}`);
+```
+
+With that, deploys are boring: the balancer sees `/health/ready` go down, traffic drains, in-flight requests finish, the pool closes last. Which leaves exactly one thing to prove — that all of it works.

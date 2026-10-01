@@ -1,0 +1,112 @@
+---
+title: "Prisma as a provider"
+lead: "One PrismaClient for the app's lifetime, opened by a provider and closed by its dispose hook — with Prisma's error codes translated to plain answers at the service boundary."
+description: "Wire Prisma into Rhythm: PrismaClient as a disposable provider, not-found error codes mapped at the service boundary, and deploy-style migrations."
+---
+
+## Install
+
+The generated client is a runtime dependency; the `prisma` CLI is a dev tool. The schema lives in `prisma/schema.prisma`, and the model maps to the same `notes` table the other recipes use.
+
+```bash
+bun add @prisma/client zod @rhythmjs/middleware
+bun add -d prisma
+```
+
+```ts
+// prisma/schema.prisma
+model Note {
+  id        String   @id @default(uuid())
+  title     String
+  content   String   @default("")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("notes")
+}
+```
+
+## The database provider [#database-provider]
+
+`PrismaClient` manages its own pool, so the provider pair is short: construct at setup, `$disconnect()` at teardown. Passing `datasourceUrl` keeps the runtime independent of the `.env` file the CLI reads.
+
+```ts
+// src/database.ts
+import { PrismaClient } from "@prisma/client";
+
+const databaseUrl = process.env.DATABASE_URL ?? "postgres://postgres:postgres@localhost:5432/notes_prisma";
+
+export function createDatabase(): { prisma: PrismaClient } {
+  return { prisma: new PrismaClient({ datasourceUrl: databaseUrl }) };
+}
+
+export async function closeDatabase({ prisma }: { prisma: PrismaClient }): Promise<void> {
+  await prisma.$disconnect();
+}
+```
+
+## Not-found at the boundary
+
+Prisma throws `P2025` when `update` or `delete` misses. The service catches exactly that code and answers with `null` / `false`, so the controller decides the HTTP shape — it throws `HttpError(404)` and the [`filter()`](/middleware/filter/) boundary renders it. Everything else propagates and becomes a 500.
+
+```ts
+// src/notes/notes.service.ts
+function isRecordNotFound(error: unknown): boolean {
+  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025";
+}
+
+export function createNotesService(prisma: PrismaClient) {
+  return {
+    list: () => prisma.note.findMany({ orderBy: { createdAt: "desc" } }),
+    get: (id: string) => prisma.note.findUnique({ where: { id } }),
+    create: (input: CreateNoteInput) => prisma.note.create({ data: input }),
+    async update(id: string, patch: UpdateNoteInput) {
+      try {
+        return await prisma.note.update({ where: { id }, data: patch });
+      } catch (error) {
+        if (isRecordNotFound(error)) return null;
+        throw error;
+      }
+    },
+    async remove(id: string) {
+      try {
+        await prisma.note.delete({ where: { id } });
+        return true;
+      } catch (error) {
+        if (isRecordNotFound(error)) return false;
+        throw error;
+      }
+    },
+  };
+}
+```
+
+## Wiring the module [#module-wiring]
+
+Identical to every other recipe — only the provider name changes. The service factory receives `prisma` from the provider graph; the controller validates bodies with zod through `validate("body", …)` and checks responses with `intercept(…)`.
+
+```ts
+// src/app.module.ts
+export const appModule = new Rhythm<RhythmHttpContext>({ name: "app", type: "module" })
+  .use(filter())
+  .provide(createDatabase, closeDatabase)
+  .provide(({ prisma }) => ({ notesService: createNotesService(prisma) }))
+  .use(notesController.middleware())
+  .use(() => {
+    throw new HttpError(404, "Route not found");
+  });
+```
+
+## Migrations
+
+Checked-in SQL lives under `prisma/migrations/`. `prisma migrate deploy` applies pending migrations and nothing else — it does *not* regenerate the client, so generation is its own step. Author new migrations with `prisma migrate dev` against a development database.
+
+```bash
+bun run db:generate      # prisma generate
+bun run db:migrate       # prisma migrate deploy
+bun run db:migrate:dev   # prisma migrate dev — author a new migration
+```
+
+## Where to next [#next-steps]
+
+The shared pattern is introduced in the [overview](/data/); the first concrete recipe is [Drizzle](/data/drizzle/). [MikroORM](/data/mikro-orm/) adds a unit of work per request; [MongoDB](/data/mongodb/) drops the ORM entirely. The full app is [examples/prisma-postgres](https://github.com/rhythmjs/examples/tree/main/examples/prisma-postgres).

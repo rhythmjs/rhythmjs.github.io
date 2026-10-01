@@ -1,0 +1,30 @@
+---
+title: "Core API reference"
+lead: "The public API and types exported by @rhythmjs/rhythm."
+---
+
+## Rhythm
+
+<DefList>
+<Def sig={"new Rhythm<TInput>(options?)"} id="rhythm">Create a pipeline. Options include name and type.</Def>
+<Def sig={"use<TExtra>(middleware)"} id="use">Append a middleware step. Returns the same instance with an extended context type.</Def>
+<Def sig="provide(factory, dispose?)" id="provide">Add a sync or async object factory and optional cleanup callback. Resolved once, injected at its chain position so only later steps see it. Excludes # keys from context fields.</Def>
+<Def sig="register(child, exportValue?)" id="register">Register a child Rhythm module, its lifecycle, and optional context exports. Accepts Rhythm instances only; controllers mount via use() instead.</Def>
+<Def sig={"run(input): Promise<TContext>"} id="run">Initialize and dispatch one input, returning the final context.</Def>
+<Def sig={"callback(): (input) => Promise<TContext>"} id="callback">Get a cached reusable handler for the current middleware stack.</Def>
+<Def sig={"middleware(): Middleware<TContext>"} id="middleware">Get flat middleware that shares its caller’s context and supports fallthrough.</Def>
+<Def sig={"setup(): Promise<void>"} id="setup">Resolve providers in order. Shares the initialization promise and permits retry after failure.</Def>
+<Def sig={"teardown(): Promise<void>"} id="teardown">Await registered disposers in reverse order. Does not reset the instance.</Def>
+</DefList>
+
+## Core exports
+
+<DefList>
+<Def sig="compose(middleware[])" id="compose">Return a dispatcher accepting a context and optional final next handler.</Def>
+<Def sig={"Middleware<TContext>"} id="middleware-2">A (ctx, next) function returning void or Promise\<void\>.</Def>
+<Def sig={"NextFn<TContext>"} id="nextfn">Continue with optional extra context fields; resolves to readonly context.</Def>
+<Def sig={"DeepReadonly<T>"} id="deepreadonly">Recursively readonly types, except callable and RhythmMutable-branded values.</Def>
+<Def sig={"OmitHashKeys<T>"} id="omithashkeys">Remove keys beginning with # from an object type.</Def>
+<Def sig="RhythmMutable" id="rhythmmutable">A unique symbol used to opt objects out of DeepReadonly.</Def>
+<Def sig="RhythmOptions" id="rhythmoptions">Optional name and type labels, plus additional unknown option fields.</Def>
+</DefList>

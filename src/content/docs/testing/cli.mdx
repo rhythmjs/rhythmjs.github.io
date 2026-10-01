@@ -1,0 +1,37 @@
+---
+title: "Run commands in-process"
+lead: "A command line in, captured output and an exit code back; flags parsed by the real parser, stdin as a web stream, stdio untouched."
+description: "Execute CLI commands in-process: string or argv input through the real flag parser, captured stdout/stderr lines, exit codes, and web-stream stdin."
+---
+
+## Create a runner
+
+`createCliRunner(appOrCli)` from `@rhythmjs/testing/cli` wraps a Rhythm CLI app (or a bare `RhythmCli`, which it mounts for you) behind a single `run()`. The app's real middleware chain executes through `callback()`; nothing touches the process's actual stdio, argv, or exit code.
+
+```ts
+import { createCliRunner } from "@rhythmjs/testing/cli";
+
+const runner = createCliRunner(cli);
+const result = await runner.run("remote add origin https://x.git");
+expect(result.stdout).toEqual(['added remote "origin" -> https://x.git']);
+expect(result.exitCode).toBe(0);
+```
+
+## Run a command
+
+`run(argv, options?)` accepts a command line as a string (split on whitespace, empty segments dropped) or as an argv array when arguments contain spaces. Flags are parsed with the real `parseArgv`, so `--env=prod` and boolean flags behave exactly as in production. The result is `{ ctx, stdout, stderr, exitCode }`: `stdout` and `stderr` are copies of the response's line arrays (nothing was printed), and `ctx` is the full final context for asserting on anything else the pipeline derived.
+
+## Piped stdin
+
+Pass `{ stdin: "line1\nline2" }` and the context's `ctx.stdin` becomes a real web `ReadableStream` over those bytes, exactly the shape piped input has under [`toCliHandler`](/cli/run/) on Bun. Without the option, `ctx.stdin` is `null`, the TTY shape.
+
+```ts
+const result = await runner.run("import --format=json", {
+  stdin: JSON.stringify({ users: ["ada"] }),
+});
+expect(result.exitCode).toBe(0);
+```
+
+## Teardown
+
+`runner.teardown()` disposes the app's providers in reverse order, mirroring a real process exit. Prompts are a provider concern: a CLI that prompts should receive a fake `RhythmPromptIO` through its own providers, keeping the runner byte-deterministic.

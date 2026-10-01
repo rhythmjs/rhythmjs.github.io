@@ -1,0 +1,81 @@
+---
+title: "Configuration"
+lead: "Typed, validated settings that stop a misconfigured app from booting at all."
+description: "Typed, validated settings on the kernel with namespaced factories."
+---
+
+## Settings as a module
+
+Configuration is just another module. `configModule.forRoot(...factories)` runs each factory at startup, deep-merges the results, and provides a typed `configService`. Register it first so everything after it can read settings:
+
+```ts
+import { configModule } from "@rhythmjs/config";
+
+const loadApp = () => ({
+  port: Number(process.env.PORT ?? 3000),
+});
+
+export const appModule = new Rhythm<RhythmHttpContext>({ name: "app", type: "module" })
+  .register(configModule.forRoot(loadApp), ({ configService }) => ({ configService }))
+  .use((ctx) => {
+    ctx.configService.get("port"); // number — the path and value are typed
+  });
+```
+
+## Namespaces with registerAs
+
+`registerAs(token, schema, factory)` names a config namespace and validates it with any Standard Schema validator. Validation failures from *all* factories aggregate into one startup error — the app refuses to boot on malformed config rather than failing later at 3 a.m.:
+
+```ts
+import { registerAs } from "@rhythmjs/config";
+import { z } from "zod";
+
+export const databaseConfig = registerAs(
+  "database",
+  z.object({
+    url: z.url(),
+    poolSize: z.coerce.number().int().min(1).default(10),
+  }),
+  () => ({
+    url: process.env.DATABASE_URL,
+    poolSize: process.env.DATABASE_POOL_SIZE,
+  }),
+);
+
+export const authConfig = registerAs(
+  "auth",
+  z.object({ tokenTtl: z.coerce.number().default(3600) }),
+  () => ({ tokenTtl: process.env.AUTH_TOKEN_TTL }),
+);
+```
+
+```ts
+appModule.register(
+  configModule.forRoot(loadApp, databaseConfig, authConfig),
+  ({ configService }) => ({ configService }),
+);
+
+// later, anywhere on the context:
+ctx.configService.get("database.url");            // string (validated URL)
+ctx.configService.get("database.poolSize");       // number, defaulted
+ctx.configService.getOrThrow("auth.tokenTtl");    // throws if missing
+```
+
+## Config in providers
+
+Because registered exports land on the context *and* providers resolve in order, later providers can consume the config service through a factory module of their own — or more simply, read validated values at wiring time:
+
+```ts
+const database = await databaseConfig(); // factories are callable directly
+// { url: "...", poolSize: 10 } — validated or thrown
+
+export const appModule = new Rhythm<RhythmHttpContext>({ name: "app", type: "module" })
+  .register(configModule.forRoot(loadApp, databaseConfig), (v) => v)
+  .provide(() => createDatabase(database.url), closeDatabase);
+```
+
+<Callout title="Secrets in error messages">
+
+Some schema libraries embed the received value in issue messages. Keep secret-bearing fields' error messages custom (`z.string().min(1, "DATABASE_URL is required")`) so a failed boot never prints the secret into logs.
+
+</Callout>

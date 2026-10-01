@@ -1,0 +1,84 @@
+---
+title: "WebSockets"
+lead: "Typed connections on Bun's own model, with upgrade middleware and pub/sub."
+description: "Typed connections, upgrade middleware, and native pub/sub."
+---
+
+## A connection route
+
+`@rhythmjs/ws` routes WebSocket upgrades onto Bun's own model: handlers are Bun `WebSocketHandler` members, fan-out is native pub/sub, and each route decides its connection's typed `ws.data`. A live feed for notes:
+
+```ts
+// src/notes/notes.ws.ts
+import { RhythmWs } from "@rhythmjs/ws";
+
+interface Feed {
+  topic: string;
+}
+
+export const notesWs = new RhythmWs({ prefix: "/ws", idleTimeout: 120 })
+  .route<Feed>("/notes", {
+    upgrade: () => ({ topic: "notes" }),   // becomes ws.data
+    open(peer) {
+      peer.subscribe(peer.data.topic);
+    },
+    close(peer) {
+      peer.unsubscribe(peer.data.topic);
+    },
+  });
+```
+
+## Serve it
+
+`upgrade()` returns `null` synchronously for anything that is not a matching WebSocket handshake, which makes it compose with the HTTP app in one expression. Publishing from HTTP handlers uses the same server:
+
+```ts
+// src/main.ts
+const handler = toFetchHandler(appModule);
+
+const server = Bun.serve({
+  port,
+  fetch: (request, srv) => notesWs.upgrade(request, srv) ?? handler(request),
+  websocket: notesWs.websocket,
+});
+
+// anywhere with the server in scope, e.g. after creating a note:
+server.publish("notes", JSON.stringify({ type: "note.created", note }));
+```
+
+Cross-origin pages cannot hijack the socket: handshakes carrying an `Origin` that does not match the request's own host are answered `403` by default (the `origin` option takes an allowlist, a predicate, or `false`).
+
+## Upgrade middleware
+
+`use()` works exactly like the router's: middleware over the upgrade context `{ request, server, response }`, run in order before matched routes. Set `ctx.response` to reject; the chain is fail-closed — a middleware that forgets `next()` rejects rather than silently authorizing:
+
+```ts
+export const notesWs = new RhythmWs({ prefix: "/ws" })
+  .use(async (ctx, next) => {
+    const token = new URL(ctx.request.url).searchParams.get("token");
+    if (await verifyFeedTicket(token)) await next();
+    else ctx.response = new Response("Unauthorized", { status: 401 });
+  })
+  .route<Feed>("/notes", { /* ... */ });
+```
+
+Route-level `upgrade(request, params, server)` can also reject by returning a `Response`, and computes the per-connection data on success — params are the default.
+
+## Mounting instances [#mounting-ws-instances]
+
+Larger apps split connection routing the same way they split controllers: child instances compiled with `middleware()` and mounted with `use()`, each declaring its own full prefix:
+
+```ts
+const adminWs = new RhythmWs({ prefix: "/ws/admin" })
+  .use(requireAdminTicket)
+  .route("/audit", auditHandlers);
+
+export const rootWs = new RhythmWs({ prefix: "/ws" })
+  .use(adminWs.middleware())     // /ws/admin/audit, behind requireAdminTicket
+  .route("/notes", feedHandlers);
+
+// one behavior serves connections from every instance:
+Bun.serve({ fetch: (r, s) => rootWs.upgrade(r, s) ?? handler(r), websocket: rootWs.websocket });
+```
+
+See [the ws docs](/ws/) for pub/sub details, behavior tuning (`maxPayloadLength`, backpressure), and the full middleware contract.

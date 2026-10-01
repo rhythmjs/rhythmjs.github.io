@@ -1,0 +1,36 @@
+---
+const inward = [
+  { name: "Request", note: "arrives" },
+  { name: "Logging", note: "starts a timer" },
+  { name: "Guard", note: "checks the caller" },
+  { name: "Validation", note: "parses the body" },
+  { name: "Handler", note: "does the work" },
+];
+const outward = [
+  { name: "Handler", note: "returns" },
+  { name: "Interceptor", note: "reshapes the result" },
+  { name: "Auth", note: "sets the headers" },
+  { name: "Error handler", note: "catches failures" },
+  { name: "Response", note: "is sent" },
+];
+const last = inward.length - 1;
+---
+
+<div class="pipeline">
+  <ol class="pipeline-row" aria-label="Going in">
+    {inward.map(({ name, note }, i) => (
+      <li class={i === last ? "stage is-core" : i === 0 ? "stage is-end" : "stage"}>
+        <span class="stage-name">{name}</span>
+        <span class="stage-note">{note}</span>
+      </li>
+    ))}
+  </ol>
+  <ol class="pipeline-row is-out" aria-label="Coming back out">
+    {outward.map(({ name, note }, i) => (
+      <li class={i === 0 ? "stage is-core" : i === last ? "stage is-end" : "stage"}>
+        <span class="stage-name">{name}</span>
+        <span class="stage-note">{note}</span>
+      </li>
+    ))}
+  </ol>
+</div>

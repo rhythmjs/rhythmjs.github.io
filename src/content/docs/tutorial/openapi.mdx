@@ -1,0 +1,69 @@
+---
+title: "OpenAPI"
+lead: "Describe routes where they live and serve a generated spec with a UI."
+description: "Describe routes inline and serve a generated spec with a reference UI."
+---
+
+## Describe routes inline
+
+OpenAPI metadata is middleware too: annotations sit on the route they describe, and the schema middleware doubles as runtime validation — `apiBody` and friends validate exactly like `validate()` while also feeding the generated document:
+
+```ts
+import { apiOperation, apiTags } from "@rhythmjs/openapi/operation";
+import { apiBody } from "@rhythmjs/openapi/body";
+import { apiResponse } from "@rhythmjs/openapi/response";
+
+notesController.post(
+  "/",
+  apiOperation({ summary: "Create a note" }),
+  apiTags("notes"),
+  apiBody(createNoteSchema),                       // documents AND validates; ctx.valid.body
+  apiResponse(201, { schema: noteSchema, description: "The created note" }),
+  (ctx) => {
+    ctx.json(ctx.notesService.create(ctx.valid.body), 201);
+  },
+);
+```
+
+`apiQuery`, `apiParam`, `apiHeader`, and `apiCookie` cover the other inputs with the same validate-and-document behavior.
+
+## Serve the document
+
+`apiDocument` walks a router tree, generates the spec from the annotations, and serves it as JSON; `apiReference` renders a browsable UI over it:
+
+```ts
+import { apiDocument, apiReference } from "@rhythmjs/openapi/docs";
+import { defineDocument } from "@rhythmjs/openapi/document";
+
+const config = defineDocument({
+  openapi: "3.1.0",
+  info: { title: "Notes API", version: "1.0.0" },
+});
+
+appModule
+  .use(apiDocument({ router: notesController, config }))   // GET /openapi.json
+  .use(apiReference({ ui: "scalar", title: "Notes API" })) // GET /docs
+  .use(notesController.middleware());
+```
+
+## Document security
+
+`apiBearerAuth()`, `apiBasicAuth()`, `apiKeyAuth()`, and `apiOAuth2()` record a route's security requirements in the spec. They are *documentation only* — they never enforce anything. Enforcement stays with the security middleware from step 8, so a protected route carries both:
+
+```ts
+import { apiBearerAuth } from "@rhythmjs/openapi/security";
+
+notesController.delete(
+  "/:id",
+  apiBearerAuth(),                       // documents the requirement
+  requireAuthentication(),               // enforces it
+  requireRoles(["admin"]),
+  (ctx) => { /* ... */ },
+);
+```
+
+<Callout title="Docs in production">
+
+The spec and UI are served unauthenticated by default — mount them behind auth middleware (or only in non-production builds) if your API surface is not public.
+
+</Callout>

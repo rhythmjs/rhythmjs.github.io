@@ -1,0 +1,78 @@
+---
+title: "Cookies & sessions"
+lead: "Per-request state on Bun’s native primitives: a cookie jar over Bun.CookieMap, lazy cookie sessions with a pluggable store, and an ambient request scope."
+description: "Per-request state for Rhythm apps: Bun-native cookies, pluggable cookie sessions, and AsyncLocalStorage request scope."
+---
+
+## Install the package
+
+`@rhythmjs/http` ships utility middleware for Rhythm routers and handlers: thirteen modules, each on its own subpath export, no root barrel. This group of pages walks them by theme; this one covers per-request state: `/cookies`, `/session`, and `/request-scope`.
+
+```bash
+bun add @rhythmjs/http @rhythmjs/rhythm @rhythmjs/router
+```
+
+## Read and write cookies
+
+`cookies()` wraps Bun’s native `Bun.CookieMap` and `Bun.Cookie` in a `Cookies` jar on the context, typed by `CookiesContext`. Read with `get(name)`, `has(name)`, and `getAll()`; values come back decoded. Write with `set(name, value, options?)`; each call emits its own `Set-Cookie` header. `delete(name)` writes an empty value with `Max-Age=0`.
+
+`CookieOptions` is Bun’s `CookieInit` without `name`/`value`: `domain`, `path`, `expires` (number, `Date`, or string), `maxAge`, `secure`, `httpOnly`, `sameSite`, and `partitioned`. Bun’s serialization defaults apply: `Path=/` and `SameSite=Lax`.
+
+```ts
+import { RhythmRouter } from "@rhythmjs/router";
+import { cookies, type CookiesContext } from "@rhythmjs/http/cookies";
+
+new RhythmRouter().use<CookiesContext>(cookies()).get("/", (ctx) => {
+  const theme = ctx.cookies.get("theme") ?? "light";
+  ctx.cookies.set("theme", theme, { httpOnly: true, maxAge: 3600 });
+  ctx.cookies.delete("legacy");
+  ctx.response.body = theme;
+});
+```
+
+The standalone helpers are exported too, both on the native primitives: `parseCookies(header)` returns a decoded record, and `serializeCookie(name, value, options?)` one `Set-Cookie` value.
+
+## Keep a session
+
+`session()` provides cookie-based sessions with a pluggable `SessionStore`. Defaults: cookie name `sid`, one-day `maxAge` (86 400 seconds), `Path=/`, `HttpOnly`, `SameSite=Lax`; add `secure: true` in production. The context gains `ctx.session` (`SessionContext`): `get`, `set`, `delete`, `destroy`, and a stable `id`.
+
+Writes are lazy on both ends. Nothing hits the store unless the session was mutated during the request, and the `Set-Cookie` header is only sent when a *new* session writes for the first time; an existing session keeps its cookie. An unknown or expired incoming id gets a fresh id, so a forged cookie value is never trusted as a session key.
+
+```ts
+import { session, type SessionContext } from "@rhythmjs/http/session";
+
+new RhythmRouter()
+  .use<SessionContext>(session({ secure: true }))
+  .post("/login", (ctx) => {
+    ctx.session.set("user", "ada"); // stored + cookie issued after the handler
+    ctx.response.body = "logged in";
+  })
+  .post("/logout", (ctx) => {
+    ctx.session.destroy(); // store entry deleted, cookie expired with Max-Age=0
+    ctx.response.body = "bye";
+  });
+```
+
+The store contract is three methods (`get(id)`, `set(id, data, maxAge)`, `delete(id)`, sync or async), so a Redis or database store is a small object. The bundled `memorySessionStore()` suits a single process and expires entries lazily on read.
+
+## Request-scoped storage [#request-scope]
+
+`requestScope()` opens an `AsyncLocalStorage` frame around the rest of the chain, and the static `RequestScope` class reads it from *anywhere* in the same async call tree (repositories, loggers, service functions) without threading `ctx` through every signature.
+
+```ts
+import { requestScope, RequestScope } from "@rhythmjs/http/request-scope";
+
+router.use(requestScope()).get("/orders", async (ctx) => {
+  RequestScope.set("tenant", ctx.request.headers.get("x-tenant"));
+  ctx.response.body = JSON.stringify(await listOrders());
+});
+
+// deep inside the data layer, no ctx in sight:
+function listOrders() {
+  const tenant = RequestScope.get<string>("tenant");
+  const { request } = RequestScope.context(); // the live RhythmHttpContext
+  return db.orders.byTenant(tenant);
+}
+```
+
+The surface: `get`/`set`/`has`/`delete` over string or symbol keys, `context()` for the live request context (`contextOrNull()` to probe), `isActive()`, and `RequestScope.run(context, fn)` to open a scope manually in tests or jobs. Calls outside an active scope throw a descriptive `RequestScopeError`. Augment the empty `RequestScopeStore` interface to type your keys ecosystem-wide.

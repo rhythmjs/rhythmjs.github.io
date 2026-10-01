@@ -1,0 +1,47 @@
+---
+title: "Bodies & uploads"
+lead: "Cap request bodies with a header-first check, and parse multipart uploads with limits that abort mid-stream instead of buffering."
+description: "Request body limits and streaming multipart uploads with per-file and per-form caps."
+---
+
+## Cap the request body [#cap-the-body]
+
+`bodyLimit(maxBytes)` rejects oversized payloads with `413 Payload Too Large` (a JSON error body) before your handler runs. When the client sends a valid `Content-Length`, the check is free; without one (a chunked body), the stream is counted and cancelled the moment it crosses the limit, so at most `maxBytes` plus one chunk is ever held in memory. Bodies that pass are re-exposed on `ctx.request` already buffered, so the handler reads them as usual.
+
+```ts
+import { bodyLimit } from "@rhythmjs/http/body-limit";
+
+router.use(bodyLimit(1024 * 1024)).post("/import", async (ctx) => {
+  const rows = await ctx.request.json(); // at most 1 MiB
+  ctx.response.body = JSON.stringify({ imported: rows.length });
+});
+```
+
+## Parse multipart uploads [#parse-multipart]
+
+`multipart(options?)` parses `multipart/form-data` requests and puts a `MultipartForm` on the context as `ctx.form` (`MultipartContext`). Requests that are not multipart answer `415`; an empty or malformed body answers `400`; every limit violation answers `413`.
+
+```ts
+import { multipart, type MultipartContext } from "@rhythmjs/http/multipart";
+
+router.post<MultipartContext>(
+  "/avatar",
+  multipart({ maxBytes: 5 * 1024 * 1024, maxFileSize: 2 * 1024 * 1024, maxFiles: 1 }),
+  async (ctx) => {
+    const file = ctx.form.file("avatar");
+    if (!file) { ctx.error(400, "avatar missing"); return; }
+    await Bun.write(`uploads/${crypto.randomUUID()}`, file);
+    ctx.json({ name: ctx.form.get("name"), size: file.size });
+  },
+);
+```
+
+## Limits that stream [#upload-limits]
+
+`maxBytes` is enforced twice: a fast `Content-Length` precheck, and a counting `ReadableStream` wrapped around the body so parsing *aborts mid-stream* the moment the limit is crossed, an attacker cannot make you buffer a lying request. `maxFileSize` (per file), `maxFiles`, and `maxFields` are checked after parsing.
+
+## Reading the form
+
+`MultipartForm` separates fields from files. `get(name)` and `getAll(name)` return string fields only; `file(name)` returns the first file under a name; `files(name?)` returns files under one name or every file in the form. The raw parsed form stays available as `form.data`.
+
+Two exported types keep this honest under Bun: `RequestFormData` is whatever `request.formData()` actually returns, and `FormFile` is its file entry type; use them instead of the global `File`/`FormData` when the type checker gets opinionated.

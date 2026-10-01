@@ -1,0 +1,96 @@
+---
+title: "API reference"
+lead: "Every export of @rhythmjs/config. The runtime surface lives on the package root; the type helpers are re-exported there and also available on the /types subpath."
+description: "Every export of @rhythmjs/config: configModule, defineConfig, registerAs, createConfigService, ConfigError, and the type machinery."
+---
+
+## configModule
+
+```ts
+const configModule: {
+  forRoot<const TLoad extends readonly ConfigFactory[]>(
+    ...configs: TLoad
+  ): Rhythm<..., { configService: ConfigService<MergedConfig<TLoad>> }>;
+};
+```
+
+Returns a Rhythm module (name `"config"`) whose provider runs every factory once at `setup()` and provides `configService`. Outputs deep-merge in argument order: plain factory outputs spread at the root, namespaced outputs nest under their token, plain objects merge recursively, and anything else (including arrays) is replaced by the later value. If any factory throws `ConfigError`, its issues are collected and the remaining factories still run; one combined `ConfigError` is thrown after all of them. Non-config errors propagate immediately.
+
+## defineConfig
+
+```ts
+function defineConfig<TSchema extends StandardSchemaV1>(
+  schema: TSchema,
+  factory: () => InferInput<TSchema> | Promise<InferInput<TSchema>>,
+): () => Promise<InferOutput<TSchema> & object>;
+```
+
+Wraps a factory with a Standard Schema so the config file validates itself. Calling the returned factory awaits the inner factory, runs the schema (sync or async), and resolves with the schema output: defaults applied, strings coerced. On validation failure it throws `ConfigError` with the serialized issues; symbol path segments are dropped.
+
+## registerAs
+
+```ts
+function registerAs<TToken extends string, TValue extends object>(
+  token: TToken,
+  factory: () => TValue | Promise<TValue>,
+): NamespacedConfigFactory<TToken, TValue>;
+
+function registerAs<TToken extends string, TSchema extends StandardSchemaV1>(
+  token: TToken,
+  schema: TSchema,
+  factory: () => InferInput<TSchema> | Promise<InferInput<TSchema>>,
+): NamespacedConfigFactory<TToken, InferOutput<TSchema> & object>;
+```
+
+Builds a factory carrying a readonly `namespace` property. Under `forRoot` its output nests beneath the token; with a schema, validation issues get the token prefixed to their paths, so a bad `port` reports as `database.port`. The factory also works standalone: calling it directly validates and resolves the value, which makes individual config files unit-testable.
+
+## createConfigService and ConfigService [#configservice]
+
+```ts
+function createConfigService<T extends object>(value: T): ConfigService<T>;
+
+interface ConfigService<T extends object> {
+  readonly value: T;
+  get<P extends ConfigPath<T>>(path: P): ConfigValue<T, P>;
+  get<P extends ConfigPath<T>>(
+    path: P,
+    fallback: NonNullable<ConfigValue<T, P>>,
+  ): NonNullable<ConfigValue<T, P>>;
+  getOrThrow<P extends ConfigPath<T>>(path: P): NonNullable<ConfigValue<T, P>>;
+}
+```
+
+`createConfigService(value)` wraps any object in the dot-path reader; the module uses it internally, and it is handy for tests. `get` walks the path segment by segment and returns `undefined` when a segment is missing or a non-object is traversed; the fallback applies via `??`, so it covers both `null` and `undefined`. `getOrThrow` throws `ConfigError` with the path as issue path when the value is nullish. Paths resolve intermediate slices too: `get("database")` returns the whole nested object.
+
+## ConfigError
+
+```ts
+class ConfigError extends Error {
+  constructor(issues: readonly ConfigIssue[]);
+  readonly name: "ConfigError";
+  readonly issues: readonly ConfigIssue[];
+}
+
+interface ConfigIssue {
+  message: string;
+  path?: readonly (string | number)[];
+}
+```
+
+Thrown by validating factories, by `forRoot` as the aggregate of all files' issues, and by `getOrThrow` for missing values. The message lists every issue as `path: message` lines under an `"Invalid configuration:"` heading, so the boot log names every broken variable at once.
+
+## @rhythmjs/config/types [#types-subpath]
+
+The type machinery, also re-exported from the root.
+
+<DefList>
+<Def sig="ConfigFactory" id="configfactory">(() =\> object | Promise\<object\>) | NamespacedConfigFactory\<string, object\>: anything forRoot accepts.</Def>
+<Def sig={"NamespacedConfigFactory<TToken, TValue>"} id="namespacedconfigfactory">A callable factory with a readonly `namespace: TToken` property, as produced by registerAs.</Def>
+<Def sig={"ConfigType<TFactory>"} id="configtype">The output type of one factory: the namespaced value for registerAs factories, the awaited return type otherwise.</Def>
+<Def sig={"MergedConfig<TLoad>"} id="mergedconfig">The intersection of every factory's contribution (namespaced outputs as \{ token: value \}, plain outputs as-is), simplified into one object type. This is the T behind the provided service.</Def>
+<Def sig={"ConfigPath<T>"} id="configpath">Union of every dot path reachable in T. Nested objects contribute both the slice key and its deeper paths; arrays are leaves; optional segments are traversed through NonNullable.</Def>
+<Def sig={"ConfigValue<T, P>"} id="configvalue">The value type found at dot path P inside T.</Def>
+<Def sig={"ConfigService<T>"} id="configservice">The reader interface documented above.</Def>
+<Def sig={"ConfigContext<TLoad>"} id="configcontext">\{ configService: ConfigService\<MergedConfig\<TLoad\>\> \}, the context extension consumers declare, matching what the module provides for the same factory tuple.</Def>
+<Def sig="ConfigIssue" id="configissue">\{ message: string; path?: readonly (string | number)\[\] \}.</Def>
+</DefList>

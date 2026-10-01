@@ -1,0 +1,171 @@
+---
+title: "API reference"
+lead: "Every export of the twelve @rhythmjs/http subpath modules, from cookies and sessions to compression, uploads, and request-scoped storage."
+description: "Every export of the five @rhythmjs/http subpath modules, with signatures and semantics."
+---
+
+## @rhythmjs/http/cookies [#cookies]
+
+`cookies()` returns middleware that parses the request `Cookie` header with Bun's native `Bun.CookieMap` and passes `{ cookies: Cookies }` to downstream middleware. `CookiesContext` is the exported context type for that extension.
+
+```ts
+function cookies(): Middleware<RhythmHttpContext>
+```
+
+<DefList>
+<Def sig="Cookies.get(name)" id="cookies-get">Return the decoded request cookie value, or undefined when the cookie is absent.</Def>
+<Def sig="Cookies.has(name)" id="cookies-has">Whether a request cookie with that name exists.</Def>
+<Def sig="Cookies.getAll()" id="cookies-getall">Return a copy of all request cookies as a plain record.</Def>
+<Def sig="Cookies.set(name, value, options?)" id="cookies-set">Append a Set-Cookie header serialized by Bun's native `Bun.Cookie`. Bun's defaults apply (`Path=/` and `SameSite=Lax`) unless overridden. Each call appends a separate header.</Def>
+<Def sig="Cookies.delete(name, options?)" id="cookies-delete">Expire a cookie by setting an empty value with `Max-Age=0`; any `expires` or `maxAge` in the options is overridden.</Def>
+</DefList>
+
+`CookieOptions` is Bun's `CookieInit` minus `name`/`value`, all fields optional: `domain`, `path`, `expires` (number, Date, or string), `maxAge` (seconds), `httpOnly`, `secure`, `sameSite` (`"strict"`, `"lax"`, or `"none"`), and `partitioned`.
+
+Two standalone helpers are exported as well.
+
+<DefList>
+<Def sig="parseCookies(header)" id="parsecookies">Parse a Cookie header string (or null) into a record of decoded name and value pairs. Quoted values are unquoted, and values that fail URI decoding are kept as-is.</Def>
+<Def sig="serializeCookie(name, value, options?)" id="serializecookie">Build a single Set-Cookie header value from a name, a value, and `CookieOptions` attributes.</Def>
+</DefList>
+
+## @rhythmjs/http/session [#session]
+
+`session(options?)` returns middleware that loads the session named by the request's session cookie and passes `{ session: Session }` downstream. `SessionContext` is the exported context type. An unknown or expired id gets a fresh session with a new random UUID, so a forged cookie is never trusted as-is. The session is persisted, and the cookie written, only after a write; the cookie is emitted just once, when the session is first stored.
+
+```ts
+function session(options?: SessionOptions): Middleware<RhythmHttpContext>
+```
+
+`SessionOptions` fields, all optional:
+
+- `store`: any `SessionStore` implementation. Default: `memorySessionStore()`.
+- `cookieName`: session cookie name. Default: `"sid"`.
+- `maxAge`: lifetime in seconds for the cookie and the stored session. Default: 86400.
+- `path`: cookie path. Default: `"/"`.
+- `secure`: add the Secure attribute. Default: off.
+- `sameSite`: `"strict"`, `"lax"`, or `"none"`. Default: `"lax"`. The cookie is always `HttpOnly`.
+
+<DefList>
+<Def sig="Session" id="session">The `ctx.session` interface: readonly `id`, `get<T>(key)`, `set(key, value)`, `delete(key)`, and `destroy()`. `destroy()` deletes the stored session after the handler returns and expires the cookie with `Max-Age=0`.</Def>
+<Def sig="SessionStore" id="sessionstore">The storage interface: `get(id)` resolving to `SessionData` or undefined, `set(id, data, maxAge)`, and `delete(id)`. Each method may be sync or return a promise.</Def>
+<Def sig="memorySessionStore()" id="memorysessionstore">Returns the bundled in-process `SessionStore`. Entries expire after `maxAge` seconds and are dropped on read once expired. Suitable for a single process.</Def>
+<Def sig="SessionData" id="sessiondata">The stored shape: `Record<string, unknown>`.</Def>
+<Def sig="SessionContext" id="sessioncontext">The context extension type: `{ session: Session }`.</Def>
+</DefList>
+
+## @rhythmjs/http/etag [#etag]
+
+`etag(options?)` returns middleware that runs after downstream handlers and sets an `ETag` header computed from the SHA-1 hash of the response body, synchronously, via Bun's native `Bun.CryptoHasher`. It only acts on 2xx responses with string bodies, and it leaves a pre-set `ETag` header untouched. When the request's `If-None-Match` header lists the computed tag, the response becomes `304 Not Modified` with a null body and no `Content-Length`.
+
+```ts
+function etag(options?: EtagOptions): Middleware<RhythmHttpContext>
+```
+
+`EtagOptions` has one optional field: `weak` (boolean). When true, tags are emitted with the `W/` weak-validator prefix.
+
+## @rhythmjs/http/timeout [#timeout]
+
+`timeout(ms)` returns middleware that races the downstream chain against a deadline of `ms` milliseconds. When the deadline wins, the response becomes status 504 with a `content-type: application/json` header and the body `{ "success": false, "status": 504, "message": "Gateway Timeout" }`.
+
+```ts
+function timeout(ms: number): Middleware<RhythmHttpContext>
+```
+
+- Downstream errors thrown before the deadline still propagate as errors; only the deadline itself produces a 504.
+- Late downstream work is not aborted. It keeps running, its result is discarded, and a late rejection is swallowed.
+
+## @rhythmjs/http/body-limit [#body-limit]
+
+`bodyLimit(maxBytes)` returns middleware that rejects request bodies larger than `maxBytes` with status 413 and the JSON body `{ "success": false, "status": 413, "message": "Payload Too Large" }`. Downstream middleware is not called for a rejected request.
+
+```ts
+function bodyLimit(maxBytes: number): Middleware<RhythmHttpContext>
+```
+
+- When a valid `Content-Length` header is present, its value is compared against the limit without reading the body.
+- Otherwise, when the request has a body, the stream is counted and cancelled as soon as it exceeds the limit (never holding more than the limit plus one chunk); accepted bodies are re-exposed buffered on `ctx.request` for downstream handlers.
+
+## @rhythmjs/http/compress [#compress]
+
+`compress(options?)` returns middleware that content-negotiates response compression on Bun's native compressors.
+
+```ts
+function compress(options?: CompressOptions): Middleware<RhythmHttpContext>
+```
+
+<DefList>
+<Def sig="CompressOptions.threshold" id="compressoptions-threshold">Minimum buffered body size in bytes (default 1024). Streams are always compressed, their size being unknown.</Def>
+<Def sig="CompressOptions.encodings" id="compressoptions-encodings">Preference order offered to the client; default `["zstd", "gzip", "deflate"]` (`CompressEncoding`). Streaming bodies never pick `zstd`; `deflate` always streams through `CompressionStream`, since `Bun.deflateSync` emits raw deflate rather than the zlib-wrapped HTTP coding.</Def>
+<Def sig="CompressOptions.filter" id="compressoptions-filter">Replace the default compressible-type check (text, JSON, JavaScript, XML, SVG, wasm) with your own `(contentType) => boolean`.</Def>
+</DefList>
+
+It never touches `204`/`304`, empty or already-encoded responses, or `text/event-stream`, and appends `Vary: Accept-Encoding` where negotiation applies.
+
+## @rhythmjs/http/cache [#cache]
+
+```ts
+function cacheControl(options: CacheControlOptions): Middleware<RhythmHttpContext>
+function formatCacheControl(options: CacheControlOptions): string
+function cache(options?: CacheOptions): Middleware<RhythmHttpContext>
+function memoryCacheStore(options?: MemoryCacheStoreOptions): CacheStore
+```
+
+<DefList>
+<Def sig="CacheControlOptions" id="cachecontroloptions">`maxAge`, `sMaxAge`, `staleWhileRevalidate`, `staleIfError` (numbers, seconds); `public`, `private`, `noCache`, `noStore`, `mustRevalidate`, `immutable` (booleans). `cacheControl()` only writes the header when none is set downstream.</Def>
+<Def sig="CacheOptions" id="cacheoptions">`ttl` (seconds, default 60), `store` (`CacheStore`: `get`/`set`/`delete`), `keyOf(request)` (default `method + path + search`), `vary` (header names folded into the key), and `filter(ctx)` (veto storing per response).</Def>
+<Def sig="CacheEntry" id="cacheentry">What a store holds: `status`, `headers`, `body` (bytes), `storedAt`. Hits replay with `Age` and `X-Cache: HIT`; only `200` responses without `no-store`/`private` cache-control are stored, never ones carrying `Set-Cookie`, stream bodies, or answers to `Authorization` requests without an explicit `public`/`s-maxage`/`must-revalidate`.</Def>
+<Def sig="MemoryCacheStoreOptions" id="memorycachestoreoptions">`maxEntries` (default 1024) caps the LRU entry count; `maxEntryBytes` (default 1 MiB) refuses oversized bodies.</Def>
+</DefList>
+
+## @rhythmjs/http/multipart [#multipart]
+
+```ts
+function multipart(options?: MultipartOptions): DeriveMiddleware<RhythmHttpContext, MultipartContext>
+class MultipartForm
+type RequestFormData = Awaited<ReturnType<Request["formData"]>>
+type FormFile = Exclude<ReturnType<RequestFormData["get"]>, string | null>
+```
+
+<DefList>
+<Def sig="MultipartOptions" id="multipartoptions">`maxBytes` (whole body, enforced while streaming), `maxFileSize` (per file), `maxFiles`, `maxFields`. Violations answer `413`; non-multipart content types `415`; a missing or malformed body `400`.</Def>
+<Def sig="MultipartForm" id="multipartform">On `ctx.form`: `data` (the raw `RequestFormData`), `get(name)` and `getAll(name)` (string fields only), and `file(name)` and `files(name?)`, with files typed as `FormFile`.</Def>
+</DefList>
+
+## @rhythmjs/http/sse and /stream [#sse-stream]
+
+```ts
+function sse(options?: SseOptions): Middleware<RhythmHttpContext>
+function stream(options?: StreamOptions): Middleware<RhythmHttpContext>
+```
+
+Both set long-lived-response defaults after the handler runs, only where a header is not already set: `sse()` uses `content-type: text/event-stream`; `stream()` uses `text/plain` and adds `x-content-type-options: nosniff`. Both set `cache-control: no-cache, no-transform`, `connection: keep-alive`, and `x-accel-buffering: no`. The single `headers` option force-overrides any of them.
+
+## @rhythmjs/http/i18n [#i18n]
+
+```ts
+function i18n<T extends I18nInstanceLike>(options: I18nOptions<T>): DeriveMiddleware<RhythmHttpContext, I18nContext<T>>
+function detectLanguage(request: Request, options?: LanguageDetectionOptions): string | undefined
+function parseAcceptLanguage(header: string | null): AcceptedLanguage[]
+```
+
+<DefList>
+<Def sig="I18nOptions" id="i18noptions">`i18next` (any `I18nInstanceLike`: a structural contract where only `t` is required, so i18next major versions cannot break compilation), `detection`, `cacheCookie` + `cacheCookieMaxAge` (persist the detected language, default one year), and `contentLanguage` (set the response header; default on).</Def>
+<Def sig="LanguageDetectionOptions" id="languagedetectionoptions">`order` (default `["querystring", "cookie", "header"]`; `"path"` also available), `lookupQuerystring` (default `lng`), `lookupCookie` (default `i18next`), `lookupPath` (segment index), `supportedLanguages`, and `fallbackLanguage`; the last two default to the instance's own configuration. Matching tries exact tags, then base languages, case-insensitively.</Def>
+<Def sig="I18nContext" id="i18ncontext">`ctx.i18n` (the per-request instance: a clone when the instance supports it, else `getFixedT`), `ctx.t`, and `ctx.language`.</Def>
+</DefList>
+
+## @rhythmjs/http/request-scope [#request-scope]
+
+```ts
+function requestScope<T extends RhythmHttpContext>(): Middleware<T>
+class RequestScope
+class RequestScopeError extends Error
+interface RequestScopeStore {} // augment to type keys
+```
+
+<DefList>
+<Def sig="RequestScope.context() / contextOrNull()" id="requestscope-context">The current request's context from anywhere on its async path; the first throws `RequestScopeError` outside a scope, the second returns null.</Def>
+<Def sig="RequestScope.get / set / has / delete" id="requestscope-get">A per-request key-value store keyed by string or symbol; typed keys come from augmenting `RequestScopeStore`.</Def>
+<Def sig="RequestScope.isActive() / RequestScope.run(context, fn)" id="requestscope-isactive">Whether a scope is open, and a manual scope for tests or background work.</Def>
+</DefList>

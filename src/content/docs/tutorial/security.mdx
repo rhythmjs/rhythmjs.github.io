@@ -1,0 +1,93 @@
+---
+title: "Security"
+lead: "Harden the edge, then decide who is calling and what they may do."
+description: "Headers, CORS, CSRF, rate limits, and authenticated routes."
+---
+
+## The edge stack
+
+Security middleware goes at the front of the module, in a deliberate order: headers on everything, CORS before any work, CSRF and rate limiting before handlers. All of it comes from [@rhythmjs/security](/security/):
+
+```ts
+import { secureHeaders } from "@rhythmjs/security/secure-headers";
+import { cors } from "@rhythmjs/security/cors";
+import { csrf } from "@rhythmjs/security/csrf";
+import { rateLimit } from "@rhythmjs/security/rate-limit";
+
+export const appModule = new Rhythm<RhythmHttpContext>({ name: "app", type: "module" })
+  .use(filter())
+  .use(secureHeaders())                             // nosniff, COOP/CORP, HSTS, referrer policy
+  .use(cors({ origin: ["https://app.example.com"] })) // exact-match allowlist, never "*" with credentials
+  .use(csrf())                                      // origin-checks unsafe form posts
+  .use(rateLimit({ limit: 100, windowMs: 60_000 }))
+  /* ...the rest of the app... */
+```
+
+<Callout title="Behind a reverse proxy">
+
+Set `rateLimit({ trustProxy: true })` (or the hop count you operate). Without it every client shares the proxy's address bucket; with it the limiter keys on the `X-Forwarded-For` entry your own proxy appended — client-forged entries never count.
+
+</Callout>
+
+## Who is calling
+
+Authentication is strategy-agnostic plumbing: `attachUser(fn)` resolves whatever credentials you use into `ctx.user` (or `null`), and helpers read the standard headers for you:
+
+```ts
+import { attachUser, getBearerToken, requireAuthentication } from "@rhythmjs/security/authentication";
+
+interface User {
+  id: string;
+  roles: string[];
+}
+
+const authenticate = attachUser<User>(async (ctx) => {
+  const token = getBearerToken(ctx.request);       // Authorization: Bearer <token>
+  if (token === null) return null;
+  return ctx.authService.verify(token);            // your service; null on bad tokens
+});
+```
+
+## Who may do what
+
+Authorization composes per route: attach the user once, then require it — or require roles/permissions — exactly where it matters. Unauthenticated requests get `401`, authenticated-but-forbidden get `403`:
+
+```ts
+import { requireRoles } from "@rhythmjs/security/authorization";
+
+export const notesController = new RhythmRouter<NotesContext>({ prefix: "/api/notes" })
+  .use(authenticate)
+  .get("/", (ctx) => {                              // public: ctx.user may be null
+    ctx.json(ctx.notesService.list());
+  })
+  .post("/", requireAuthentication(), validate("body", createNoteSchema), (ctx) => {
+    ctx.json(ctx.notesService.create(ctx.valid.body), 201);
+  })
+  .delete("/:id", requireAuthentication(), requireRoles(["admin"]), (ctx) => {
+    if (!ctx.notesService.remove(ctx.params.id)) throw new HttpError(404, "Note not found");
+    ctx.response.status = 204;
+  });
+```
+
+## Sessions and cookies
+
+For cookie-based apps, `@rhythmjs/http/session` puts a typed session on the context, backed by a pluggable store — always `HttpOnly` and `SameSite=Lax`; set `secure: true` in production:
+
+```ts
+import { session } from "@rhythmjs/http/session";
+
+router
+  .use(session({ secure: true, maxAge: 60 * 60 * 24 }))
+  .post("/login", validate("body", loginSchema), async (ctx) => {
+    const user = await ctx.authService.login(ctx.valid.body);
+    if (!user) throw new HttpError(401, "Invalid credentials");
+    ctx.session.set("userId", user.id);
+    ctx.json({ ok: true });
+  })
+  .post("/logout", (ctx) => {
+    ctx.session.destroy();
+    ctx.response.status = 204;
+  });
+```
+
+The [hardening guide](/security/hardening/) covers the rest of the surface: per-route rate limits, header tuning, and the CSRF model's caveats for non-form clients.

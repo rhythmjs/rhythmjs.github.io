@@ -1,0 +1,43 @@
+---
+title: "Running on Bun"
+lead: "toCliHandler and createPrompt on Bun natives: Bun.stdin.stream() for piped input, the console line iterator for prompts."
+---
+
+## Run a cli app
+
+`toCliHandler(app)` from `@rhythmjs/cli/run` takes the Rhythm host app and returns `(argv: string[]) => Promise<number>`. It parses flags, seeds the cli context, runs the pipeline once, flushes `response.stdout` then `response.stderr` to the console, and resolves with the exit code. Nothing calls `process.exit()` for you; set `process.exitCode` and let teardown run.
+
+```ts
+#!/usr/bin/env bun
+import { toCliHandler } from "@rhythmjs/cli/run";
+import { app } from "./app";
+
+try {
+  process.exitCode = await toCliHandler(app)(process.argv.slice(2));
+} finally {
+  await app.teardown();
+}
+```
+
+## Pipe stdin
+
+When input is piped or redirected, `ctx.stdin` is a `ReadableStream<Uint8Array>` from `Bun.stdin.stream()`, Bun's native stdin with no Node stream conversion. On a TTY it is `null`, so handlers can branch on interactivity.
+
+```ts
+cli.command("import", async (ctx) => {
+  if (ctx.stdin === null) {
+    ctx.response.exit(1).printError("pipe a file: cat data.json | myapp import");
+    return;
+  }
+  const body = await new Response(ctx.stdin).json();
+  ctx.response.print(`imported ${Object.keys(body).length} records`);
+});
+```
+
+## Prompt I/O
+
+`createPrompt()` wires the prompt surface to Bun directly: questions write to `process.stdout`, and answers are read from Bun's async-iterable `console` (one `await` per line, no readline interface). `close()` releases the line iterator; tie it to a provider's dispose so `teardown()` cleans up. See [interactive prompts](/cli/prompts/) for the provider pattern.
+
+## Compatibility aliases
+
+The package is coupled to Bun on purpose; there are no Node or Deno builds. Two subpaths from the earlier multi-runtime layout remain as aliases so old imports keep resolving: `@rhythmjs/cli/adapters/bun` → `./run` and `@rhythmjs/cli/adapters/context` → `./context`. New code should import `./run` and `./context`.

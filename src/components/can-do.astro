@@ -1,0 +1,35 @@
+---
+import Icon from "./icon.astro";
+
+interface Item {
+  href: string;
+  pkg: string;
+  title: string;
+  desc: string;
+}
+
+interface Props {
+  items: Item[];
+}
+
+const { items } = Astro.props;
+---
+
+<ul class="can-do">
+  {items.map((item) => (
+    <li>
+      <a href={item.href} class="can-do-item group/link">
+        <span class="can-do-kicker">You can</span>
+        <span class="can-do-title">{item.title}</span>
+        <span class="can-do-desc">{item.desc}</span>
+        <span class="can-do-pkg">
+          {item.pkg}
+          <Icon
+            name="arrow-up-right"
+            class="size-3.5 transition-transform group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5"
+          />
+        </span>
+      </a>
+    </li>
+  ))}
+</ul>

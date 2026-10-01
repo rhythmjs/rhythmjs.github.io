@@ -1,0 +1,44 @@
+---
+title: "Drive HTTP without a server"
+lead: "A fetch-based client over the real middleware chain (verb helpers, JSON shorthands, provider teardown) plus a runner for one HTTP middleware at a time."
+description: "Drive HTTP routes without a server: a supertest-style client over toFetchHandler with verb helpers, JSON bodies, raw fetch, teardown, and a single-middleware runner."
+---
+
+## Create a client
+
+`createTestClient(appOrRouter, options?)` from `@rhythmjs/testing/router` wraps a Rhythm HTTP app behind supertest-style helpers, or a bare `RhythmRouter`, which it mounts into a fresh app for you. Requests go straight through `toFetchHandler`: the real middleware chain runs, and responses are real `Response` objects. Relative paths resolve against `baseUrl` (default `http://localhost`).
+
+```ts
+import { createTestClient } from "@rhythmjs/testing/router";
+
+const client = createTestClient(usersRouter);
+const created = await client.post("/users", { json: { name: "Ada" } });
+expect(created.status).toBe(201);
+expect(await created.json()).toEqual({ id: 1, name: "Ada" });
+```
+
+## Requests and bodies
+
+Six verb helpers cover the routed methods (`get`, `head`, `post`, `put`, `patch`, `delete`), each taking a path and `TestRequestOptions`: `headers` (any `HeadersInit`), a raw `body` (anything a `Response` accepts), or `json`, which serializes the value and sets `content-type: application/json` unless you already did. For anything else (exotic methods, a prebuilt `Request`, custom `RequestInit`) the raw escape hatch is `client.fetch(input, init?)`.
+
+## Teardown
+
+`client.teardown()` disposes the app's providers in reverse order, the same lifecycle a real shutdown runs. Call it in `afterAll` when the app under test provides anything with cleanup semantics; for a bare router mounted by the client, it is a no-op that is still safe to call.
+
+## A single HTTP middleware [#single-middleware]
+
+`runHttpMiddleware(middleware, request?, extras?)` tests one HTTP middleware without a router: it seeds a real `RhythmHttpContext` from a path string or `Request` (default `GET /`), merges `extras` into the context for middleware that expects upstream state, runs the middleware, and resolves to `{ ctx, nextCalled, response }`: the mutated context, whether `next()` ran, and the rendered `Response`.
+
+```ts
+import { runHttpMiddleware } from "@rhythmjs/testing/router";
+
+const first = await runHttpMiddleware(rateLimit({ max: 1 }), "/api");
+expect(first.response.status).toBe(200); // first hit passes
+
+const { response } = await runHttpMiddleware(
+  requireRoles("admin"),
+  "/admin",
+  { user: { roles: ["viewer"] } }, // extras: context from upstream middleware
+);
+expect(response.status).toBe(403);
+```

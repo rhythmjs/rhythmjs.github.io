@@ -1,0 +1,34 @@
+---
+import type { PageLink } from "../lib/docs";
+import Icon from "./icon.astro";
+
+interface Props {
+  prev?: PageLink;
+  next?: PageLink;
+}
+
+const { prev, next } = Astro.props;
+---
+
+{(prev || next) && (
+  <nav class="pagination" aria-label="Previous and next pages">
+    {prev && (
+      <a rel="prev" href={prev.url}>
+        <span class="dir">
+          <Icon name="arrow-left" /> Previous
+        </span>
+        <span class="label">{prev.label}</span>
+        <span class="kicker">{prev.group}</span>
+      </a>
+    )}
+    {next && (
+      <a rel="next" href={next.url}>
+        <span class="dir">
+          Next <Icon name="arrow-right" />
+        </span>
+        <span class="label">{next.label}</span>
+        <span class="kicker">{next.group}</span>
+      </a>
+    )}
+  </nav>
+)}

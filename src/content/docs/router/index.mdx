@@ -1,0 +1,106 @@
+---
+title: "HTTP router"
+lead: "Route requests with named parameters and composable prefixes, served natively on Bun."
+---
+
+## Serve your first route
+
+The router uses Web-standard requests and a mutable response object; the final `Response` is created when the app is served. A router is a controller, not an app of its own: it compiles down to a single middleware via `middleware()`, and a `Rhythm` host app owns the lifecycle. There is no server wrapper - `toFetchHandler(app)` turns the app into a plain `(request: Request) => Promise<Response>` handler, and `Bun.serve` in your own `main.ts` is the server.
+
+```ts
+import { Rhythm } from "@rhythmjs/rhythm";
+import { RhythmRouter } from "@rhythmjs/router";
+import { toFetchHandler } from "@rhythmjs/router/fetch";
+import type { RhythmHttpContext } from "@rhythmjs/router/context";
+
+const router = new RhythmRouter().get("/users/:id", (ctx) => {
+  ctx.json({ id: ctx.params.id });
+});
+
+const app = new Rhythm<RhythmHttpContext>().use(router.middleware());
+
+const server = Bun.serve({ port: 3000, fetch: toFetchHandler(app) });
+console.log(`listening on ${server.url}`);
+```
+
+Everything else composes into that same `fetch` by hand, with no magic between you and Bun: `errorToResponse(error)` (also from `./fetch`) maps thrown errors to status-aware responses in your own `try/catch`; static files are [Bun's built-in routes](/router/static/): a `Response` for a known file, `"/static/*": { dir }` for a folder (never `"/*"`); WebSockets from [@rhythmjs/ws](/ws/serving/) via `ws.upgrade(request, server) ?? handler(request)`; and middlewares that key off the client address (`@rhythmjs/security` rate limiting) read `request.ip` when you expose it:
+
+```ts
+const server = Bun.serve({
+  port: 3000,
+  async fetch(request, srv) {
+    Object.defineProperty(request, "ip", {
+      configurable: true,
+      get: () => srv.requestIP(request)?.address,
+    });
+    try {
+      return await handler(request);
+    } catch (error) {
+      return errorToResponse(error);
+    }
+  },
+});
+```
+
+## Match paths
+
+Register routes with `get`, `post`, `put`, `patch`, and `delete`. Each accepts a path and one or more handlers; multiple handlers compose left to right like middleware, and a leading derive middleware can type the context the later handlers see. Named `:param` segments populate `ctx.params`.
+
+A compressed radix tree (rou3) gives static segments priority over parameter segments, regardless of registration order. Match behavior is method-specific; there are no dedicated HEAD or OPTIONS registration methods.
+
+## Compose prefixes
+
+`use()` takes only functions, so a nested router mounts as `use(child.middleware())`. The compiled form is opaque (the mounting router's prefix is *not* applied to it), so give the child its full prefix. Mounting compiles the child at that moment; routes added to the child afterwards don't appear in the parent.
+
+```ts
+const users = new RhythmRouter({ prefix: "/api/users" })
+  .get("/:id", (ctx) => {
+    ctx.json({ id: ctx.params.id });
+  });
+
+const api = new RhythmRouter().use(users.middleware()); // serves /api/users/:id
+```
+
+## Provide a fallback
+
+An unmatched request calls the next middleware. Add an explicit 404 fallback; the default response is status 200 with an empty body. A matched handler that calls `next()` also continues downstream. Registration order is execution order: a `use()` middleware wraps only the routes registered after it, and a matched route that doesn't call `next()` returns without reaching anything registered later.
+
+```ts
+import { Rhythm } from "@rhythmjs/rhythm";
+import type { RhythmHttpContext } from "@rhythmjs/router/context";
+
+const app = new Rhythm<RhythmHttpContext>()
+  .use(api.middleware())
+  .use((ctx) => {
+    ctx.error(404);
+  });
+```
+
+## Write a response
+
+Set `status`, `statusText`, `headers`, and `body` on `ctx.response`. Bodies support strings, ArrayBuffer, Uint8Array, Blob, FormData, URLSearchParams, byte streams, and null.
+
+For the common shapes, the context carries response helpers that set the content type, body, and status in one call. They are sugar over `ctx.response`, so mixing both styles is fine, and later writes win.
+
+```ts
+router
+  .get("/users/:id", (ctx) => {
+    ctx.json({ id: ctx.params.id }, 200);
+  })
+  .get("/hello", (ctx) => {
+    ctx.html("<h1>hello</h1>");
+  })
+  .get("/gone", (ctx) => {
+    ctx.error(410);
+  })
+  .get("/old", (ctx) => {
+    ctx.redirect("/users/1", 301);
+  });
+```
+
+- `ctx.json(data, status?)`: serializes `data` and sets `application/json; charset=utf-8`.
+- `ctx.text(body, status?)` / `ctx.html(body, status?)`: plain-text and HTML bodies with their content types.
+- `ctx.error(status, message?)`: sets the status and a plain-text message, defaulting the message from the status code (`ctx.error(404)` → `"Not Found"`).
+- `ctx.redirect(url, status = 302)`: sets the `location` header and clears the body.
+
+See [Serving on Bun](/router/static/) for the server itself: static assets, serve middleware, WebSockets, and client addresses.

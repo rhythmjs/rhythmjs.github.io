@@ -1,0 +1,21 @@
+---
+import Icon from "./icon.astro";
+import type { IconName } from "./icons";
+
+interface Props {
+  title: string;
+  icon: IconName;
+}
+
+const { title, icon } = Astro.props;
+---
+
+<div class="feature">
+  <dt>
+    <Icon name={icon} class="size-7 text-primary" />
+    {title}
+  </dt>
+  <dd>
+    <slot />
+  </dd>
+</div>

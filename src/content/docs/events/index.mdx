@@ -1,0 +1,82 @@
+---
+title: "Subscribe to typed events"
+lead: "The subscribing half of the bus: a typed event map checked at compile time, on() and both forms of once(), AbortSignal-driven unsubscription, and dot-segment wildcard patterns."
+description: "Subscribing to the Rhythm event bus: a typed event map, on/once with AbortSignal, dot-segment wildcards, and exact-pattern listener counts."
+---
+
+## Install the package
+
+`@rhythmjs/events` is a typed in-process event bus for the Rhythm kernel: events *announce*, an ephemeral broadcast to whoever is listening right now. Dispatch is in-house and dependency-free; there is no `node:events` underneath, just a pattern registry. Two subpaths: the root export and `@rhythmjs/events/types`.
+
+```bash
+bun add @rhythmjs/events @rhythmjs/rhythm
+```
+
+`@rhythmjs/rhythm` is a peer dependency: the bus itself is plain functions, and the kernel module is a thin provider around them.
+
+## The event map is the contract [#the-event-map]
+
+Every bus is typed by an *event map*: an interface whose keys are event names and whose values are payload types. Names, payloads, and wildcard patterns are all checked against it at compile time.
+
+```ts
+import type { EventsContext } from "@rhythmjs/events";
+
+interface AppEvents {
+  "order.created": { orderId: string; total: number };
+  "order.shipped": { orderId: string };
+  "user.registered": { userId: string };
+}
+export type AppEventsContext = EventsContext<AppEvents>;
+```
+
+Patterns are typed too: `EventPattern<TEvents>` admits exact names and starred strings, `MatchingPayload<TEvents, P>` resolves a pattern such as `"order.*"` to the union of matching payloads, and `MatchingNames` to the union of matching event names, so a wildcard handler's arguments are precisely typed, not `unknown`.
+
+## Subscribing with on()
+
+`on(pattern, handler, { signal? })` subscribes and returns an unsubscribe function. An `AbortSignal` unsubscribes automatically on abort, and a signal that is already aborted subscribes nothing. `off(pattern, handler)` removes by reference: the same pair you registered.
+
+```ts
+const stop = eventBus.on("order.*", (payload, event) => {
+  // event: "order.created" | "order.shipped"; payload is the matching union
+  audit(event, payload);
+});
+
+// three equivalent ways out:
+stop();
+eventBus.off("order.*", handler);
+controller.abort(); // if you passed { signal: controller.signal }
+```
+
+The registry keys subscriptions by `(pattern, handler)`: registering the same handler under the same pattern again replaces the earlier registration instead of doubling deliveries. The same handler under two different patterns is two subscriptions.
+
+## once(): one delivery, two forms [#once]
+
+With a handler, `once(pattern, handler, { signal? })` subscribes for a single delivery and returns an unsubscribe function; the subscription is removed *before* the handler runs, so an emit from inside the handler cannot re-trigger it.
+
+Without a handler, `once(pattern, { signal? })` returns a promise of the next matching payload. If the signal aborts first, the promise rejects with `signal.reason`; a signal that is already aborted rejects immediately.
+
+```ts
+const paid = await eventBus.once("order.created", {
+  signal: AbortSignal.timeout(5000),
+});
+```
+
+## Wildcard patterns
+
+Patterns are dot-segmented. `*` matches exactly one segment; `**` matches the rest of the name and is only meaningful as the *final* segment; a `**` anywhere else makes the pattern match nothing. An exact name is the fast path: `matchesPattern` returns immediately on equality, and a pattern containing no `*` never matches anything but itself.
+
+```ts
+import { matchesPattern } from "@rhythmjs/events";
+
+matchesPattern("order.created", "order.created"); // true
+matchesPattern("order.*", "order.created"); // true
+matchesPattern("order.*", "order.item.added"); // false: * is one segment
+matchesPattern("order.**", "order.item.added"); // true: ** takes the rest
+matchesPattern("*.created", "order.created"); // true
+```
+
+## Counting listeners
+
+`listenerCount()` totals every live subscription; `listenerCount(pattern)` counts registrations under that *exact pattern string* - `listenerCount("order.*")` reports subscribers of the pattern `"order.*"`, not how many handlers a given event would reach. Once-subscriptions count until they fire or are aborted.
+
+Emitting is the other half of the bus: dispatch ordering, error isolation, `emitAsync`, and the kernel module live on the [Emitting & errors](/events/emitting/) page.

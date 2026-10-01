@@ -1,0 +1,74 @@
+---
+title: "Logging & timing"
+lead: "Structured request logs with error passthrough, propagated request ids, and Server-Timing metrics measured with Bun.nanoseconds()."
+description: "Structured request logging, request-id propagation, and Server-Timing metrics for Rhythm routers."
+---
+
+## Install
+
+`@rhythmjs/observability` ships four modules, each on its own subpath export; there is no root barrel. This page covers the three per-request middlewares: `/log`, `/request-id`, and `/timing`; the `/health` kernel module has [its own page](/observability/health/).
+
+```bash
+bun add @rhythmjs/observability @rhythmjs/rhythm @rhythmjs/router
+```
+
+## Log requests
+
+`log(sink?)` wraps the chain and reports one structured `LogEntry` per request: `{ method, path, status, duration }`, with `duration` in whole milliseconds. The default sink prints `METHOD /path status Nms` to the console; pass your own sync or async `LogSink` to ship entries anywhere; it is awaited, so backpressure applies.
+
+When downstream throws, the entry is logged with `status: 500` and the thrown value under `error`, then the error is *rethrown*: an exception filter registered outside `log` still sees it, and the failure is never swallowed by observability.
+
+```ts
+import { RhythmRouter } from "@rhythmjs/router";
+import { log } from "@rhythmjs/observability/log";
+
+new RhythmRouter().use(log()).get("/users/:id", (ctx) => {
+  ctx.json({ id: ctx.params.id });
+});
+// => GET /users/7 200 2ms
+
+// a custom sink
+log((entry) => logger.info({ ...entry, requestId: currentRequestId() }));
+```
+
+## Correlate with request ids
+
+`requestId(header?)` reuses the incoming id header when the caller sent one (so ids survive proxy hops) or generates a `crypto.randomUUID()`. The id is set on the response header and derived onto the context as `ctx.requestId` (`RequestIdContext`). The header name defaults to `x-request-id`; pass another to match your infrastructure.
+
+```ts
+import { requestId, type RequestIdContext } from "@rhythmjs/observability/request-id";
+
+new RhythmRouter().use<RequestIdContext>(requestId()).get("/ping", (ctx) => {
+  ctx.text(ctx.requestId); // also sent back as x-request-id
+});
+```
+
+## Measure with Server-Timing
+
+`timing(name?)` appends a `Server-Timing` header after `next()` with the duration of everything downstream, measured with Bun's native `Bun.nanoseconds()` and reported to one decimal of a millisecond, visible per request in browser devtools. The metric name defaults to `app`. Because the header is *appended*, nested layers each contribute their own metric instead of overwriting each other.
+
+```ts
+import { timing } from "@rhythmjs/observability/timing";
+
+new RhythmRouter()
+  .use(timing()) // app;dur=3.1
+  .use(timing("db")) // db;dur=2.4, everything inside, i.e. the handler and below
+  .get("/ping", (ctx) => {
+    ctx.text("pong");
+  });
+// => server-timing: app;dur=3.1, db;dur=2.4
+```
+
+## Compose them
+
+Register `log` outermost so it measures and reports everything including the other observability layers, then `timing`, then `requestId`, and read `ctx.requestId` from your log sink for correlated entries.
+
+```ts
+new RhythmRouter()
+  .use(log())
+  .use(timing())
+  .use<RequestIdContext>(requestId())
+  .get("/users/:id", (ctx) => {
+    ctx.text(ctx.requestId);
+  });
+```

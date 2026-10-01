@@ -1,0 +1,115 @@
+---
+title: "First steps"
+lead: "Scaffold a Rhythm application and serve your first controller on Bun."
+---
+
+## What you will build
+
+This tutorial builds one application, step by step: a notes API with validated input, a real database, authentication, a live WebSocket feed, background jobs, generated OpenAPI docs, and tests. Each page adds one layer and explains the primitive behind it, so by the end you have seen everything the framework can do — and every line came from these pages.
+
+You need [Bun](https://bun.sh) ≥ 1.2. Everything runs on Bun's native APIs — `Bun.serve`, native WebSockets, `Bun.redis` — with no adapter layers.
+
+## Scaffold the project
+
+Create the project from the [template](https://github.com/rhythmjs/template), a minimal runnable app organized the way NestJS organizes its starter, expressed with Rhythm primitives:
+
+```bash
+bunx rhythmx new notes-app
+cd notes-app
+bun dev   # bun --watch src/main.ts
+```
+
+Four source files carry the whole idea. A *service* holds business logic, a *controller* maps routes onto it, a *module* wires them together, and `main.ts` serves the module:
+
+```text
+src/
+  main.ts             Bun.serve over toFetchHandler(appModule)
+  app.module.ts       Rhythm instance: provides the service, mounts the controller
+  app.controller.ts   RhythmRouter instance: routes and handlers
+  app.service.ts      plain object holding the business logic
+```
+
+## The four files
+
+The service is a plain object — no decorators, no base class. Factories over classes is the convention everywhere:
+
+```ts
+// src/app.service.ts
+export const appService = {
+  getHello(): string {
+    return "Hello World!";
+  },
+};
+```
+
+The controller is a `RhythmRouter`. Its context type declares the dependencies its handlers use — the type-level equivalent of constructor injection:
+
+```ts
+// src/app.controller.ts
+import { RhythmRouter } from "@rhythmjs/router";
+import type { RhythmHttpContext } from "@rhythmjs/router/adapters/context";
+import type { appService } from "./app.service";
+
+export type AppContext = RhythmHttpContext & {
+  appService: typeof appService;
+};
+
+export const appController = new RhythmRouter<AppContext>().get("/", (ctx) => {
+  ctx.response.headers.set("content-type", "text/plain");
+  ctx.response.body = ctx.appService.getHello();
+});
+```
+
+The module is a `Rhythm` kernel: it `provide()`s the service (once, at startup), mounts the controller, and ends with a 404 tail for anything no route claimed:
+
+```ts
+// src/app.module.ts
+import { Rhythm } from "@rhythmjs/rhythm";
+import type { RhythmHttpContext } from "@rhythmjs/router/adapters/context";
+import { appController } from "./app.controller";
+import { appService } from "./app.service";
+
+export const appModule = new Rhythm<RhythmHttpContext>({ name: "app", type: "module" })
+  .provide(() => ({ appService }))
+  .use(appController.middleware())
+  .use((ctx) => {
+    ctx.response.status = 404;
+    ctx.response.headers.set("content-type", "application/json");
+    ctx.response.body = JSON.stringify({ success: false, status: 404, message: "Not Found" });
+  });
+```
+
+And `main.ts` turns the module into a fetch handler for `Bun.serve`:
+
+```ts
+// src/main.ts
+import { toFetchHandler } from "@rhythmjs/router/fetch";
+import { appModule } from "./app.module";
+
+const port = Number(process.env.PORT ?? 3000);
+
+const server = Bun.serve({ port, fetch: toFetchHandler(appModule) });
+console.log(`listening on ${server.url}`);
+```
+
+## Run and poke it
+
+```bash
+$ bun dev
+listening on http://localhost:3000/
+
+$ curl http://localhost:3000/
+Hello World!
+
+$ curl -i http://localhost:3000/missing
+HTTP/1.1 404 Not Found
+{"success":false,"status":404,"message":"Not Found"}
+```
+
+That is the whole mental model: providers initialize once, middleware runs per request in onion order, and the request context carries both through the pipeline. Every page that follows only adds middleware and providers to this skeleton.
+
+<Callout title="Dev server binding">
+
+`Bun.serve` binds all interfaces by default. On untrusted networks pass `hostname: process.env.HOST ?? "localhost"` during development.
+
+</Callout>

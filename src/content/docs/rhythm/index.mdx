@@ -1,0 +1,43 @@
+---
+title: "The core pipeline"
+lead: "Compose behavior around a typed input and a shared context."
+---
+
+## Create an instance
+
+`Rhythm<TInput>` declares the input required by each run. Optional `name` and `type` labels make errors from registered modules easier to identify.
+
+```ts
+import { Rhythm } from "@rhythmjs/rhythm";
+
+const app = new Rhythm<{ jobId: string }>({ name: "jobs" })
+  .provide(() => ({ service: "worker" }))
+  .use((ctx) => console.log(ctx.service, ctx.jobId));
+```
+
+## Run and reuse
+
+`run(input)` initializes providers if needed, creates a shallow context from the input, and returns the final context. Provider values join the context at their position in the chain, so a provider field with the same name as an input field overwrites it once its position is reached.
+
+`callback()` exposes the reusable async handler. Finish configuring the pipeline before obtaining a handler or running setup.
+
+```ts
+const handle = app.callback();
+await handle({ jobId: "job-1" });
+const result = await app.run({ jobId: "job-2" });
+console.log(result.service); // worker
+```
+
+## Understand state
+
+Every run gets a new top-level context object, but provider values are shared references. `DeepReadonly` is a TypeScript constraint, not a runtime freeze. Avoid mutable shared request state in providers.
+
+## Choose a composition boundary
+
+Use `register(child, exportValue)` when a module needs a separate top-level context and managed lifecycle. Use `use(child.middleware())` for flat composition and fallthrough into the parent.
+
+<Callout title="Flat mounting has a lifecycle tradeoff">
+
+It initializes the child lazily, but does not register child disposal with the parent. Explicitly tear down flat-mounted instances that own resources.
+
+</Callout>

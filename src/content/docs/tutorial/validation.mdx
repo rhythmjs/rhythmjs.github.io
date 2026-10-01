@@ -1,0 +1,106 @@
+---
+title: "Validation & errors"
+lead: "Schema-validated input, thrown HTTP errors, and enforced response contracts."
+description: "Schema-validated input, HttpError boundaries, and response contracts."
+---
+
+## Validate the input
+
+Never parse request bodies by hand. `validate(target, schema)` accepts any [Standard Schema](https://github.com/standard-schema/standard-schema) validator (zod, valibot, arktype…), extracts the target (`"body"`, `"query"`, or `"param"`), and on failure answers `400` with the issues — the handler never runs on bad input. On success the *parsed* value lands on `ctx.valid`, fully typed:
+
+```ts
+// src/notes/notes.schema.ts
+import { z } from "zod";
+
+export const createNoteSchema = z.object({
+  title: z.string().trim().min(1, "title must be a non-empty string"),
+  content: z.string().default(""),
+});
+export type CreateNoteInput = z.infer<typeof createNoteSchema>;
+```
+
+```ts
+import { validate } from "@rhythmjs/middleware/validate";
+
+notesController.post("/", validate("body", createNoteSchema), (ctx) => {
+  // ctx.valid.body is CreateNoteInput — parsed, defaulted, typed
+  ctx.json(ctx.notesService.create(ctx.valid.body), 201);
+});
+```
+
+## Throw HTTP errors
+
+`filter()` is the error boundary: mount it first in the module, and any thrown `HttpError` becomes the matching JSON response while unexpected errors become a generic `500` — no stack traces or internals ever reach the client. Handlers then just throw:
+
+```ts
+import { HttpError, filter } from "@rhythmjs/middleware/filter";
+
+export const appModule = new Rhythm<RhythmHttpContext>({ name: "app", type: "module" })
+  .use(filter())                       // first: everything below is covered
+  .register(notesModule, (v) => v)
+  .use(() => {
+    throw new HttpError(404, "Route not found");   // the 404 tail, via the same path
+  });
+```
+
+```ts
+.get("/:id", (ctx) => {
+  const note = ctx.notesService.get(ctx.params.id);
+  if (!note) throw new HttpError(404, "Note not found");
+  ctx.json(note);
+})
+```
+
+## Validate the output
+
+`intercept(schema)` is the mirror image: it validates (and re-serializes) what your handlers return, so a stripping schema genuinely removes over-exposed fields before they leave the process. Put it on the controller and every route below it honors the response contract:
+
+```ts
+import { intercept } from "@rhythmjs/middleware/intercept";
+
+export const noteSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  content: z.string(),
+});
+export const notesResponseSchema = z.union([noteSchema, z.array(noteSchema)]);
+
+export const notesController = new RhythmRouter<NotesContext>({ prefix: "/api/notes" })
+  .use(intercept(notesResponseSchema))
+  .get("/", (ctx) => { /* ... */ });
+```
+
+## The full shape
+
+Input validation, output interception, and the error filter compose into the standard controller shape you will keep for the rest of the tutorial:
+
+```ts
+export const notesController = new RhythmRouter<NotesContext>({ prefix: "/api/notes" })
+  .use(intercept(notesResponseSchema))
+  .get("/", (ctx) => {
+    ctx.json(ctx.notesService.list());
+  })
+  .get("/:id", (ctx) => {
+    const note = ctx.notesService.get(ctx.params.id);
+    if (!note) throw new HttpError(404, "Note not found");
+    ctx.json(note);
+  })
+  .post("/", validate("body", createNoteSchema), (ctx) => {
+    ctx.json(ctx.notesService.create(ctx.valid.body), 201);
+  })
+  .patch("/:id", validate("body", updateNoteSchema), (ctx) => {
+    const note = ctx.notesService.update(ctx.params.id, ctx.valid.body);
+    if (!note) throw new HttpError(404, "Note not found");
+    ctx.json(note);
+  })
+  .delete("/:id", (ctx) => {
+    if (!ctx.notesService.remove(ctx.params.id)) throw new HttpError(404, "Note not found");
+    ctx.response.status = 204;
+  });
+```
+
+<Callout title="Cap the body first">
+
+In production put `bodyLimit(maxBytes)` from `@rhythmjs/http/body-limit` in front of anything that reads request bodies — it answers `413` the moment a body crosses the limit, without buffering more than the limit itself.
+
+</Callout>

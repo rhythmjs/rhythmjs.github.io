@@ -1,0 +1,94 @@
+---
+import LandingLayout from "../layouts/landing-layout.astro";
+import Hero from "../components/landing/hero.astro";
+import Pipeline from "../components/landing/pipeline.astro";
+import SectionHead from "../components/landing/section-head.astro";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import CanDo from "../components/can-do.astro";
+import Feature from "../components/feature.astro";
+import Features from "../components/features.astro";
+import Icon from "../components/icon.astro";
+import Principle from "../components/principle.astro";
+import Principles from "../components/principles.astro";
+import CanDoList from "../landing/can-do.mdx";
+import SmallByDesign from "../landing/features.mdx";
+import Philosophy from "../landing/philosophy.mdx";
+import Closing from "../landing/closing.mdx";
+import { site } from "../data/site";
+
+const components = { Feature, Features, Principle, Principles, CanDo };
+const large = (variant: "default" | "secondary") => cn(buttonVariants({ variant, size: "lg" }), "h-10 px-4 text-sm");
+---
+
+<LandingLayout title={`${site.name}: ${site.tagline}`} description={site.description}>
+  <Hero />
+  <div data-pagefind-body data-pagefind-meta="title:RhythmJS, group:Home">
+    <section class="landing-section">
+      <div class="landing-inner">
+        <SectionHead
+          id="how-it-works"
+          eyebrow="How it works"
+          title="One request, one pipeline"
+          lead="Each middleware wraps the next one. The code before next() runs on the way in; the code after it runs on the way back out."
+        />
+        <Pipeline />
+      </div>
+    </section>
+
+    <section class="landing-section">
+      <div class="landing-inner">
+        <SectionHead id="small-by-design" eyebrow="Features" title="Small by design" />
+        <SmallByDesign components={components} />
+      </div>
+    </section>
+
+    <section class="landing-section">
+      <div class="landing-inner">
+        <SectionHead id="what-you-can-do" eyebrow="Ecosystem" title="With Rhythm you can" />
+        <CanDoList components={components} />
+        <div class="more">
+          <a class={large("secondary")} href="/rhythm/">
+            Browse all packages <Icon name="arrow-right" />
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <section class="landing-section">
+      <div class="landing-inner">
+        <SectionHead
+          id="philosophy"
+          eyebrow="Why Rhythm"
+          title="Philosophy"
+          lead="A framework should be something you compose, not something you inherit."
+        />
+        <Philosophy components={components} />
+      </div>
+    </section>
+
+    <section class="landing-section">
+      <div class="landing-inner">
+        <div class="closing px-6 py-14 text-center md:py-20">
+          <div class="prose mx-auto max-w-3xl [&_h2]:mt-0 [&_h2]:mb-4 [&_h2]:text-3xl [&_h2]:font-bold [&_h2]:tracking-tight md:[&_h2]:text-4xl">
+            <Closing components={components} />
+          </div>
+          <div class="mt-8 flex flex-wrap items-center justify-center gap-2">
+            <a class={large("secondary")} href="/tutorial/">
+              Start the tutorial
+            </a>
+            <a
+              class={cn(
+                buttonVariants({ variant: "ghost", size: "lg" }),
+                "h-10 px-4 text-sm hover:bg-primary-foreground/15 hover:text-primary-foreground",
+              )}
+              href="/rhythm/"
+            >
+              Browse the packages
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</LandingLayout>

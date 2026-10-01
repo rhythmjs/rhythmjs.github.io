@@ -1,0 +1,99 @@
+---
+title: "API reference"
+lead: "Every export of @rhythmjs/ws: one class and the types around it."
+description: "Every export of @rhythmjs/ws: the RhythmWs class, WsRoute handlers, middleware, behavior tuning, and supporting types."
+---
+
+## class RhythmWs [#rhythmws-class]
+
+```ts
+new RhythmWs(options?: RhythmWsOptions);
+
+route<Data extends object = WsParams>(path: string, route: WsRoute<Data>): this;
+use(fn: WsMiddleware): this;
+middleware(): WsMiddleware;
+get routes(): readonly string[];
+upgrade: (request: Request, server: Server) => Promise<Response | undefined> | null;
+get websocket(): Bun.WebSocketHandler<never>;
+```
+
+<DefList>
+<Def sig="route(path, handlers)" id="route">Registers an endpoint. `Data` is this route's `ws.data` type; without an `upgrade` member it defaults to the route params. Throws `TypeError` for a non-object handlers argument.</Def>
+<Def sig="use(fn)" id="use">Adds middleware, the router's convention: `(ctx, next)` over `RhythmWsContext`. Middleware and routes interleave in registration order and never run for unmatched paths. Mounting another instance is `use(child.middleware())`. Throws `TypeError` for a non-function argument.</Def>
+<Def sig="middleware()" id="middleware">Compiles the instance into one mountable `WsMiddleware`, snapshotting its middleware and routes. A parent that mounts it gains the child's routes for matching, while the child's middleware stays scoped to its own pipeline. The child declares its own full prefix.</Def>
+<Def sig="routes" id="routes">The route paths this instance serves — its own, prefix applied, plus mounted children's — in registration order.</Def>
+<Def sig="upgrade(request, server)" id="upgrade">The fetch-side half, bound as an arrow property. Returns `null` synchronously when the request has no `upgrade: websocket` header or matches no route; otherwise resolves to `undefined` once `server.upgrade()` succeeds, the rejecting `Response` set by middleware or returned by the route's `upgrade`, `403 Forbidden` when the chain ends without upgrading (fail-closed), or `500 Upgrade failed` when Bun refuses the socket.</Def>
+<Def sig="websocket" id="websocket">The single behavior object for `Bun.serve`, spreading the constructor's `WsBehavior` tuning and dispatching every event to the connection's route via the `ws.data` identity. One behavior serves connections upgraded by any instance.</Def>
+</DefList>
+
+## interface WsRoute\<Data\> [#wsroute-interface]
+
+```ts
+interface WsRoute<Data extends object = WsParams> {
+  upgrade?(request: Request, params: WsParams, server: Server): Data | Response | Promise<Data | Response>;
+  headers?: Bun.HeadersInit | ((request: Request, params: WsParams) => Bun.HeadersInit | Promise<Bun.HeadersInit>);
+  open?(ws: Bun.ServerWebSocket<Data>): void | Promise<void>;
+  message?(ws: Bun.ServerWebSocket<Data>, message: string | Buffer): void | Promise<void>;
+  drain?(ws: Bun.ServerWebSocket<Data>): void | Promise<void>;
+  close?(ws: Bun.ServerWebSocket<Data>, code: number, reason: string): void | Promise<void>;
+  ping?(ws: Bun.ServerWebSocket<Data>, data: Buffer): void | Promise<void>;
+  pong?(ws: Bun.ServerWebSocket<Data>, data: Buffer): void | Promise<void>;
+}
+```
+
+Every lifecycle member is exactly Bun's `WebSocketHandler` member: `ws` is Bun's `ServerWebSocket` with `send`, `subscribe`, `publish`, `cork`, backpressure-aware return codes, and `ws.data` typed as `Data`. `upgrade` runs before `server.upgrade()`: return the connection's data, or a `Response` to reject the handshake. `headers` contributes to the `101` response, statically or computed per request.
+
+## RhythmWsContext and WsMiddleware [#wsmiddleware-type]
+
+```ts
+interface RhythmWsContext {
+  readonly request: Request;
+  readonly server: Server;
+  response: Response | undefined;
+}
+
+type WsMiddleware = Middleware<RhythmWsContext>; // (ctx, next) from @rhythmjs/rhythm
+```
+
+The upgrade pipeline's context. Middleware sets `ctx.response` to reject the handshake and calls `next()` to continue; a set response always wins over a later upgrade attempt, and a chain that ends without upgrading answers `403` — fail-closed either way.
+
+## WsBehavior and RhythmWsOptions [#wsbehavior-interface]
+
+```ts
+interface WsBehavior {
+  maxPayloadLength?: number;
+  idleTimeout?: number;
+  backpressureLimit?: number;
+  closeOnBackpressureLimit?: boolean;
+  sendPings?: boolean;
+  publishToSelf?: boolean;
+  perMessageDeflate?: Bun.WebSocketHandler<never>["perMessageDeflate"];
+}
+
+type WsOrigin =
+  | "same-origin"
+  | readonly string[]
+  | ((origin: string, request: Request) => boolean | Promise<boolean>)
+  | false;
+
+interface RhythmWsOptions extends WsBehavior {
+  prefix?: string;
+  origin?: WsOrigin;
+}
+```
+
+`WsBehavior` is Bun's websocket tuning, passed through to `Bun.serve`'s behavior object verbatim by the `websocket` getter. `prefix` is prepended to every path this instance registers, and to merged children's paths.
+
+`origin` validates the handshake's `Origin` header before middleware runs, guarding against cross-site WebSocket hijacking (browsers attach cookies to handshakes, and WebSocket is exempt from CORS). The default `"same-origin"` requires a present `Origin` to match the request's own `Host` and answers `403` otherwise; requests without an `Origin` (non-browser clients) pass. An array allows exactly those origins, a predicate decides per request, and `false` disables the check.
+
+## Supporting types
+
+```ts
+type WsParams = Readonly<Record<string, string>>;
+type Server = Bun.Server<unknown>;
+```
+
+<DefList>
+<Def sig="WsParams" id="wsparams">Route params captured by rou3 for the matched path, the default `ws.data` when a route has no `upgrade`.</Def>
+<Def sig="Server" id="server">Bun's server, as passed to `fetch(request, server)`. Guards and route upgrades receive it for `server.requestIP()`, `server.publish()`, and similar.</Def>
+</DefList>

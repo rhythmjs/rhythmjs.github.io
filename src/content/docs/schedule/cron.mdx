@@ -1,0 +1,66 @@
+---
+title: "A cron engine, no dependencies"
+lead: "Five or six fields, names, lists, ranges, steps, and @aliases; standard day-of-month OR day-of-week semantics; IANA timezones through Intl with DST gaps skipped, exported on its own subpath."
+description: "The in-house cron engine at @rhythmjs/schedule/cron: 5/6-field patterns, names, ranges, steps, aliases, the dom/dow OR rule, Intl-based timezones, and DST-gap skipping."
+---
+
+## The Cron class
+
+The engine behind `nextRun`, `runDue`, and the scheduler is exported on its own at `@rhythmjs/schedule/cron`: dependency-free, and usable without the rest of the package. Invalid patterns and unknown timezones throw at construction, never at evaluation time.
+
+```ts
+import { Cron } from "@rhythmjs/schedule/cron";
+
+const nightly = new Cron("30 2 * * *", { timezone: "Europe/Paris" });
+nightly.nextRun(); // next occurrence after now
+nightly.nextRun(new Date("2026-06-01")); // next occurrence strictly after June 1
+nightly.pattern; // "30 2 * * *"
+```
+
+`nextRun(from = new Date())` returns a `Date`, or `null` when no occurrence exists within the search horizon (about eight years), the honest answer for impossible dates such as `0 0 30 2 *`, February 30th.
+
+## Pattern syntax
+
+Patterns have five fields (minute, hour, day-of-month, month, day-of-week) or six with a leading *seconds* field; `cronPatterns.everySecond` is `* * * * * *`. Each field takes:
+
+- **Values and lists**: `5`, `1,15`; months and weekdays also by name: `jan`-`dec`, `sun`-`sat`, and `7` as Sunday.
+- **Ranges**: `9-17`, `mon-fri`; no wrap-around ranges.
+- **Steps**: `*/15`, `9-17/2`, and `5/10` (from 5 to the field maximum, step 10).
+- **Aliases** - `@yearly`/`@annually`, `@monthly`, `@weekly`, `@daily`, `@hourly` for whole patterns.
+
+```ts
+new Cron("*/15 * * * *"); // every 15 minutes
+new Cron("0 9-17 * * mon-fri"); // hourly, office hours, weekdays
+new Cron("0 0 1 jan *"); // New Year midnight
+new Cron("30 4 1,15 * *"); // 04:30 on the 1st and 15th
+new Cron("*/10 * * * * *"); // every 10 seconds (6 fields)
+```
+
+## Day-of-month OR day-of-week [#dom-dow-or]
+
+When *both* day fields are restricted, a date matching *either* one is due, standard cron semantics. A field counts as unrestricted when it starts with `*` (so `*/2` in day-of-week is unrestricted for this rule).
+
+```ts
+// "at midnight on the 13th, and every Friday"
+const spooky = new Cron("0 0 13 * fri", { timezone: "UTC" });
+spooky.nextRun(new Date("2026-01-08T00:00:00Z")); // Fri Jan 9 (weekday matched)
+spooky.nextRun(new Date("2026-01-10T00:00:00Z")); // Tue Jan 13 (day matched)
+```
+
+## Timezones and DST
+
+Pass an IANA timezone and the pattern is evaluated against that zone's wall clock, implemented with `Intl.DateTimeFormat`, no timezone database dependency. Without one, the host's local clock applies.
+
+Daylight-saving transitions are handled the way cron users expect. A wall-clock time erased by a spring-forward gap is *skipped*: Paris jumps 02:00 → 03:00 on 29 March 2026, so `30 2 * * *` has no occurrence that day and next fires on 30 March at 02:30. In the autumn overlap, the engine yields a single occurrence rather than two.
+
+```ts
+const paris = new Cron("30 2 * * *", { timezone: "Europe/Paris" });
+paris.nextRun(new Date("2026-03-28T12:00:00Z"));
+// → 2026-03-30T00:30:00.000Z: March 29's 02:30 never exists in Paris
+```
+
+## Evaluation semantics [#semantics]
+
+`nextRun(from)` is *strictly after* `from`, at second resolution; asking at an exact occurrence returns the following one, which is what makes re-arming timers race-free. The search walks calendar fields (month, then day, then hour, minute, second) rather than ticking, so even yearly patterns in distant timezones resolve in microseconds; it gives up after about eight years and returns `null`.
+
+This one engine serves the whole ecosystem: the schedule service's `nextRun`/`runDue` and [the in-process scheduler](/schedule/) use it directly, and [@rhythmjs/queue](/queue/) evaluates its cron-pattern repeats through it: one syntax, one set of semantics, everywhere.

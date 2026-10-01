@@ -1,0 +1,86 @@
+---
+title: "API reference"
+lead: "Every export of the four subpaths: @rhythmjs/testing/rhythm, /router, /cli, and /ws. There is no root barrel export."
+description: "Every export of the four subpaths of @rhythmjs/testing: /rhythm, /router, /cli, and /ws."
+---
+
+## @rhythmjs/testing/rhythm [#rhythm-subpath]
+
+```ts
+function mockModule<TExports extends object>(
+  values: TExports,
+  dispose?: (values: TExports) => void | Promise<void>,
+): Rhythm<{}, TExports, TExports>;
+
+function runMiddleware<TContext extends object>(
+  middleware: Middleware<TContext>,
+  ctx: TContext,
+): Promise<MiddlewareRun<TContext>>;
+```
+
+<DefList>
+<Def sig="mockModule(values, dispose?)" id="mockmodule">A Rhythm module (type `module`, name `mock`) providing `values` verbatim. `dispose`, when given, runs on the host app's teardown with those same values.</Def>
+<Def sig="runMiddleware(middleware, ctx)" id="runmiddleware">Invokes the middleware with your context and a `next()` that records being called and resolves to the context.</Def>
+<Def sig={"MiddlewareRun<TContext>"} id="middlewarerun">\{ ctx: TContext; nextCalled: boolean \}: the mutated context and whether the chain continued.</Def>
+</DefList>
+
+## @rhythmjs/testing/router [#router-subpath]
+
+```ts
+function createTestClient(
+  app: Rhythm<RhythmHttpContext, …> | RhythmRouter,
+  options?: TestClientOptions,
+): TestClient;
+
+function runHttpMiddleware<TExtras extends object = {}>(
+  middleware: Middleware<RhythmHttpContext & TExtras>,
+  request?: string | Request,
+  extras?: TExtras,
+): Promise<HttpMiddlewareRun<RhythmHttpContext & TExtras>>;
+```
+
+<DefList>
+<Def sig="createTestClient(app, options?)" id="createtestclient">Accepts a Rhythm HTTP app or a bare `RhythmRouter` (mounted into a fresh app for you) and returns verb helpers over `toFetchHandler`. `options.baseUrl` resolves relative paths (default `http://localhost`).</Def>
+<Def sig="TestClient" id="testclient">`fetch(input, init?)` plus `get` / `head` / `post` / `put` / `patch` / `delete`, each `(path, options?) => Promise<Response>`, and `teardown()` which disposes the app's providers.</Def>
+<Def sig="TestRequestOptions" id="testrequestoptions">\{ headers?; body?; json? \}; `json` serializes the value and sets `content-type: application/json` unless you set one yourself. `TestRequestHeaders`, `TestRequestBody`, and `TestRequestInit` alias the corresponding fetch constructor parameter types.</Def>
+<Def sig="runHttpMiddleware(middleware, request?, extras?)" id="runhttpmiddleware">Builds a real HTTP context with `createHttpContext` from a path or `Request` (default `http://localhost/`), assigns `extras` onto it, runs the middleware, and returns `HttpMiddlewareRun`.</Def>
+<Def sig="HttpMiddlewareRun" id="httpmiddlewarerun">\{ ctx; nextCalled: boolean; response: Response \} - `response` is the context's response rendered with `toResponse`.</Def>
+</DefList>
+
+## @rhythmjs/testing/cli [#cli-subpath]
+
+```ts
+function createCliRunner(
+  app: Rhythm<RhythmCliContext, …> | RhythmCli,
+): CliRunner;
+```
+
+<DefList>
+<Def sig="createCliRunner(app)" id="createclirunner">Accepts a Rhythm CLI app or a bare `RhythmCli` (mounted for you). The runner parses flags exactly like the real entry point, via `parseArgv`.</Def>
+<Def sig="CliRunner.run(argv, options?)" id="clirunner-run">`argv` is a command string (whitespace-split) or an argv array. `options.stdin` becomes a web `ReadableStream` on the context; omitted, `ctx.stdin` is null, matching a TTY. Resolves to `CliRunResult`.</Def>
+<Def sig="CliRunResult" id="clirunresult">\{ ctx; stdout: string\[\]; stderr: string\[\]; exitCode: number \} - copies of the response buffers, nothing written to real stdio.</Def>
+<Def sig="CliRunner.teardown()" id="clirunner-teardown">Disposes the underlying app's providers.</Def>
+</DefList>
+
+## @rhythmjs/testing/ws [#ws-subpath]
+
+```ts
+function upgradeWs<Data extends object = Record<string, string>>(
+  ws: RhythmWs,
+  request: string | Request,
+): Promise<WsUpgradeResult<Data>>;
+
+function mockWs<Data extends object = Record<string, string>>(data: Data): MockWs<Data>;
+
+function fireOpen(ws: RhythmWs, peer: MockWs): void | Promise<void>;
+function fireMessage(ws: RhythmWs, peer: MockWs, data: string | Uint8Array | object): void | Promise<void>;
+function fireClose(ws: RhythmWs, peer: MockWs, code = 1000, reason = ""): void | Promise<void>;
+function fireDrain(ws: RhythmWs, peer: MockWs): void | Promise<void>;
+```
+
+<DefList>
+<Def sig="upgradeWs(ws, request)" id="upgradews">Drives `RhythmWs.upgrade` against a mock server whose `upgrade()` always accepts and records its options. A string becomes a request with the `upgrade: websocket` header implied. Guards, the route's `upgrade`, and `headers` all run for real.</Def>
+<Def sig={"WsUpgradeResult<Data>"} id="wsupgraderesult">\{ matched; upgraded; response; data; headers \} - `matched` is false when `upgrade()` returned null (not a websocket request, or no route); `response` carries a rejection; on success `data` is the exact `ws.data` object and `headers` whatever the route contributed to the 101.</Def>
+<Def sig="mockWs(data)" id="mockws">A recording `ServerWebSocket` stand-in: `sent`, `published`, `topics`, `closed`, and `terminated` capture everything handlers do; `send`/`publish` return byte counts; `close`/`terminate` flip `readyState` to 3. `data`, `readyState`, `remoteAddress` (127.0.0.1), and `isSubscribed` round out the surface handlers touch.</Def>
+<Def sig="fireOpen / fireMessage / fireClose / fireDrain" id="fireopen">Dispatch through the instance's real `websocket` behavior, so routing by `ws.data` identity is exercised too. `fireMessage` passes strings through, wraps `Uint8Array` in a `Buffer`, and JSON-serializes any other object.</Def>
+</DefList>

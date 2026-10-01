@@ -1,0 +1,54 @@
+---
+title: "API reference"
+lead: "Exports and signatures for the log, request-id, and timing subpaths of @rhythmjs/observability."
+description: "Exports and signatures for the log, request-id, timing, and health subpaths of @rhythmjs/observability."
+---
+
+## @rhythmjs/observability/log [#log]
+
+```ts
+function log(sink?: LogSink): Middleware<RhythmHttpContext>;
+```
+
+Returns middleware that measures each request and calls the sink once per request. Without an argument, the default sink prints `METHOD /path status Nms` to the console. When downstream throws, the sink receives an entry with `status: 500` and the `error`, then the error is rethrown so an outer exception filter still sees it.
+
+<DefList>
+<Def sig="LogEntry" id="logentry">The structured entry passed to the sink: `method: string`, `path: string`, `status: number`, `duration: number` (rounded milliseconds), and `error?: unknown`, set only when downstream threw.</Def>
+<Def sig="LogSink" id="logsink">`(entry: LogEntry) => void | Promise<void>`. Sync or async; an async sink is awaited before the middleware returns.</Def>
+</DefList>
+
+## @rhythmjs/observability/request-id [#request-id]
+
+```ts
+function requestId(header?: string): Middleware<RhythmHttpContext>;
+```
+
+Returns middleware that reads the incoming header named by `header` (default `"x-request-id"`) and reuses its value, or generates a new id with `crypto.randomUUID()`. The id is set on the response under the same header name and passed downstream as `ctx.requestId`.
+
+<DefList>
+<Def sig="RequestIdContext" id="requestidcontext">`{ requestId: string }`. The context extension made available to downstream middleware; use it as the type argument of `use` so handlers see `ctx.requestId`.</Def>
+</DefList>
+
+## @rhythmjs/observability/timing [#timing]
+
+```ts
+function timing(name?: string): Middleware<RhythmHttpContext>;
+```
+
+Returns middleware that appends a `Server-Timing` header after `next()` resolves, in the form `name;dur=N` with the downstream duration in milliseconds to one decimal place, measured with Bun's native `Bun.nanoseconds()`. The metric name defaults to `"app"`. The header is appended, not replaced, so multiple `timing()` layers each contribute their own metric.
+
+## @rhythmjs/observability/health [#health]
+
+```ts
+function createHealthService(options?: HealthModuleOptions): HealthService
+const healthModule: { forRoot(options?): Rhythm } // provides { healthService }
+function healthRoutes(service: HealthService, options?: { path?: string }): RhythmRouter
+function gracefulShutdown(options?: GracefulShutdownOptions): () => Promise<void>
+```
+
+<DefList>
+<Def sig="HealthIndicator" id="healthindicator">`{ name, check(): HealthResult, critical?, timeout? }`. `critical` defaults to true; a down critical indicator makes the whole report down; non-critical failures are reported but do not. Each check races its own `timeout` (falling back to the module-level `timeout`, default 5000ms) and a throw or timeout counts as down with the error in `details`.</Def>
+<Def sig="HealthService" id="healthservice">`live()` - `{ status: "up", uptime, timestamp }`, no indicators involved. `ready()` returns a `HealthReport` (`status`, `shuttingDown`, per-indicator `checks` with durations), cached for `cacheTtl` (default 1000ms). `shutdown()` flips `isShuttingDown` and makes `ready()` report down immediately.</Def>
+<Def sig={"healthRoutes(service, { path? })"} id="healthroutes">A router (default prefix `/health`) serving `GET /live` (always 200) and `GET /ready` (200 up, 503 down).</Def>
+<Def sig="GracefulShutdownOptions" id="gracefulshutdownoptions">`healthService` (flipped first), `app` (its `teardown()` runs), `close` hook, `signals` (default `SIGTERM`/`SIGINT`), `drainMs` (default 0), `timeoutMs` (hard cap, default 10 000), and `exit`. Returns the shutdown function so you can also invoke it directly.</Def>
+</DefList>

@@ -1,0 +1,88 @@
+---
+title: "Controllers & routing"
+lead: "Routes, params, context helpers, and composing controllers into one app."
+description: "Routes, params, context helpers, and composing controllers."
+---
+
+## A real controller
+
+A controller is a `RhythmRouter` with a prefix and a chain of routes. Start the notes feature with an in-memory list — the database arrives in step 8:
+
+```ts
+// src/notes/notes.controller.ts
+import { RhythmRouter } from "@rhythmjs/router";
+import type { RhythmHttpContext } from "@rhythmjs/router/adapters/context";
+
+interface Note {
+  id: string;
+  title: string;
+  content: string;
+}
+
+const notes = new Map<string, Note>();
+
+export const notesController = new RhythmRouter<RhythmHttpContext>({ prefix: "/api/notes" })
+  .get("/", (ctx) => {
+    ctx.json([...notes.values()]);
+  })
+  .get("/:id", (ctx) => {
+    const note = notes.get(ctx.params.id);
+    if (!note) return ctx.error(404, "Note not found");
+    ctx.json(note);
+  })
+  .post("/", async (ctx) => {
+    const input = (await ctx.request.json()) as { title: string; content?: string };
+    const note: Note = { id: crypto.randomUUID(), title: input.title, content: input.content ?? "" };
+    notes.set(note.id, note);
+    ctx.json(note, 201);
+  })
+  .delete("/:id", (ctx) => {
+    if (!notes.delete(ctx.params.id)) return ctx.error(404, "Note not found");
+    ctx.response.status = 204;
+  });
+```
+
+Mount it in the module before the 404 tail: `.use(notesController.middleware())`. Routes register under the prefix (`/api/notes/:id`), and a static segment always beats a param segment when both match.
+
+## The context helpers
+
+Every handler receives a `RhythmHttpContext`: the Web-standard `ctx.request`, a mutable `ctx.response` (`status`, `headers`, `body`), and five helpers — `json(data, status?)`, `text`, `html`, `error(status, message?)`, and `redirect(url, status?)`. Route matches add `ctx.params`, typed as `Readonly<Record<string, string>>`.
+
+Query strings are the plain Web platform — no magic parsing:
+
+```ts
+.get("/", (ctx) => {
+  const q = new URL(ctx.request.url).searchParams.get("q") ?? "";
+  ctx.json([...notes.values()].filter((n) => n.title.includes(q)));
+})
+```
+
+## Middleware on a controller
+
+Controllers accept `use()` like the kernel does, and middleware interleaves with routes in registration order — the onion. A timing middleware wraps everything registered after it:
+
+```ts
+export const notesController = new RhythmRouter<RhythmHttpContext>({ prefix: "/api/notes" })
+  .use(async (ctx, next) => {
+    const start = performance.now();
+    await next(); // run the matched route (and later middleware)
+    ctx.response.headers.set("x-elapsed", `${Math.round(performance.now() - start)}ms`);
+  })
+  .get("/", (ctx) => { /* ... */ });
+```
+
+A middleware that returns without calling `next()` short-circuits: nothing downstream runs. That is the entire control-flow story — no interceptors, pipes, or guards as separate concepts; each is just middleware placed at the right point in the chain.
+
+## Many controllers, one app
+
+An app is a stack of controllers mounted in order. Unmatched requests fall through each router to the next middleware, which is why the 404 tail comes last:
+
+```ts
+export const appModule = new Rhythm<RhythmHttpContext>({ name: "app", type: "module" })
+  .use(healthController.middleware())   // /health/*
+  .use(notesController.middleware())    // /api/notes/*
+  .use(usersController.middleware())    // /api/users/*
+  .use((ctx) => { /* 404 tail */ });
+```
+
+Route patterns come from [rou3](https://github.com/h3js/rou3): `:param`, `:param?`, `*`, and `**` all work in any segment. See the [router docs](/router/) for matching details and static file serving.

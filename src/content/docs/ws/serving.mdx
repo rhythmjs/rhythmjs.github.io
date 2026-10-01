@@ -1,0 +1,68 @@
+---
+title: "Serve and fan out"
+lead: "One fetch expression upgrades matching requests, one websocket behavior dispatches every connection, and fan-out is Bun's own pub/sub."
+description: "Wire RhythmWs into Bun.serve: the three-way upgrade contract, one shared websocket behavior, router integration, and Bun-native pub/sub."
+---
+
+## The upgrade contract
+
+The fetch-side half is `upgrade(request, server)`, bound so you can pass it around. Its result is three-way: it returns `null` *synchronously* when the request is not a websocket upgrade or matches no route (which is what makes single-expression composition with `??` work); otherwise a promise that resolves to `undefined` once `server.upgrade()` has taken the socket, or to the `Response` that rejects the handshake (from a guard or from the route's `upgrade`). A refused `server.upgrade()` answers `500 Upgrade failed`, Bun's own convention.
+
+```ts
+Bun.serve({
+  port: 3000,
+  fetch: (request, server) => ws.upgrade(request, server) ?? app(request),
+  websocket: ws.websocket,
+});
+```
+
+## The websocket behavior
+
+`ws.websocket` is the one behavior object `Bun.serve` accepts. Each event looks up the connection's route through the shared registry keyed on `ws.data` identity and forwards to that route's handler: `open`, `message`, `drain`, `close`, `ping`, `pong`. The getter also carries the constructor's behavior tuning, passed through to Bun verbatim: `idleTimeout`, `maxPayloadLength`, `backpressureLimit`, `closeOnBackpressureLimit`, `sendPings`, `publishToSelf`, and `perMessageDeflate`.
+
+## Multiple apps, one server
+
+Because dispatch is keyed on data identity in a registry shared across instances, one `websocket` behavior serves connections upgraded by *any* `RhythmWs` on the server. Chain the upgrades and pass either instance's behavior:
+
+```ts
+Bun.serve({
+  fetch: (req, server) =>
+    support.upgrade(req, server) ?? sales.upgrade(req, server) ?? app(req),
+  websocket: support.websocket, // dispatches for sales too
+});
+```
+
+Prefer `merge()` when the apps share guards or a prefix; prefer chained upgrades when they are independent deployables. Note the behavior tuning comes from whichever instance provides `websocket`.
+
+## With @rhythmjs/router [#with-the-router]
+
+There is no server wrapper anywhere in the ecosystem: the router's app is a fetch handler, so both halves plug into the same hand-written `Bun.serve` call you already own. The sync-`null` contract keeps it one expression.
+
+```ts
+import { toFetchHandler } from "@rhythmjs/router/fetch";
+
+const handler = toFetchHandler(app);
+
+Bun.serve({
+  port: 3000,
+  fetch: (request, server) => ws.upgrade(request, server) ?? handler(request),
+  websocket: ws.websocket,
+});
+```
+
+## Pushing from HTTP handlers [#pushing-from-http]
+
+Fan-out is Bun's native pub/sub. Inside handlers, `ws.subscribe(topic)` and `ws.publish(topic, data)` work as Bun documents them (`publish` excludes the sender unless `publishToSelf` is set). Outside any socket, the server itself publishes; an ordinary route can announce into a room:
+
+```ts
+router.post("/api/rooms/:id/announce", async (ctx) => {
+  server.publish(`room:${ctx.params.id}`, await ctx.request.text());
+  ctx.json({ ok: true }, 201);
+});
+```
+
+## Scaling out, testing [#scaling-and-testing]
+
+Bun's pub/sub is in-process: `peer.publish` and `server.publish` reach peers on the same instance. For replicas, relay publishes through a backplane you own (Redis pub/sub via `Bun.redis`, NATS) by calling `server.publish` in the subscriber.
+
+Guards, upgrades, and handlers all run socketless under the harness in [`@rhythmjs/testing/ws`](/testing/ws/); `upgradeWs` exercises this page's whole contract against a mock server.

@@ -1,0 +1,84 @@
+---
+title: Nodemailer
+lead: "Send mail over SMTP: create the transport once as a provider, close it on teardown, and keep the sending behind a small service."
+description: "Use Nodemailer with Rhythm: an SMTP transport provider with disposal, a mail service, sending from a route, and a JSON transport for tests."
+---
+
+## Install
+
+[Nodemailer](https://nodemailer.com) sends email through any SMTP server (your provider's, a relay, or a local catcher during development).
+
+```bash
+bun add nodemailer
+bun add -d @types/nodemailer
+```
+
+## Provide the transport [#provider]
+
+A transport holds the connection settings and, when pooling, open connections, so build it once as a [provider](/rhythm/providers/) and close it when the app tears down. A thin service on top keeps your handlers free of mail details.
+
+```ts
+import nodemailer, { type Transporter } from "nodemailer";
+import { Rhythm } from "@rhythmjs/rhythm";
+import type { RhythmHttpContext } from "@rhythmjs/router/context";
+
+function createMailer() {
+  const transport = nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port: Number(process.env.SMTP_PORT ?? 587),
+    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+  });
+
+  return {
+    mailer: {
+      sendWelcome: (to: string, name: string) =>
+        transport.sendMail({
+          from: "RhythmJS <hello@example.com>",
+          to,
+          subject: `Welcome, ${name}`,
+          text: `Hi ${name}, thanks for signing up.`,
+        }),
+    },
+    "#transport": transport,
+  };
+}
+
+export const mailModule = new Rhythm<RhythmHttpContext>({ name: "mail", type: "module" }).provide(
+  createMailer,
+  (value) => (value["#transport"] as Transporter).close(),
+);
+```
+
+The `#transport` key is private: it is removed from the request context, but the dispose function still receives it.
+
+## Send from a route
+
+Controllers declare the service in their context type and call it like any other dependency.
+
+```ts
+import { RhythmRouter } from "@rhythmjs/router";
+
+type MailContext = RhythmHttpContext & { mailer: ReturnType<typeof createMailer>["mailer"] };
+
+export const signup = new RhythmRouter<MailContext>({ prefix: "/api" }).post("/signup", async (ctx) => {
+  const { email, name } = await ctx.request.json();
+  await ctx.mailer.sendWelcome(email, name);
+  ctx.json({ ok: true }, 201);
+});
+```
+
+## Test without a server
+
+Nodemailer's `jsonTransport` option builds the message and returns it as JSON instead of sending anything, so tests can assert on the result with no SMTP server.
+
+```ts
+const transport = nodemailer.createTransport({ jsonTransport: true });
+const info = await transport.sendMail({ from: "a@example.com", to: "b@example.com", subject: "Hi", text: "Hello" });
+expect(JSON.parse(info.message).subject).toBe("Hi");
+```
+
+## Things to check
+
+- **Do not make users wait on SMTP.** A slow mail server slows the response. For anything that is not part of the answer, hand the send to a [queue](/queue/) or [background job](/tutorial/background-jobs/) and respond immediately.
+- **Validate the address** before sending, and never build the `from` or `to` fields from unchecked input; a stray newline can inject headers.
+- **Credentials** belong in the environment, as in [configuration](/config/).
