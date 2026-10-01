@@ -1,7 +1,7 @@
 ---
 title: "Generate and serve the document"
-lead: "generate() walks the router into an OpenAPI 3.1 document; apiDocument and apiReference serve the JSON and an interactive UI."
-description: "Generate the OpenAPI 3.1 document from a described router (schema resolution, $defs hoisting into components) and serve it with Scalar or Swagger UI."
+lead: "generate() walks the routers into an OpenAPI 3.1 document; openapiModule serves it as JSON for any UI to load."
+description: "Generate the OpenAPI 3.1 document from described routers (schema resolution, $defs hoisting into components) and serve it as JSON, ready for Scalar, Swagger UI, or any other consumer."
 ---
 
 ## Generate the document
@@ -39,24 +39,42 @@ const config = defineDocument({
 
 ## Serve the document
 
-`apiDocument({ router, config, path?, format? })` is a middleware that answers `GET /openapi.json` (exact path match; everything else falls through) with the generated document. `format: "yaml"` serves it as YAML instead, at `/openapi.yaml` by default, and a `path` ending in `.yml` or `.yaml` selects YAML too; mount it twice to offer both. The document is generated lazily on the first request and cached as a promise; a failed generation is evicted so the next request retries instead of caching the error. Generation options (`openapi`, `includeUndocumented`) pass through.
+`openapiModule.forRoot({ document, path?, openapi?, includeUndocumented? })` is a kernel module, in the spirit of NestJS's `SwaggerModule`. Register it once and mount your routers as usual: it scans the app it is registered in, including nested modules, for routers, so nothing router-shaped is passed to it. It answers `GET /openapi.json` (an exact path match, mounted with `@rhythmjs/http/mount`; everything else falls through) with the generated document, and `path` moves it. The document is generated lazily on the first request and cached as a promise; a failed generation is evicted so the next request retries instead of caching the error. The module also provides `openapiService.document()` to the app.
 
-## Reference UIs
+A document covers the app its module is registered in, including everything registered inside that app. Register one `openapiModule` at the root for a single document of the whole API, or one inside each group module for a separate document per group, each with its own `path`; the router `use()` middleware of one group never leaks into another. A UI registered at the top of the app lists all the documents through its `sources` option, so the UI does not need to be repeated per group. The module learns its app from `register()`, so mounting it with `use(module.middleware())` fails with an error on the first request instead of serving an empty document.
 
-`apiReference({ path?, specUrl?, ui?, title?, scalar?, swagger?, cdn?, nonce? })` serves an interactive reference page at `/docs`, Scalar by default, Swagger UI with `ui: "swagger"`, loading the document from `specUrl` (default `/openapi.json`, and a YAML endpoint works as well; the value is HTML-escaped into the page). It plays the part of Scalar's framework packages, such as the one for Next.js: a small page that loads the UI from a CDN and takes the UI's own settings.
+```ts
+const apiModule = new Rhythm<RhythmHttpContext>({ name: "api", type: "module" })
+  .register(openapiModule.forRoot({ document: apiDocument, path: "/api/v1/openapi.json" }))
+  .use(apiController.middleware());
 
-- `scalar` is Scalar's configuration, passed through as it is: `theme`, `layout`, `darkMode`, `hideModels`, `customCss`, `withDefaultFonts`, and the rest of [Scalar's options](https://scalar.com/products/api-references/configuration).
-- `swagger` is merged into `SwaggerUIBundle`: `docExpansion`, `persistAuthorization`, `deepLinking`, and any other JSON-serializable option. The `url` stays under the middleware's control.
-- `nonce` sets a Content-Security-Policy nonce on every script tag the page renders.
-- `cdn` points at your own copy of the UI, for a version you pin yourself or a self-hosted folder. Scalar takes the package base URL (`https://cdn.jsdelivr.net/npm/@scalar/api-reference@1.67.0`), Swagger UI the folder holding `swagger-ui.css` and `swagger-ui-bundle.js`.
+const platformModule = new Rhythm<RhythmHttpContext>({ name: "platform", type: "module" })
+  .register(openapiModule.forRoot({ document: platformDocument, path: "/api/platform/openapi.json" }))
+  .use(platformController.middleware());
+
+const app = new Rhythm<RhythmHttpContext>()
+  .register(apiModule)
+  .register(platformModule)
+  .register(
+    scalarModule.forRoot({
+      sources: [
+        { url: "/api/v1/openapi.json", title: "Public API" },
+        { url: "/api/platform/openapi.json", title: "Platform API" },
+      ],
+    }),
+  );
+```
+
+The module serves the document and nothing else. It is the input for any consumer: the [Scalar](/integrations/scalar/) and [Swagger UI](/integrations/swagger-ui/) integrations render it, and so can a code generator, a gateway, or a `curl`.
 
 ```ts
 import { defineDocument } from "@rhythmjs/openapi/document";
-import { apiDocument, apiReference } from "@rhythmjs/openapi/docs";
+import { openapiModule } from "@rhythmjs/openapi/module";
+import { scalarModule } from "@rhythmjs/scalar";
 
 const app = new Rhythm<RhythmHttpContext>()
-  .use(apiDocument({ router: users, config }))
-  .use(apiReference({ title: "Users API", scalar: { theme: "purple" } }))
+  .register(openapiModule.forRoot({ document: config }))
+  .register(scalarModule.forRoot({ pageTitle: "Users API", theme: "purple" }))
   .use(users.middleware());
-// GET /openapi.json => the document; GET /docs => Scalar UI
+// GET /openapi.json => the document; GET /docs => Scalar UI loading it
 ```

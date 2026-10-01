@@ -64,7 +64,7 @@ Overlap protection defaults to `"skip"` (a still-running job is not started agai
 
 ## Durable work with queues
 
-For work that must survive the request — emails, exports, webhooks — use a typed queue. In-memory by default; pass `redis` for durability across processes, or reach for [@rhythmjs/bullmq](/bullmq/) at scale. The job map types both producers and processors:
+For work that must survive the request — emails, exports, webhooks — use a typed queue. In-memory by default; pass `redis` for durability across processes. The job map types both producers and processors:
 
 ```ts
 import { queueModule } from "@rhythmjs/queue";

@@ -133,33 +133,22 @@ interface GenerateOptions {
 }
 ```
 
-Walks the entries in order. A middleware entry carrying a fragment joins the *inherited* list applied to every route after it; each route merges inherited then own fragments. Paths convert `:param` to `{param}` and `*` to `{wildcard}`. Schemas resolve through the resolver, and emitted `$defs` are hoisted into `components.schemas`; identical definitions share a name, conflicting ones get numeric suffixes, and `$ref`s are rewritten to `#/components/schemas/…`. RhythmRouter satisfies `RouterSource` directly via its `entries` getter.
+Walks the entries in order. A middleware entry carrying a fragment joins the *inherited* list applied to every route after it; each route merges inherited then own fragments. Paths convert `:param` to `{param}` and `*` to `{wildcard}`. Schemas resolve through the resolver, and emitted `$defs` are hoisted into `components.schemas`; identical definitions share a name, conflicting ones get numeric suffixes, and `$ref`s are rewritten to `#/components/schemas/…`. RhythmRouter satisfies `RouterSource` directly via its `entries` getter. `generate` also accepts an array of routers and merges their paths, keeping each router's inherited middleware to its own routes.
 
-## /docs [#docs-subpath]
+## /module [#module-subpath]
 
 ```ts
-function apiDocument(options: ApiDocumentOptions): Middleware<RhythmHttpContext>;
-interface ApiDocumentOptions extends GenerateOptions {
-  path?: string; // default "/openapi.json", or "/openapi.yaml" with format "yaml"
-  format?: "json" | "yaml"; // default json, or yaml when path ends in .yml / .yaml
-  router: RouterSource;
-  config: OpenAPIConfig;
+const openapiModule: { forRoot(options: OpenapiOptions): Rhythm<RhythmHttpContext, RhythmHttpContext & { openapiService: OpenapiService }> };
+interface OpenapiOptions extends GenerateOptions {
+  document: OpenAPIConfig;
+  path?: string; // where the document is served, default "/openapi.json"
 }
-
-function apiReference(options?: ApiReferenceOptions): Middleware<RhythmHttpContext>;
-interface ApiReferenceOptions {
-  path?: string; // default "/docs"
-  specUrl?: string; // default "/openapi.json"
-  ui?: "scalar" | "swagger"; // default scalar
-  title?: string; // default "API Reference"
-  scalar?: ScalarOptions; // Scalar's own configuration: theme, layout, customCss, ...
-  swagger?: Record<string, unknown>; // merged into SwaggerUIBundle: docExpansion, persistAuthorization, ...
-  cdn?: string; // your own copy of the UI: an http(s) URL or a root-relative path
-  nonce?: string; // Content-Security-Policy nonce for every script tag
+interface OpenapiService {
+  document(): Promise<OpenAPIObject>;
 }
 ```
 
-`apiDocument` matches `GET` on its path, generates once, caches the promise, and serves JSON, or YAML through Bun's built-in YAML support (Bun 1.2.21+); a rejected generation is evicted so the next request retries. Everything else falls through to `next()`. `apiReference` serves a self-contained HTML page loading Scalar from jsDelivr or Swagger UI from unpkg at a pinned version with Subresource Integrity hashes; `specUrl` and `title` are HTML-escaped. A custom `cdn` drops the built-in hashes, because they belong to the default files.
+A kernel module in the spirit of NestJS's `SwaggerModule`. Registered into an app (it must be added with `register()`, which is how it learns its app; otherwise the first request fails with an error), it walks that app's middleware (through the well-known `Symbol.for("rhythm.source")` key that `RhythmRouter.middleware()` and `Rhythm.middleware()`/`register()` set), collects every router mounted anywhere in it, including inside nested modules, and generates one document from all of them. Each router's `use()` middleware stays scoped to that router. Generation is lazy, so routers mounted after the module are still found, and the result is cached; a failed generation is evicted. `openapiService.document()` is provided to the rest of the app. The module answers `GET` on `path` only (an exact match via `@rhythmjs/http/mount`) and leaves every other request to the app; reference pages live in `@rhythmjs/scalar` and `@rhythmjs/swagger`.
 
 ## /metadata [#metadata-subpath]
 

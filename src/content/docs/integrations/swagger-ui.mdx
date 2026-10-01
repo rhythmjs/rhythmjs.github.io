@@ -1,0 +1,77 @@
+---
+title: Swagger UI
+lead: "Serve an interactive API reference: the OpenAPI document comes from the routes, and one module renders it with Swagger UI."
+description: "Use Swagger UI with Rhythm: describe a route with openapi middleware, serve the generated document, and add the Swagger UI page with two modules."
+---
+
+Start from the [template](https://github.com/rhythmjs/template). `src/app.service.ts` and `src/main.ts` stay as they are.
+
+## Install
+
+```bash
+bun add @rhythmjs/openapi @rhythmjs/swagger @rhythmjs/http
+```
+
+## Describe the route [#controller]
+
+`apiOperation` and `apiResponse` are ordinary middleware that carry documentation, so the router stays the single source of truth: what is documented is what runs.
+
+```ts
+// src/app.controller.ts
+import { apiOperation } from "@rhythmjs/openapi/operation";
+import { apiResponse } from "@rhythmjs/openapi/response";
+import { RhythmRouter } from "@rhythmjs/router";
+import type { RhythmHttpContext } from "@rhythmjs/router/adapters/context";
+import type { appService } from "./app.service";
+
+export type AppContext = RhythmHttpContext & {
+  appService: typeof appService;
+};
+
+export const appController = new RhythmRouter<AppContext>().get(
+  "/",
+  apiOperation({ summary: "Say hello", operationId: "getHello" }),
+  apiResponse(200, { description: "A greeting", content: { "text/plain": { schema: { type: "string" } } } }),
+  (ctx) => {
+    ctx.response.headers.set("content-type", "text/plain");
+    ctx.response.body = ctx.appService.getHello();
+  },
+);
+```
+
+## Register the two modules [#module]
+
+`openapiModule` finds the router on its own and serves only the document, at `/openapi.json`. `swaggerModule` is a separate module that serves the Swagger UI page at `/docs`, loading that document. Register both before the controller and before any catch-all.
+
+```ts
+// src/app.module.ts
+import { defineDocument } from "@rhythmjs/openapi/document";
+import { openapiModule } from "@rhythmjs/openapi/module";
+import { Rhythm } from "@rhythmjs/rhythm";
+import type { RhythmHttpContext } from "@rhythmjs/router/adapters/context";
+import { swaggerModule } from "@rhythmjs/swagger";
+import { appController } from "./app.controller";
+import { appService } from "./app.service";
+
+const openapiConfig = defineDocument({ info: { title: "Hello API", version: "1.0.0" } });
+
+export const appModule = new Rhythm<RhythmHttpContext>({ name: "app", type: "module" })
+  .provide(() => ({ appService }))
+  .register(openapiModule.forRoot({ document: openapiConfig }))
+  .register(swaggerModule.forRoot())
+  .use(appController.middleware())
+  .use((ctx) => {
+    ctx.response.status = 404;
+    ctx.response.headers.set("content-type", "application/json");
+    ctx.response.body = JSON.stringify({ success: false, status: 404, message: "Not Found" });
+  });
+```
+
+## Things to check
+
+- `GET /openapi.json` is the generated document and `GET /docs` is the Swagger UI page. `path` and `url` on `swaggerModule.forRoot` move the page and point it at another document URL.
+- Swagger UI loads from a CDN (`unpkg.com`, pinned to an exact version with subresource integrity), so the browser needs network access to render the page.
+- Neither endpoint has authentication, and the document publishes your route map. Register them behind your own auth, or only outside production, if the API is not public.
+- The options of each package are on the [OpenAPI](/openapi/document/) page and in the [`@rhythmjs/swagger` README](https://github.com/rhythmjs/openapi/tree/main/packages/swagger).
+
+The full app, with tests, is [examples/swagger-ui](https://github.com/rhythmjs/examples/tree/main/examples/swagger-ui), built from the [template](https://github.com/rhythmjs/template).

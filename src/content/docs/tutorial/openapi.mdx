@@ -29,10 +29,11 @@ notesController.post(
 
 ## Serve the document
 
-`apiDocument` walks a router tree, generates the spec from the annotations, and serves it as JSON; `apiReference` renders a browsable UI over it:
+`openapiModule` finds the routers mounted in your app, generates the spec from their annotations, and serves it as JSON; `scalarModule` renders a browsable UI over it:
 
 ```ts
-import { apiDocument, apiReference } from "@rhythmjs/openapi/docs";
+import { openapiModule } from "@rhythmjs/openapi/module";
+import { scalarModule } from "@rhythmjs/scalar";
 import { defineDocument } from "@rhythmjs/openapi/document";
 
 const config = defineDocument({
@@ -41,8 +42,8 @@ const config = defineDocument({
 });
 
 appModule
-  .use(apiDocument({ router: notesController, config }))   // GET /openapi.json
-  .use(apiReference({ ui: "scalar", title: "Notes API" })) // GET /docs
+  .register(openapiModule.forRoot({ document: config }))     // GET /openapi.json
+  .register(scalarModule.forRoot({ pageTitle: "Notes API" }))    // GET /docs
   .use(notesController.middleware());
 ```
 

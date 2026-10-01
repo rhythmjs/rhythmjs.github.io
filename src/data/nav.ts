@@ -150,7 +150,7 @@ export const sections: NavSection[] = [
         repo: "https://github.com/rhythmjs/openapi",
         items: [
           { id: "openapi/index", label: "Describing routes" },
-          { id: "openapi/document", label: "Documents & UIs" },
+          { id: "openapi/document", label: "Generate & serve" },
           { id: "openapi/api", label: "API reference" },
         ],
       },
@@ -223,17 +223,6 @@ export const sections: NavSection[] = [
         ],
       },
       {
-        id: "bullmq",
-        label: "BullMQ",
-        pkg: "@rhythmjs/bullmq",
-        repo: "https://github.com/rhythmjs/tasks",
-        items: [
-          { id: "bullmq/index", label: "The BullMQ module" },
-          { id: "bullmq/schedulers", label: "Schedulers & queue access" },
-          { id: "bullmq/api", label: "API reference" },
-        ],
-      },
-      {
         id: "cli",
         label: "CLI",
         pkg: "@rhythmjs/cli",
@@ -258,10 +247,13 @@ export const sections: NavSection[] = [
         items: [
           { id: "integrations/ai-sdk", label: "AI SDK", repo: "https://github.com/rhythmjs/router" },
           { id: "integrations/better-auth", label: "Better Auth", repo: "https://github.com/rhythmjs/security" },
+          { id: "integrations/bullmq", label: "BullMQ", repo: "https://github.com/rhythmjs/tasks" },
           { id: "integrations/file-upload", label: "File upload", repo: "https://github.com/rhythmjs/http" },
           { id: "integrations/nodemailer", label: "Nodemailer" },
           { id: "integrations/redis", label: "Redis", repo: "https://github.com/rhythmjs/http" },
           { id: "integrations/resend", label: "Resend" },
+          { id: "integrations/scalar", label: "Scalar", repo: "https://github.com/rhythmjs/openapi" },
+          { id: "integrations/swagger-ui", label: "Swagger UI", repo: "https://github.com/rhythmjs/openapi" },
         ],
       },
     ],

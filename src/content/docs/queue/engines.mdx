@@ -50,6 +50,6 @@ On the redis engine, due repeats are claimed with the same atomic `ZREM` before 
 
 Both engines implement the structural `QueueEngine` interface (`add`, `addBulk`, `take(now)` (the engine promotes its own due delayed jobs), `requeue(job, readyAt)` for retries, `record("completed" | "failed")`, `setRepeat`/`clearRepeat`/`claimDueRepeats(now)`, `counts`, and `close`) over the `StoredJob` and `RepeatSpec` shapes. Tests can substitute a recording engine wholesale.
 
-## Queue or BullMQ?
+## What the queue does not have
 
-This package trades BullMQ's machinery for zero queue dependencies. What it does not have: stalled-job recovery (a job popped by a worker that crashes mid-run is lost), Lua-scripted atomic state transitions, per-job history, pause/resume, rate limiting, and the Bull Board ecosystem. If you want those, [@rhythmjs/bullmq](/bullmq/) serves the same typed service shape on full BullMQ; switching is a one-line change at the registration site. See the [API reference](/queue/api/) for every export.
+This package has zero queue dependencies. What it does not have: stalled-job recovery (a job popped by a worker that crashes mid-run is lost), Lua-scripted atomic state transitions, per-job history, pause/resume, and rate limiting. See the [API reference](/queue/api/) for every export.

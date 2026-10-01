@@ -6,10 +6,10 @@ description: "OpenAPI 3.1 metadata that rides on Rhythm middlewares: validating 
 
 ## Install the package
 
-`@rhythmjs/openapi` exports every module on its own subpath: `/body`, `/response`, `/docs`, and so on; there is no root barrel export. Schemas are Standard Schema v1; conversion to JSON Schema goes through the Standard JSON Schema interface (`~standard.jsonSchema`), which zod 4.2+ implements natively. Raw JSON Schema objects pass through untouched, so zod is an optional peer. Turning the described router into a served document is the [Documents & UIs](/openapi/document/) page.
+`@rhythmjs/openapi` exports every module on its own subpath: `/body`, `/response`, `/module`, and so on; there is no root barrel export. Schemas are Standard Schema v1; conversion to JSON Schema goes through the Standard JSON Schema interface (`~standard.jsonSchema`), which zod 4.2+ implements natively. Raw JSON Schema objects pass through untouched, so zod is an optional peer. Turning the described routers into a served document is the [Generate & serve](/openapi/document/) page.
 
 ```bash
-bun add @rhythmjs/openapi @rhythmjs/rhythm @rhythmjs/router
+bun add @rhythmjs/openapi @rhythmjs/http @rhythmjs/rhythm @rhythmjs/router
 ```
 
 ## Metadata rides on middleware
