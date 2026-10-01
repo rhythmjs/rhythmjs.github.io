@@ -1,12 +1,12 @@
 ---
 title: "MikroORM without decorators"
-lead: "EntitySchema keeps entities Bun-friendly — no reflect-metadata, no decorator transforms — and the service forks a fresh EntityManager for every operation."
-description: "Wire MikroORM into Rhythm on Bun: decorator-free EntitySchema entities, a forked EntityManager per operation, and Migrator-driven migrations."
+lead: "defineEntity keeps entities Bun-friendly — no reflect-metadata, no decorator transforms — and the service forks a fresh EntityManager for every operation."
+description: "Wire MikroORM 7 into Rhythm on Bun: decorator-free defineEntity entities, a forked EntityManager per operation, and Migrator-driven migrations."
 ---
 
 ## Install
 
-The PostgreSQL driver package re-exports the core; `@mikro-orm/migrations` adds the `Migrator` extension used below.
+This page is written for MikroORM 7. The PostgreSQL driver package re-exports the core; `@mikro-orm/migrations` adds the `Migrator` extension used below.
 
 ```bash
 bun add @mikro-orm/core @mikro-orm/postgresql @mikro-orm/migrations zod @rhythmjs/middleware
@@ -14,37 +14,39 @@ bun add @mikro-orm/core @mikro-orm/postgresql @mikro-orm/migrations zod @rhythmj
 
 ## Entities without decorators [#entity-schema]
 
-MikroORM's decorator style needs `emitDecoratorMetadata` or a ts-morph discovery pass — machinery Bun's transpiler doesn't owe you. `EntitySchema` sidesteps all of it: the entity is a plain class, the metadata is an explicit object next to it. MikroORM hydrates rows without calling the constructor, so constructor arguments stay a convenience for *creating* notes.
+MikroORM's decorator style needs a metadata provider (`reflect-metadata`, or a ts-morph discovery pass), machinery Bun's transpiler doesn't owe you. `defineEntity` is MikroORM 7's decorator-free way to declare an entity: the metadata is an explicit object built from property builders, and no `reflect-metadata` is involved. `onCreate` fills the id and the timestamps when the entity is created, and `onUpdate` refreshes `updatedAt` on every change. `NoteSchema.class` is a generated class with fully inferred property types; extending it and calling `setClass` gives you a `Note` class to use as a type and as the argument to `em.create` and `em.find`.
 
 ```ts
 // src/notes/note.entity.ts
-import { EntitySchema } from "@mikro-orm/core";
+import { defineEntity, p } from "@mikro-orm/core";
 
-export class Note {
-  id: string = crypto.randomUUID();
-  title: string;
-  content: string;
-  createdAt: Date = new Date();
-  updatedAt: Date = new Date();
-
-  constructor(title: string, content: string = "") {
-    this.title = title;
-    this.content = content;
-  }
-}
-
-export const noteEntitySchema = new EntitySchema<Note>({
-  class: Note,
+export const NoteSchema = defineEntity({
+  name: "Note",
   tableName: "notes",
   properties: {
-    id: { type: "string", primary: true },
-    title: { type: "string" },
-    content: { type: "text", default: "" },
-    createdAt: { type: "datetime", fieldName: "created_at" },
-    updatedAt: { type: "datetime", fieldName: "updated_at", onUpdate: () => new Date() },
+    id: p
+      .string()
+      .primary()
+      .onCreate(() => crypto.randomUUID()),
+    title: p.string(),
+    content: p.text().default(""),
+    createdAt: p
+      .datetime()
+      .fieldName("created_at")
+      .onCreate(() => new Date()),
+    updatedAt: p
+      .datetime()
+      .fieldName("updated_at")
+      .onCreate(() => new Date())
+      .onUpdate(() => new Date()),
   },
 });
+
+export class Note extends NoteSchema.class {}
+NoteSchema.setClass(Note);
 ```
+
+`EntitySchema` is still available if you prefer the explicit-object style, but the MikroORM docs now recommend `defineEntity`.
 
 ## The database provider [#database-provider]
 
@@ -55,14 +57,14 @@ export const noteEntitySchema = new EntitySchema<Note>({
 import { join } from "node:path";
 import { Migrator } from "@mikro-orm/migrations";
 import { MikroORM } from "@mikro-orm/postgresql";
-import { noteEntitySchema } from "./notes/note.entity";
+import { NoteSchema } from "./notes/note.entity";
 
 const clientUrl = process.env.DATABASE_URL ?? "postgres://postgres:postgres@localhost:5432/notes_mikro_orm";
 
 export async function createDatabase(): Promise<{ orm: MikroORM }> {
   const orm = await MikroORM.init({
     clientUrl,
-    entities: [noteEntitySchema],
+    entities: [NoteSchema],
     extensions: [Migrator],
     migrations: { path: join(import.meta.dirname, "migrations"), snapshot: false },
   });
@@ -86,8 +88,7 @@ export function createNotesService(orm: MikroORM) {
     get: (id: string) => orm.em.fork().findOne(Note, { id }),
     async create(input: CreateNoteInput) {
       const em = orm.em.fork();
-      const note = new Note(input.title, input.content);
-      em.persist(note);
+      const note = em.create(Note, { title: input.title, content: input.content });
       await em.flush();
       return note;
     },
@@ -103,12 +104,14 @@ export function createNotesService(orm: MikroORM) {
       const em = orm.em.fork();
       const note = await em.findOne(Note, { id });
       if (!note) return false;
-      await em.removeAndFlush(note);
+      await em.remove(note).flush();
       return true;
     },
   };
 }
 ```
+
+Three things to know about MikroORM 7 here. `em.create` marks the new entity for persistence (`persistOnCreate`, on by default), so `flush()` inserts it; there is no constructor to call. An entity loaded with `findOne` is already managed, so `assign` followed by `flush()` is enough and needs no `persist`. And the combined `persistAndFlush` and `removeAndFlush` helpers are gone: `em.remove(note).flush()` replaces `removeAndFlush`.
 
 The module wiring is the shared pattern from the [overview](/data/): `filter()`, the provider pair, the service provider (`({ orm }) => …`), the controller, a thrown 404.
 
