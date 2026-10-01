@@ -41,7 +41,7 @@ const step =
             <p class="eyebrow">
               <span>{step ? `Tutorial · ${step}` : group.label}</span>
               {group.pkg && (
-                <a href={group.repo} title="View the source on GitHub">
+                <a href={page.repo} title="View the source on GitHub">
                   <Badge variant="secondary" className="gap-1 normal-case tracking-normal">
                     {group.pkg} <Icon name="arrow-up-right" class="size-3" />
                   </Badge>
@@ -70,7 +70,7 @@ const step =
             <a href={page.editUrl}>
               <Icon name="pencil" /> Edit this page
             </a>
-            <a href={group.repo}>
+            <a href={page.repo}>
               <Icon name="github" /> {group.pkg ?? "Source"} on GitHub
             </a>
           </div>

@@ -24,6 +24,7 @@ export interface PageContext {
   prev?: PageLink;
   next?: PageLink;
   crumbs: Crumb[];
+  repo: string;
   documentTitle: string;
   editUrl: string;
 }
@@ -93,6 +94,7 @@ export function getPageContext(id: string, title: string): PageContext {
     prev,
     next: nextItem && linkTo(nextItem.id),
     crumbs,
+    repo: item.repo ?? group.repo,
     documentTitle: `${title} · ${group.pkg ?? site.name}`,
     editUrl: `${site.docsRepo}/edit/${site.docsBranch}/src/content/docs/${id}.mdx`,
   };

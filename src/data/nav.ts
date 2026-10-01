@@ -1,6 +1,8 @@
 export interface NavItem {
   id: string;
   label: string;
+  /** Source repo for this page, when it differs from its group's. */
+  repo?: string;
 }
 
 export interface NavGroup {
@@ -249,42 +251,18 @@ export const sections: NavSection[] = [
     label: "Integrations",
     groups: [
       {
-        id: "ai",
-        label: "AI",
-        repo: "https://github.com/rhythmjs/router",
-        items: [{ id: "integrations/ai-sdk", label: "AI SDK" }],
-      },
-      {
-        id: "authentication",
-        label: "Authentication",
-        repo: "https://github.com/rhythmjs/security",
-        items: [{ id: "integrations/better-auth", label: "Better Auth" }],
-      },
-      {
-        id: "email",
-        label: "Email",
+        id: "integrations",
+        label: "Integrations",
         repo: "https://github.com/rhythmjs/rhythm",
         items: [
+          { id: "integrations/ai-sdk", label: "AI SDK", repo: "https://github.com/rhythmjs/router" },
+          { id: "integrations/better-auth", label: "Better Auth", repo: "https://github.com/rhythmjs/security" },
+          { id: "integrations/file-upload", label: "File upload", repo: "https://github.com/rhythmjs/http" },
           { id: "integrations/nodemailer", label: "Nodemailer" },
+          { id: "integrations/redis", label: "Redis", repo: "https://github.com/rhythmjs/http" },
           { id: "integrations/resend", label: "Resend" },
-        ],
-      },
-      {
-        id: "storage",
-        label: "Data & files",
-        repo: "https://github.com/rhythmjs/http",
-        items: [
-          { id: "integrations/redis", label: "Redis" },
-          { id: "integrations/file-upload", label: "File upload" },
-        ],
-      },
-      {
-        id: "api-reference",
-        label: "API reference UIs",
-        repo: "https://github.com/rhythmjs/openapi",
-        items: [
-          { id: "integrations/scalar", label: "Scalar" },
-          { id: "integrations/swagger-ui", label: "Swagger UI" },
+          { id: "integrations/scalar", label: "Scalar", repo: "https://github.com/rhythmjs/openapi" },
+          { id: "integrations/swagger-ui", label: "Swagger UI", repo: "https://github.com/rhythmjs/openapi" },
         ],
       },
     ],
