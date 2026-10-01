@@ -2,7 +2,7 @@ import { readdirSync } from "node:fs";
 
 const root = new URL("../", import.meta.url).pathname;
 const segment = /^[a-z0-9]+(-[a-z0-9]+)*$/;
-const route = /^\[\.\.\.[a-z0-9]+(-[a-z0-9]+)*\]$/;
+const route = /^\[(\.\.\.)?[a-z0-9]+(-[a-z0-9]+)*\](\.[a-z0-9]+)?$/;
 const exceptions = new Set(["public/CNAME"]);
 
 const problems: string[] = [];

@@ -25,16 +25,16 @@ src/
   data/nav.ts         docs navigation: sections, groups, page order and sidebar labels (single source of truth)
   data/site.ts        site name, version, URLs
   data/redirects.ts   URL helper and the legacy .html redirect map
-  lib/                page context (breadcrumbs, previous/next) and heading helpers
+  lib/                page context (breadcrumbs, previous/next), heading helpers, seo.ts (JSON-LD) and og.ts (share images)
   layouts/            base-layout (head, theme script), landing-layout (no sidebar) and docs-layout (sidebar, article, TOC)
   components/ui/      shadcn/ui components (lyra style), owned by this repo and edited in place
   components/         Astro components, including the MDX components below
   components/landing/ hero (centered copy), pipeline (the onion diagram) and section-head for the landing page
   components/react/   React islands: search, theme-toggle, mobile-nav, table-of-contents
   styles/             global.css (Tailwind, theme tokens) plus layout, prose and landing stylesheets
-  pages/              the landing page (index.astro), the docs catch-all route and the 404 page
+  pages/              the landing page (index.astro), the docs catch-all route, the 404 page and the generated files (see "SEO and social previews")
 scripts/              build-search.ts (Pagefind index), check-links.ts and check-filenames.ts
-public/               favicon, robots.txt, CNAME
+public/               favicon.svg (the one icon source), CNAME
 ```
 
 The site has three parts:
@@ -45,9 +45,19 @@ The site has three parts:
 
 The header tabs are Tutorial, Packages and Integrations (recipes under `src/content/docs/integrations/`: AI SDK, Better Auth, Nodemailer, Resend, Redis, file upload, Scalar and Swagger UI, one reading path with no overview page). The header carries no version badge; the version appears in the footer and on the landing page. Reading order is derived from `nav.ts`: the tutorial opens from the landing page, runs through the quick start and the 14 steps, and leads into the first package page; package pages chain within their group.
 
+## SEO and social previews
+
+Everything below is generated at build time from `src/data/site.ts`, `src/data/nav.ts`, the page front matter and `public/favicon.svg`, so there are no duplicated values to keep in sync.
+
+- **Head tags** (`layouts/base-layout.astro`): title, description, canonical URL, `robots` (`noindex` on the 404 page, `max-image-preview:large` elsewhere), Open Graph and Twitter `summary_large_image` tags with the image's size and alt text, icons and the manifest link.
+- **Share images** (`pages/og/[...slug].png.ts`, `lib/og.ts`): one 1200x630 PNG per docs page plus `/og/home.png` for the landing page, rendered with `satori` (text becomes vector paths, so no system fonts are needed) and rasterized with `sharp`. The card shows the section and group, the page title, the first 120 characters of the lead, the package badge and the URL. It uses the Geist and JetBrains Mono static fonts from `@fontsource/*` (`satori` cannot read the `.woff2` files of the variable packages). Titles over 90 characters and leads over 120 are cut at a word boundary.
+- **Structured data** (`lib/seo.ts`): JSON-LD on every page. The landing page carries `Organization` and `WebSite`; each docs page adds a `TechArticle` and a `BreadcrumbList` built from the same breadcrumbs as the page.
+- **Icons and manifest**: `pages/icons/[size].png.ts` renders the 180, 192 and 512 px icons from `favicon.svg`, `pages/favicon.ico.ts` wraps a 48 px PNG in an `.ico`, and `pages/site.webmanifest.ts` builds the manifest from `site.ts`.
+- **Crawlers**: `pages/robots.txt.ts` (points at the sitemap, whose URL comes from `site.url`), the `@astrojs/sitemap` integration, and `pages/llms.txt.ts`, a Markdown index of every docs page for AI tools.
+
 ## File naming
 
-Every file under `src/`, `scripts/` and `public/` is **kebab-case**, components included: `mobile-nav.tsx`, `base-layout.astro`, `def-list.astro`, `use-active-section.ts`. This matches the shadcn components in `components/ui/`. Export and component names stay PascalCase (`import MobileNav from "./mobile-nav"`). The only exceptions are Astro's route syntax (`[...slug].astro`), numeric names (`404.astro`) and `public/CNAME`, which GitHub Pages requires. `bun run check` fails on anything else (`scripts/check-filenames.ts`).
+Every file under `src/`, `scripts/` and `public/` is **kebab-case**, components included: `mobile-nav.tsx`, `base-layout.astro`, `def-list.astro`, `use-active-section.ts`. This matches the shadcn components in `components/ui/`. Export and component names stay PascalCase (`import MobileNav from "./mobile-nav"`). The only exceptions are Astro's route syntax (`[...slug].astro`, `[...slug].png.ts`), numeric names (`404.astro`) and `public/CNAME`, which GitHub Pages requires. `bun run check` fails on anything else (`scripts/check-filenames.ts`).
 
 ## Writing documentation
 

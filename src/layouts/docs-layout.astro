@@ -8,7 +8,9 @@ import Footer from "../components/footer.astro";
 import Icon from "../components/icon.astro";
 import { Badge } from "@/components/ui/badge";
 import TableOfContents, { type TocItem } from "../components/react/table-of-contents";
-import type { PageContext } from "../lib/docs";
+import { slugFor, type PageContext } from "../lib/docs";
+import { imageFor, pageJsonLd } from "../lib/seo";
+import { site } from "../data/site";
 
 interface Props {
   id: string;
@@ -21,13 +23,20 @@ interface Props {
 
 const { id, title, lead, description, page, toc } = Astro.props;
 const { section, group } = page;
+const image = imageFor(slugFor(id));
 const step =
   group.id === "tutorial"
     ? `Step ${group.items.findIndex((entry) => entry.id === id) + 1} of ${group.items.length}`
     : undefined;
 ---
 
-<BaseLayout title={page.documentTitle} description={description ?? lead}>
+<BaseLayout
+  title={page.documentTitle}
+  description={description ?? lead}
+  image={image}
+  imageAlt={`${title}, ${site.name} documentation`}
+  jsonLd={pageJsonLd({ id, title, description: description ?? lead, image, crumbs: page.crumbs })}
+>
   <Header section={section} currentId={id} />
   <div class="shell site-width">
     <aside class="sidebar" data-pagefind-ignore>
