@@ -1,71 +1,185 @@
 ---
 title: Redis
-lead: "Bun ships a Redis client. Build it once as a provider, close it on teardown, and use it for caching and short-lived state."
-description: "Use Redis with Rhythm through Bun's built-in RedisClient: a provider with disposal, a typed controller context, and a cache-aside pattern."
+lead: "Bun ships a Redis client: build it once as a provider, keep the feature in one module, and cache with an expiry."
+description: "Use Redis with Rhythm through Bun's built-in RedisClient: a provider with disposal, a products module and controller, and cache-aside with invalidation."
 ---
+
+Start from the [template](https://github.com/rhythmjs/template). `src/app.service.ts` and `src/app.controller.ts` stay as they are.
 
 ## Install
 
-Nothing to install: `RedisClient` is part of Bun, which is why Rhythm does not wrap it. Point it at any Redis-compatible server through a connection URL.
+Nothing: `RedisClient` is part of Bun.
 
-```bash
-bun run dev   # with REDIS_URL=redis://localhost:6379 in your .env
-```
-
-## Provide one client [#provider]
-
-Create the client once as a [provider](/rhythm/providers/) so every request shares one connection, and close it in the dispose function so `teardown()` shuts it down after everything that used it. The controller names the dependency in its context type and reads it as `ctx.redis`.
+## The client is a provider [#provider]
 
 ```ts
+// src/redis.ts
 import { RedisClient } from "bun";
-import { Rhythm } from "@rhythmjs/rhythm";
-import { RhythmRouter } from "@rhythmjs/router";
-import type { RhythmHttpContext } from "@rhythmjs/router/context";
 
-export type RedisContext = RhythmHttpContext & { redis: RedisClient };
+export function createRedis() {
+  return { redis: new RedisClient(process.env.REDIS_URL ?? "redis://localhost:6379") };
+}
 
-export const cacheModule = new Rhythm<RhythmHttpContext>({ name: "cache", type: "module" }).provide(
-  () => ({ redis: new RedisClient(process.env.REDIS_URL ?? "redis://localhost:6379") }),
-  (value) => value.redis.close(),
-);
-
-export const products = new RhythmRouter<RedisContext>({ prefix: "/api/products" });
+export function closeRedis(value: ReturnType<typeof createRedis>) {
+  value.redis.close();
+}
 ```
 
-Mount the controller after the provider (`cacheModule.use(products.middleware())`), because a provider's value only reaches what is registered after it.
+## A service holds the data [#service]
 
-## Cache a result [#cache-aside]
-
-The common pattern is cache-aside: look in Redis first, compute on a miss, then store the value with an expiry so it cannot go stale forever. Redis stores strings, so serialize to JSON on the way in and out.
+A plain in-memory service stands in for a slow database. `loads` counts how often it was really read.
 
 ```ts
-products.get("/:id", async (ctx) => {
-  const key = `product:${ctx.params.id}`;
+// src/products/products.service.ts
+export interface Product {
+  id: string;
+  name: string;
+  price: number;
+}
 
-  const hit = await ctx.redis.get(key);
-  if (hit !== null) {
-    ctx.response.headers.set("x-cache", "hit");
-    ctx.json(JSON.parse(hit));
-    return;
-  }
+export const productsService = {
+  loads: 0,
+  products: new Map<string, Product>([
+    ["1", { id: "1", name: "Keyboard", price: 49 }],
+    ["2", { id: "2", name: "Mouse", price: 25 }],
+  ]),
 
-  const product = await loadProduct(ctx.params.id); // your database call
-  if (!product) {
-    ctx.error(404);
-    return;
-  }
+  async get(id: string): Promise<Product | undefined> {
+    this.loads++;
+    await Bun.sleep(50);
+    return this.products.get(id);
+  },
 
-  await ctx.redis.set(key, JSON.stringify(product));
-  await ctx.redis.expire(key, 60);
-  ctx.response.headers.set("x-cache", "miss");
-  ctx.json(product);
+  update(id: string, input: { name?: string; price?: number }): Product | undefined {
+    const product = this.products.get(id);
+    if (!product) return undefined;
+    const next = { ...product, ...input };
+    this.products.set(id, next);
+    return next;
+  },
+};
+```
+
+## The controller caches [#controller]
+
+This is the products controller, a `RhythmRouter` with a `/products` prefix. `GET /:id` is cache-aside: look in Redis, load on a miss, store with an expiry. `PATCH /:id` deletes the key, so the next read refreshes the cache.
+
+```ts
+// src/products/products.controller.ts
+import { RhythmRouter } from "@rhythmjs/router";
+import type { RhythmHttpContext } from "@rhythmjs/router/adapters/context";
+import type { RedisClient } from "bun";
+import type { productsService } from "./products.service";
+
+export type ProductsContext = RhythmHttpContext & {
+  redis: RedisClient;
+  productsService: typeof productsService;
+};
+
+const TTL_SECONDS = 60;
+const cacheKey = (id: string) => `product:${id}`;
+
+export const productsController = new RhythmRouter<ProductsContext>({ prefix: "/products" })
+  .get("/:id", async (ctx) => {
+    const key = cacheKey(ctx.params.id);
+
+    const hit = await ctx.redis.get(key);
+    if (hit !== null) {
+      ctx.response.headers.set("x-cache", "hit");
+      ctx.json(JSON.parse(hit));
+      return;
+    }
+
+    const product = await ctx.productsService.get(ctx.params.id);
+    if (!product) {
+      ctx.error(404, "Product not found");
+      return;
+    }
+
+    await ctx.redis.set(key, JSON.stringify(product));
+    await ctx.redis.expire(key, TTL_SECONDS);
+    ctx.response.headers.set("x-cache", "miss");
+    ctx.json(product);
+  })
+  .patch("/:id", async (ctx) => {
+    const { name, price } = (await ctx.request.json()) as { name?: string; price?: number };
+    if (price !== undefined && (typeof price !== "number" || price < 0)) {
+      ctx.error(400, "price must be a non-negative number");
+      return;
+    }
+
+    const product = ctx.productsService.update(ctx.params.id, { name, price });
+    if (!product) {
+      ctx.error(404, "Product not found");
+      return;
+    }
+
+    await ctx.redis.del(cacheKey(ctx.params.id));
+    ctx.json(product);
+  });
+```
+
+## The products module owns the feature [#module]
+
+The module provides the client and the service and mounts the controller.
+
+```ts
+// src/products/products.module.ts
+import { Rhythm } from "@rhythmjs/rhythm";
+import type { RhythmHttpContext } from "@rhythmjs/router/adapters/context";
+import { closeRedis, createRedis } from "../redis";
+import { productsController } from "./products.controller";
+import { productsService } from "./products.service";
+
+export const productsModule = new Rhythm<RhythmHttpContext>({ name: "products", type: "module" })
+  .provide(createRedis, closeRedis)
+  .provide(() => ({ productsService }))
+  .use(productsController.middleware());
+```
+
+## Register it in the app [#app]
+
+```ts
+// src/app.module.ts
+import { Rhythm } from "@rhythmjs/rhythm";
+import type { RhythmHttpContext } from "@rhythmjs/router/adapters/context";
+import { appController } from "./app.controller";
+import { appService } from "./app.service";
+import { productsModule } from "./products/products.module";
+
+export const appModule = new Rhythm<RhythmHttpContext>({ name: "app", type: "module" })
+  .provide(() => ({ appService }))
+  .register(productsModule)
+  .use(appController.middleware())
+  .use((ctx) => {
+    ctx.response.status = 404;
+    ctx.response.headers.set("content-type", "application/json");
+    ctx.response.body = JSON.stringify({ success: false, status: 404, message: "Not Found" });
+  });
+```
+
+`main.ts` closes the app on `SIGINT`, which closes the Redis client:
+
+```ts
+// src/main.ts
+import { toFetchHandler } from "@rhythmjs/router/fetch";
+import { appModule } from "./app.module";
+
+const port = Number(process.env.PORT ?? 3011);
+
+const server = Bun.serve({ port, fetch: toFetchHandler(appModule) });
+console.log(`listening on ${server.url}`);
+
+process.on("SIGINT", async () => {
+  await server.stop();
+  await appModule.teardown();
+  process.exit(0);
 });
 ```
 
-Remove the entry when the data changes, so the next read refreshes it: `await ctx.redis.del(key)`.
-
 ## Things to check
 
-- **Redis is optional for correctness.** Treat a cache failure as a miss: catch errors around `get` and fall through to the database, so an outage slows requests down instead of failing them.
-- **One client per process.** Do not create a client per request. If a queue or scheduler also uses Redis, give it its own connection settings as its docs describe, rather than sharing this client.
-- **Tests.** Provide a small in-memory stand-in with the same `get`, `set`, `expire` and `del` methods when you [test the module](/testing/), so tests do not need a server.
+- Treat a cache failure as a miss: catch errors around `get` and fall through to the source.
+- One client per process; never one per request.
+
+The full app, with tests, is [examples/redis](https://github.com/rhythmjs/examples/tree/main/examples/redis), built from the [template](https://github.com/rhythmjs/template).

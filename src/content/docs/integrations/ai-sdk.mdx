@@ -1,97 +1,165 @@
 ---
 title: AI SDK
-lead: "Stream model output from a Rhythm route with the Vercel AI SDK: the SDK builds a streaming Response, and a small helper copies it into ctx.response."
-description: "Use the Vercel AI SDK with Rhythm: a streaming chat endpoint with streamText, a bridge from Response to ctx.response, cancellation, and guarding a paid endpoint."
+lead: "A chat endpoint on the Vercel AI SDK: the model comes from config, and the reply streams straight onto ctx.response."
+description: "Use the Vercel AI SDK with Rhythm: a chat module with a config-driven model, a streaming chat controller, generateText, and what to guard."
 ---
+
+Start from the [template](https://github.com/rhythmjs/template). `src/app.service.ts` and `src/app.controller.ts` stay as they are; everything below is added.
 
 ## Install
 
-The [AI SDK](https://ai-sdk.dev) calls language models through one API and returns Web-standard streams, which fits Rhythm's response model. Install the core package and the provider you want; this page uses OpenAI, and any provider works the same way.
-
 ```bash
-bun add ai @ai-sdk/openai @rhythmjs/rhythm @rhythmjs/router
+bun add ai @ai-sdk/openai @rhythmjs/config zod
 ```
 
-Bun loads `.env` automatically, so putting `OPENAI_API_KEY` there is enough for the provider to find it.
+## Config picks the model [#config]
 
-## Bridge a Response into the context [#bridge]
-
-A Rhythm handler does not return a `Response`; it fills `ctx.response`, and the final `Response` is created when the app is served. The AI SDK gives you a ready-made `Response`, so a four-line helper copies its status, headers and stream across. The body is a `ReadableStream`, which `ctx.response.body` accepts, so nothing is buffered.
+A [config](/config/) namespace holds the model id, so swapping models is an environment change: `AI_MODEL=gpt-4o`. An empty value stops the app from booting.
 
 ```ts
-import type { RhythmHttpContext } from "@rhythmjs/router/context";
+// src/config/ai.config.ts
+import { registerAs } from "@rhythmjs/config";
+import { z } from "zod";
 
-export function send(ctx: RhythmHttpContext, response: Response): void {
-  ctx.response.status = response.status;
-  response.headers.forEach((value, key) => ctx.response.headers.set(key, value));
-  ctx.response.body = response.body;
-}
+export const aiConfig = registerAs("ai", z.object({ model: z.string().min(1).default("gpt-4o-mini") }), () => ({
+  model: process.env.AI_MODEL,
+}));
+
+export const load = [aiConfig] as const;
 ```
 
-## Stream a chat reply [#streaming]
+## A service creates the model [#service]
 
-`streamText` starts the model call and returns immediately; `toUIMessageStreamResponse()` turns the result into a streaming `Response` that the AI SDK's chat hooks understand. Convert the incoming UI messages with `convertToModelMessages` first; it is async, so await it.
+`modelService` is a plain service. The module provides it, and tests stub `modelService.create` with the SDK's mock model.
 
 ```ts
+// src/chat/models.ts
 import { openai } from "@ai-sdk/openai";
-import { convertToModelMessages, streamText, type UIMessage } from "ai";
+import type { LanguageModel } from "ai";
+
+export interface ChatModel {
+  model: LanguageModel;
+  modelInfo: { id: string };
+}
+
+export const modelService = {
+  create(id: string): ChatModel {
+    return { model: openai(id), modelInfo: { id } };
+  },
+};
+```
+
+## The controller streams the reply [#controller]
+
+This is the chat controller, a `RhythmRouter` with a `/api` prefix. A handler fills `ctx.response`, and its body takes a byte stream, so `result.textStream` piped through a `TextEncoderStream` is the whole response, with no headers to set. `abortSignal` stops the model call when the client disconnects. Clients read the stream with `TextStreamChatTransport`; for tool calls or reasoning in the chat UI, use the SDK's UI message stream instead, which needs its own headers.
+
+```ts
+// src/chat/chat.controller.ts
 import { RhythmRouter } from "@rhythmjs/router";
-import { send } from "./send";
+import type { RhythmHttpContext } from "@rhythmjs/router/adapters/context";
+import { convertToModelMessages, generateText, streamText, type UIMessage } from "ai";
+import type { ChatModel } from "./models";
 
-export const chat = new RhythmRouter({ prefix: "/api" }).post("/chat", async (ctx) => {
-  const { messages }: { messages: UIMessage[] } = await ctx.request.json();
+export type ChatContext = RhythmHttpContext & ChatModel;
 
-  const result = streamText({
-    model: openai("gpt-4o-mini"),
-    system: "You are a concise assistant.",
-    messages: await convertToModelMessages(messages),
-    abortSignal: ctx.request.signal,
+export const chatController = new RhythmRouter<ChatContext>({ prefix: "/api" })
+  .get("/model", (ctx) => {
+    ctx.json(ctx.modelInfo);
+  })
+  .post("/chat", async (ctx) => {
+    const { messages } = (await ctx.request.json()) as { messages?: UIMessage[] };
+    if (!Array.isArray(messages) || messages.length === 0) {
+      ctx.error(400, "messages are required");
+      return;
+    }
+
+    const result = streamText({
+      model: ctx.model,
+      system: "You are a concise assistant.",
+      messages: await convertToModelMessages(messages),
+      abortSignal: ctx.request.signal,
+    });
+
+    ctx.response.body = result.textStream.pipeThrough(new TextEncoderStream());
+  })
+  .post("/summarize", async (ctx) => {
+    const { text } = (await ctx.request.json()) as { text?: string };
+    if (!text) {
+      ctx.error(400, "text is required");
+      return;
+    }
+
+    const result = await generateText({
+      model: ctx.model,
+      prompt: `Summarize in one sentence: ${text}`,
+      abortSignal: ctx.request.signal,
+    });
+
+    ctx.json({ summary: result.text });
   });
-
-  send(ctx, result.toUIMessageStreamResponse());
-});
 ```
 
-Passing `ctx.request.signal` as `abortSignal` stops the model call when the client disconnects, so you stop paying for tokens nobody will read. On the client, `useChat` from `@ai-sdk/react` with a `DefaultChatTransport({ api: "/api/chat" })` talks to this route unchanged.
+## The chat module owns the feature [#module]
 
-## Return a complete answer
-
-When you do not need streaming, `generateText` waits for the whole reply and you answer with `ctx.json` as for any other route.
+The module registers the config module, derives the model from the configured id with the service, and mounts the controller.
 
 ```ts
-import { generateText } from "ai";
+// src/chat/chat.module.ts
+import { configModule, type ConfigContext } from "@rhythmjs/config";
+import { derive, Rhythm } from "@rhythmjs/rhythm";
+import type { RhythmHttpContext } from "@rhythmjs/router/adapters/context";
+import { load } from "../config/ai.config";
+import { chatController } from "./chat.controller";
+import { modelService } from "./models";
 
-router.post("/summarize", async (ctx) => {
-  const { text } = await ctx.request.json();
-  const result = await generateText({
-    model: openai("gpt-4o-mini"),
-    prompt: `Summarize in one sentence: ${text}`,
-    abortSignal: ctx.request.signal,
-  });
-  ctx.json({ summary: result.text });
-});
+type ConfiguredContext = RhythmHttpContext & ConfigContext<typeof load> & { modelService: typeof modelService };
+
+export const chatModule = new Rhythm<RhythmHttpContext>({ name: "chat", type: "module" })
+  .provide(() => ({ modelService }))
+  .register(configModule.forRoot(...load), ({ configService }) => ({ configService }))
+  .use(derive((ctx: ConfiguredContext) => ctx.modelService.create(ctx.configService.get("ai.model"))))
+  .use(chatController.middleware());
 ```
 
-## Protect a paid endpoint [#protect]
+## Register it in the app [#app]
 
-Every request to a model costs money, so treat these routes as the ones to lock down first. Register the guards before the route, since middleware wraps only what comes after it: authenticate the caller, cap how often one client can call, and cap the request size.
+The app module only registers the chat module, before the template's own controller. `main.ts` calls `appModule.setup()` first, so a bad config fails at startup and not at the first request.
 
 ```ts
-import { bodyLimit } from "@rhythmjs/http/body-limit";
-import { requireAuthentication } from "@rhythmjs/security/authentication";
-import { withUser } from "./session";
+// src/app.module.ts
+import { Rhythm } from "@rhythmjs/rhythm";
+import type { RhythmHttpContext } from "@rhythmjs/router/adapters/context";
+import { appController } from "./app.controller";
+import { appService } from "./app.service";
+import { chatModule } from "./chat/chat.module";
 
-export const chat = new RhythmRouter({ prefix: "/api" })
-  .use(withUser)
-  .use(requireAuthentication())
-  .use(bodyLimit(64 * 1024))
-  .post("/chat", handleChat);
+export const appModule = new Rhythm<RhythmHttpContext>({ name: "app", type: "module" })
+  .provide(() => ({ appService }))
+  .register(chatModule)
+  .use(appController.middleware())
+  .use((ctx) => {
+    ctx.response.status = 404;
+    ctx.response.headers.set("content-type", "application/json");
+    ctx.response.body = JSON.stringify({ success: false, status: 404, message: "Not Found" });
+  });
 ```
 
-See [rate limiting](/security/hardening/) for the per-client limiter, and [Better Auth](/integrations/better-auth/) for a session-based `withUser`.
+```ts
+// src/main.ts
+import { toFetchHandler } from "@rhythmjs/router/fetch";
+import { appModule } from "./app.module";
+
+await appModule.setup();
+
+const port = Number(process.env.PORT ?? 3008);
+
+const server = Bun.serve({ port, fetch: toFetchHandler(appModule) });
+console.log(`listening on ${server.url}`);
+```
 
 ## Things to check
 
-- **Compression and caching.** The chat stream is sent as server-sent events (`text/event-stream`), and `compress` and `cache` skip those responses by design, so tokens reach the browser as they are produced. See [streaming](/http/streaming/).
-- **Timeouts.** `timeout(ms)` answers `504` but does not abort the work behind it. Pass an `AbortSignal` to the model call, as above, so a slow generation is actually cancelled.
-- **Keys stay on the server.** Call the provider from your route, never from the browser, and read keys from the environment.
+- Every request costs money: add [`bodyLimit`](/http/bodies/), [`requireAuthentication`](/security/) and [rate limiting](/security/hardening/) before exposing the endpoint.
+- Tests stub `modelService.create`, so they need no API key or network.
+
+The full app, with tests, is [examples/ai-sdk](https://github.com/rhythmjs/examples/tree/main/examples/ai-sdk), built from the [template](https://github.com/rhythmjs/template).

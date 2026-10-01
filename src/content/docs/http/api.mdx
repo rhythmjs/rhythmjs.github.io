@@ -1,6 +1,6 @@
 ---
 title: "API reference"
-lead: "Every export of the twelve @rhythmjs/http subpath modules, from cookies and sessions to compression, uploads, and request-scoped storage."
+lead: "Every export of the thirteen @rhythmjs/http subpath modules, from cookies and sessions to compression, uploads, and request-scoped storage."
 description: "Every export of the five @rhythmjs/http subpath modules, with signatures and semantics."
 ---
 
@@ -116,6 +116,22 @@ function memoryCacheStore(options?: MemoryCacheStoreOptions): CacheStore
 <Def sig="CacheOptions" id="cacheoptions">`ttl` (seconds, default 60), `store` (`CacheStore`: `get`/`set`/`delete`), `keyOf(request)` (default `method + path + search`), `vary` (header names folded into the key), and `filter(ctx)` (veto storing per response).</Def>
 <Def sig="CacheEntry" id="cacheentry">What a store holds: `status`, `headers`, `body` (bytes), `storedAt`. Hits replay with `Age` and `X-Cache: HIT`; only `200` responses without `no-store`/`private` cache-control are stored, never ones carrying `Set-Cookie`, stream bodies, or answers to `Authorization` requests without an explicit `public`/`s-maxage`/`must-revalidate`.</Def>
 <Def sig="MemoryCacheStoreOptions" id="memorycachestoreoptions">`maxEntries` (default 1024) caps the LRU entry count; `maxEntryBytes` (default 1 MiB) refuses oversized bodies.</Def>
+</DefList>
+
+## @rhythmjs/http/mount [#mount]
+
+`mount(path, handler)` returns middleware that runs `handler` only for requests whose path matches, and passes every other request on untouched. It exists for fetch-style handlers from other libraries: `mount("/api/auth/**", (ctx) => auth.handler(ctx.request))`. The guide is [Mounting handlers](/http/mount/).
+
+`path` follows the same rou3 conventions as the router: static segments, `:name` parameters, `*` for one segment and `**` as the catch-all. `"/api/auth/**"` matches `/api/auth` and everything beneath it, but not `/api/authx`. The HTTP method is not part of the match, and a path that does not start with `/` throws a `TypeError`.
+
+```ts
+function mount<TContext extends RhythmHttpContext>(path: string, handler: MountHandler<TContext>): Middleware<TContext>
+type MountHandler<TContext> = (ctx: TContext, next: NextFn<TContext>) => Response | void | Promise<Response | void>
+```
+
+<DefList>
+<Def sig="handler returns a Response" id="mount-response">Its status, status text, headers and body stream become the response and the chain stops. Every `Set-Cookie` header is kept; headers set earlier in the chain stay unless the Response sets them again.</Def>
+<Def sig="handler returns nothing" id="mount-void">The handler decides for itself, like any middleware, and may call `next()`.</Def>
 </DefList>
 
 ## @rhythmjs/http/multipart [#multipart]

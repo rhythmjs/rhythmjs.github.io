@@ -1,101 +1,185 @@
 ---
 title: Better Auth
-lead: "Mount Better Auth's handler in front of your Rhythm app, then turn its session into ctx.user for the rest of the pipeline."
-description: "Use Better Auth with Rhythm: serve its endpoints from Bun.serve, resolve the session with attachUser, and guard routes with requireAuthentication."
+lead: "Mount Better Auth's handler behind CORS, and guard a route with session middleware built on Better Auth's own API."
+description: "Use Better Auth with Rhythm: mount its handler with CORS for a separate frontend, and guard a route with session middleware built on Better Auth's own session API."
 ---
+
+Start from the [template](https://github.com/rhythmjs/template). `src/app.service.ts` stays as it is.
 
 ## Install
 
-[Better Auth](https://www.better-auth.com) is a framework-agnostic authentication library. It exposes a Web-standard handler and a server-side API, which is exactly what Rhythm composes with. Configure Better Auth (database, providers, plugins) as its own documentation describes.
-
 ```bash
-bun add better-auth @rhythmjs/security @rhythmjs/rhythm @rhythmjs/router
+bun add better-auth @rhythmjs/http @rhythmjs/security
 ```
 
+## The Better Auth instance [#auth]
+
+Put the frontend's origin in `trustedOrigins`: Better Auth checks origins itself, separately from CORS. The database is a Bun SQLite file, and `closeAuthDatabase` is what the app module disposes on teardown. `User` and `Session` are the types Better Auth infers from this configuration.
+
 ```ts
-// auth.ts
+// src/lib/auth.ts
+import { Database } from "bun:sqlite";
 import { betterAuth } from "better-auth";
 
+const database = new Database(process.env.AUTH_DB ?? "auth.db");
+
+export const frontendOrigin = process.env.FRONTEND_URL ?? "http://localhost:3001";
+
 export const auth = betterAuth({
+  database,
+  baseURL: process.env.BETTER_AUTH_URL ?? "http://localhost:3007",
+  secret: process.env.BETTER_AUTH_SECRET ?? "rhythmjs-better-auth-example-secret-change-me",
+  trustedOrigins: [frontendOrigin],
   emailAndPassword: { enabled: true },
-  // database, social providers, plugins: see the Better Auth documentation
 });
+
+type AuthSession = typeof auth.$Infer.Session;
+
+export type User = AuthSession["user"];
+export type Session = AuthSession["session"];
+
+export function closeAuthDatabase(): void {
+  database.close();
+}
 ```
 
-## Serve the auth endpoints
+## Create its tables [#migrate]
 
-`auth.handler` takes a `Request` and returns a `Response`, and by default it answers under `/api/auth`. Rhythm has no server wrapper, so you route to it in the `fetch` function you give to `Bun.serve`, before the Rhythm app sees the request. Requests that are not auth requests continue to the app untouched.
-
-```ts
-import { toFetchHandler, errorToResponse } from "@rhythmjs/router/fetch";
-import { auth } from "./auth";
-import { app } from "./app";
-
-const handler = toFetchHandler(app);
-
-Bun.serve({
-  port: 3000,
-  async fetch(request) {
-    if (new URL(request.url).pathname.startsWith("/api/auth/")) return auth.handler(request);
-    try {
-      return await handler(request);
-    } catch (error) {
-      return errorToResponse(error);
-    }
-  },
-});
-```
-
-## Turn the session into ctx.user [#session]
-
-`attachUser` runs your resolver once per request and derives `ctx.user` onto the context. Better Auth's `auth.api.getSession` reads the session from the request headers (the cookie) and returns `{ session, user }` or `null`, which is the shape `attachUser` expects once you return the `user`.
+`bun run db:migrate` runs this file directly, and `main.ts` runs it at startup.
 
 ```ts
-import { attachUser } from "@rhythmjs/security/authentication";
+// src/lib/migrate.ts
+import { getMigrations } from "better-auth/db/migration";
 import { auth } from "./auth";
 
-export type User = typeof auth.$Infer.Session.user;
+export async function migrate(): Promise<void> {
+  const { runMigrations } = await getMigrations(auth.options);
+  await runMigrations();
+}
 
-export const withUser = attachUser<User>(async (ctx) => {
-  const session = await auth.api.getSession({ headers: ctx.request.headers });
-  return session?.user ?? null;
+if (import.meta.main) {
+  await migrate();
+  console.log("better-auth tables are up to date");
+}
+```
+
+## Session middleware built on Better Auth [#session]
+
+Better Auth has no Rhythm middleware, so these two are built on its own `auth.api.getSession`. `withSession` reads the session from the request cookie and puts `session` and `user` on the context (both `null` when anonymous). `requireSession` answers 401 when there is no session, and its type tells the handler that `ctx.session` and `ctx.user` are set.
+
+```ts
+// src/lib/session.ts
+import { derive } from "@rhythmjs/rhythm";
+import type { DeriveMiddleware, Middleware } from "@rhythmjs/rhythm/types";
+import type { RhythmHttpContext } from "@rhythmjs/router/adapters/context";
+import { auth, type Session, type User } from "./auth";
+
+export interface SessionContext {
+  session: Session | null;
+  user: User | null;
+}
+
+export const withSession = derive(async (ctx: RhythmHttpContext): Promise<SessionContext> => {
+  const result = await auth.api.getSession({ headers: ctx.request.headers });
+  return { session: result?.session ?? null, user: result?.user ?? null };
 });
+
+type SessionGuard = DeriveMiddleware<RhythmHttpContext & SessionContext, { session: Session; user: User }>;
+
+const guard: Middleware<RhythmHttpContext & SessionContext> = async (ctx, next) => {
+  if (!ctx.session || !ctx.user) {
+    ctx.error(401, "Unauthorized");
+    return;
+  }
+  await next();
+};
+
+export const requireSession = guard as SessionGuard;
 ```
 
-## Guard routes
+## The controller guards a route [#controller]
 
-Derive the user once in the app module, so every controller mounted after it sees `ctx.user`, and have the controller declare it in its context type. Guard a route by putting `requireAuthentication()` in front of its handler: anonymous requests are answered with `401` before the handler runs, and `ctx.user` is non-null inside it. Use `redirectTo` instead when the route serves pages rather than an API.
-
-```ts
-// app.module.ts
-import { Rhythm } from "@rhythmjs/rhythm";
-import type { RhythmHttpContext } from "@rhythmjs/router/context";
-import { account } from "./account";
-import { withUser } from "./session";
-
-export const app = new Rhythm<RhythmHttpContext>().use(withUser).use(account.middleware());
-```
+The template's controller gets `SessionContext` in its context type and a `/me` route behind `requireSession`. Put the guard on the route: a router-level guard narrows the router's context, and that router would then not type-check when mounted.
 
 ```ts
-// account.ts
+// src/app.controller.ts
 import { RhythmRouter } from "@rhythmjs/router";
-import type { RhythmHttpContext } from "@rhythmjs/router/context";
-import { requireAuthentication, type UserContext } from "@rhythmjs/security/authentication";
-import type { User } from "./session";
+import type { RhythmHttpContext } from "@rhythmjs/router/adapters/context";
+import type { appService } from "./app.service";
+import { requireSession, type SessionContext } from "./lib/session";
 
-export type AccountContext = RhythmHttpContext & UserContext<User>;
+export type AppContext = RhythmHttpContext &
+  SessionContext & {
+    appService: typeof appService;
+  };
 
-export const account = new RhythmRouter<AccountContext>({ prefix: "/api" })
-  .get("/health", (ctx) => ctx.json({ ok: true, signedIn: ctx.user !== null })) // public
-  .get("/me", requireAuthentication(), (ctx) => ctx.json(ctx.user)); // ctx.user is non-null here
+export const appController = new RhythmRouter<AppContext>()
+  .get("/", (ctx) => {
+    ctx.response.headers.set("content-type", "text/plain");
+    ctx.response.body = ctx.appService.getHello();
+  })
+  .get("/me", requireSession, (ctx) => {
+    ctx.json({
+      id: ctx.user.id,
+      name: ctx.user.name,
+      email: ctx.user.email,
+      sessionExpiresAt: ctx.session.expiresAt,
+    });
+  });
 ```
 
-Put the guard on the route rather than on the router with `router.use(requireAuthentication())`: a router-level guard narrows the router's context, and a router that requires a non-null `user` no longer type-checks when mounted in an app whose `user` can be `null`.
+For roles, check `ctx.user.role` in a guard of your own: Better Auth's admin plugin keeps a single `role` string on the user.
 
-For roles, add `requireRoles(["admin"])` next to the guard, as described in [Authentication & authorization](/security/#roles-and-permissions). It reads `user.roles` by default, and Better Auth's admin plugin keeps a single `role` string on the user, so pass an extractor: `{ roles: (user) => [user.role ?? "user"] }`.
+## The module mounts it [#module]
+
+Order matters. `cors()` comes first, so preflights are answered and Better Auth's own responses carry the headers. [`mount`](/http/mount/) then hands everything under `/api/auth` to Better Auth's handler, and `withSession` runs before the controller. The extra `provide` closes the database on teardown.
+
+```ts
+// src/app.module.ts
+import { mount } from "@rhythmjs/http/mount";
+import { Rhythm } from "@rhythmjs/rhythm";
+import type { RhythmHttpContext } from "@rhythmjs/router/adapters/context";
+import { cors } from "@rhythmjs/security/cors";
+import { appController } from "./app.controller";
+import { appService } from "./app.service";
+import { auth, closeAuthDatabase, frontendOrigin } from "./lib/auth";
+import { withSession } from "./lib/session";
+
+export const appModule = new Rhythm<RhythmHttpContext>({ name: "app", type: "module" })
+  .provide(() => ({ appService }))
+  .provide(
+    () => ({}),
+    () => closeAuthDatabase(),
+  )
+  .use(cors({ origin: frontendOrigin, credentials: true, allowHeaders: ["Content-Type", "Authorization"] }))
+  .use(mount("/api/auth/**", (ctx) => auth.handler(ctx.request)))
+  .use(withSession)
+  .use(appController.middleware())
+  .use((ctx) => {
+    ctx.response.status = 404;
+    ctx.response.headers.set("content-type", "application/json");
+    ctx.response.body = JSON.stringify({ success: false, status: 404, message: "Not Found" });
+  });
+```
+
+```ts
+// src/main.ts
+import { toFetchHandler } from "@rhythmjs/router/fetch";
+import { appModule } from "./app.module";
+import { migrate } from "./lib/migrate";
+
+await migrate();
+
+const port = Number(process.env.PORT ?? 3007);
+
+const server = Bun.serve({ port, fetch: toFetchHandler(appModule) });
+console.log(`listening on ${server.url}`);
+```
 
 ## Things to check
 
-- **Cookies and origins.** If your frontend runs on another origin, list it in Better Auth's `trustedOrigins` and allow credentials in [CORS](/security/protection/); the two sides must agree.
-- **Rate limiting.** Apply [rate limiting](/security/hardening/) to the auth path as well; the endpoints for sign-in and password reset are the usual targets. Because `auth.handler` runs before the Rhythm app, a Rhythm middleware does not see those requests, so use Better Auth's own rate limit setting for them.
-- **Tests.** Resolve the user with a fake `getSession` in tests; see [testing](/testing/) for the router client.
+- `@rhythmjs/security` is only used here for `cors()`; sessions and the guard come from Better Auth.
+- Better Auth rate-limits its own endpoints; Rhythm middleware does not see requests that `mount` answers.
+- Set `BETTER_AUTH_SECRET` and `BETTER_AUTH_URL` outside local runs.
+
+The full app, with tests, is [examples/better-auth](https://github.com/rhythmjs/examples/tree/main/examples/better-auth), built from the [template](https://github.com/rhythmjs/template).

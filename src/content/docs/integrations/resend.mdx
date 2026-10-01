@@ -1,66 +1,102 @@
 ---
 title: Resend
-lead: "Send email through Resend's HTTP API: one provider holds the client, and routes see a typed mail service."
-description: "Use Resend with Rhythm: a provider for the Resend client, sending from a route, and handling the error result."
+lead: "Send email through Resend's HTTP API: a small service wraps the client, and a failed send is a 502, not a false success."
+description: "Use Resend with Rhythm: a mail service that wraps the client, a controller that handles the data and error result, and stubbing the service in tests."
 ---
 
-## Install
+Start from the [template](https://github.com/rhythmjs/template). `src/app.service.ts` and `src/main.ts` stay as they are.
 
-[Resend](https://resend.com) sends email through an HTTP API, so there is no SMTP connection to manage. Create an API key in the Resend dashboard and verify the domain you will send from.
+## Install
 
 ```bash
 bun add resend
 ```
 
-## Provide the client [#provider]
+## A service wraps the client [#service]
 
-The client holds only your API key, so there is nothing to dispose. Build it once as a [provider](/rhythm/providers/) and expose a small service so handlers do not touch the SDK directly. Passing the client into a factory (`createAppModule(client)`) lets tests hand in a fake.
+The client holds only an API key, so there is nothing to dispose. A plain service creates it lazily and sends; the module provides the service, and tests stub it. Until a domain is verified, send from Resend's `onboarding@resend.dev`, the default here.
 
 ```ts
+// src/mail/mail.service.ts
 import { Resend } from "resend";
-import { Rhythm } from "@rhythmjs/rhythm";
-import type { RhythmHttpContext } from "@rhythmjs/router/context";
 
-export function createMailer() {
-  const resend = new Resend(process.env.RESEND_API_KEY);
-  return {
-    mailer: {
-      send: (to: string, subject: string, html: string) =>
-        resend.emails.send({ from: "RhythmJS <hello@example.com>", to, subject, html }),
-    },
-  };
+const FROM = process.env.MAIL_FROM ?? "RhythmJS <onboarding@resend.dev>";
+
+let client: Resend | undefined;
+
+export const mailService = {
+  send(to: string, subject: string, html: string) {
+    client ??= new Resend(process.env.RESEND_API_KEY);
+    return client.emails.send({ from: FROM, to, subject, html });
+  },
+};
+
+export function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, (char) => `&#${char.charCodeAt(0)};`);
 }
-
-export type Mailer = ReturnType<typeof createMailer>["mailer"];
-
-export const mailModule = new Rhythm<RhythmHttpContext>({ name: "mail", type: "module" }).provide(createMailer);
 ```
 
-## Send and handle the result [#send]
+## The controller checks the result [#controller]
 
-`emails.send` does not throw for API errors. It resolves to `{ data, error }`, so check `error` and answer with an honest status instead of reporting success.
+`emails.send` does not throw for API errors. It resolves to `{ data, error }`, so the `POST /contact` route checks `error` and answers 502 instead of reporting success. User input is escaped before it goes into the HTML.
 
 ```ts
+// src/app.controller.ts
 import { RhythmRouter } from "@rhythmjs/router";
-import type { Mailer } from "./mail";
+import type { RhythmHttpContext } from "@rhythmjs/router/adapters/context";
+import type { appService } from "./app.service";
+import { escapeHtml, type mailService } from "./mail/mail.service";
 
-type MailContext = RhythmHttpContext & { mailer: Mailer };
+export type AppContext = RhythmHttpContext & {
+  appService: typeof appService;
+  mailService: typeof mailService;
+};
 
-export const contact = new RhythmRouter<MailContext>({ prefix: "/api" }).post("/contact", async (ctx) => {
-  const { email, message } = await ctx.request.json();
+export const appController = new RhythmRouter<AppContext>()
+  .get("/", (ctx) => {
+    ctx.response.headers.set("content-type", "text/plain");
+    ctx.response.body = ctx.appService.getHello();
+  })
+  .post("/contact", async (ctx) => {
+    const { email, message } = (await ctx.request.json()) as { email?: string; message?: string };
+    if (!email?.includes("@") || !message) {
+      ctx.error(400, "a valid email and a message are required");
+      return;
+    }
 
-  const { data, error } = await ctx.mailer.send(email, "We got your message", `<p>${escapeHtml(message)}</p>`);
-  if (error) {
-    ctx.error(502, "Could not send the email");
-    return;
-  }
-  ctx.json({ id: data.id }, 202);
-});
+    const { data, error } = await ctx.mailService.send(email, "We got your message", `<p>${escapeHtml(message)}</p>`);
+    if (error) {
+      ctx.error(502, "Could not send the email");
+      return;
+    }
+
+    ctx.json({ id: data.id }, 202);
+  });
+```
+
+## Provide the service in the module [#module]
+
+```ts
+// src/app.module.ts
+import { Rhythm } from "@rhythmjs/rhythm";
+import type { RhythmHttpContext } from "@rhythmjs/router/adapters/context";
+import { appController } from "./app.controller";
+import { appService } from "./app.service";
+import { mailService } from "./mail/mail.service";
+
+export const appModule = new Rhythm<RhythmHttpContext>({ name: "app", type: "module" })
+  .provide(() => ({ appService, mailService }))
+  .use(appController.middleware())
+  .use((ctx) => {
+    ctx.response.status = 404;
+    ctx.response.headers.set("content-type", "application/json");
+    ctx.response.body = JSON.stringify({ success: false, status: 404, message: "Not Found" });
+  });
 ```
 
 ## Things to check
 
-- **Escape user input** before putting it in HTML, as `escapeHtml` does above (write it, or use a template library).
-- **Send from a verified domain.** Until the domain is verified, Resend limits what you can send and to whom.
-- **Keep it off the critical path.** For mail that is not part of the response, use a [queue](/queue/) so a slow API call does not slow the request.
-- **Tests.** Provide a fake `mailer` that records calls, so [tests](/testing/) never hit the network.
+- Tests stub `mailService.send` (for example with `spyOn`), so nothing touches the network.
+- `RESEND_API_KEY` is read when the first email is sent.
+
+The full app, with tests, is [examples/resend](https://github.com/rhythmjs/examples/tree/main/examples/resend), built from the [template](https://github.com/rhythmjs/template).

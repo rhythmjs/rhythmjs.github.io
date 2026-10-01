@@ -28,9 +28,25 @@ await app.teardown();
 
 Without an export function, no child-added fields are merged back into the parent. Exported fields become part of the parent’s inferred context. The boundary is shallow: nested input objects remain shared references, so registration is not a deep clone.
 
+## Run in place
+
+A registered module is part of the request's chain, not a separate pass. If the module's chain calls `next()` past its last middleware, the parent carries on with whatever it registered next, and the exports are applied at that moment. If the chain ends without calling `next()`, the request ends there: the parent's later middleware does not run. That is how a module that mounts a controller answers its own requests, while a catch-all 404 registered after it only sees what no module handled.
+
+```ts
+const productsModule = new Rhythm<RhythmHttpContext>({ name: "products", type: "module" })
+  .provide(createProductsService)
+  .use(productsController.middleware()); // answers /api/products/** and does not call next()
+
+const app = new Rhythm<RhythmHttpContext>()
+  .register(productsModule)
+  .use(() => {
+    throw new HttpError(404, "Route not found"); // runs only for requests no module answered
+  });
+```
+
 ## Own the lifecycle
 
-Registration includes child setup and teardown in the parent provider sequence. Errors thrown by a registered child during dispatch are wrapped with its type and name; the original error is available as `cause`.
+Registration includes child setup and teardown in the parent provider sequence. Errors thrown by a registered child during dispatch are wrapped with its type and name; the original error is available as `cause`. Errors thrown by the parent's later middleware are not wrapped: they are not the module's failure. Because the wrapped error no longer carries the status of an `HttpError`, give a module that throws `HttpError`s its own `filter()` at the top of its chain.
 
 ## Mount controllers flat
 

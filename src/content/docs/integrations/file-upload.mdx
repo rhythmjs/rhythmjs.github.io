@@ -1,87 +1,127 @@
 ---
 title: File upload
-lead: "Accept uploads with the multipart middleware, then store each file on disk or in S3 with Bun's built-in APIs."
-description: "Handle file uploads in Rhythm: multipart parsing with limits, saving to disk with Bun.write, uploading to S3 with Bun's S3Client, and validating files."
+lead: "Accept uploads with the multipart middleware, then store each file on disk or in S3 with Bun's own APIs."
+description: "Handle file uploads in Rhythm: multipart parsing with limits, saving to disk with Bun.write, and uploading to S3 with Bun's S3Client, in a controller and a storage provider."
 ---
+
+Start from the [template](https://github.com/rhythmjs/template). `src/app.service.ts` and `src/main.ts` stay as they are.
 
 ## Install
 
-`@rhythmjs/http` provides the multipart parser. Storage needs nothing extra: `Bun.write` writes to disk and `S3Client` is built into Bun.
-
 ```bash
-bun add @rhythmjs/http @rhythmjs/rhythm @rhythmjs/router
+bun add @rhythmjs/http
 ```
 
-## Parse the upload [#parse]
+## The S3 client is a provider [#storage]
 
-`multipart(options)` parses `multipart/form-data` into `ctx.form` and aborts mid-stream when a limit is crossed, so oversized uploads are not buffered. Set the limits for the largest upload you accept.
-
-```ts
-import { RhythmRouter } from "@rhythmjs/router";
-import type { RhythmHttpContext } from "@rhythmjs/router/context";
-import { multipart, type MultipartContext } from "@rhythmjs/http/multipart";
-import type { S3Client } from "bun";
-
-export const uploads = new RhythmRouter<RhythmHttpContext & { s3: S3Client }>({ prefix: "/api/uploads" });
-
-const limits = multipart({ maxBytes: 5 * 1024 * 1024, maxFileSize: 2 * 1024 * 1024, maxFiles: 1 });
-```
-
-## Save to disk [#disk]
-
-`ctx.form.file(name)` returns a standard `File`, and `Bun.write` accepts it directly. Name the stored file yourself; never use the client's filename as a path.
+Bun's `S3Client` works with S3 and compatible services such as R2 and MinIO. The defaults here match the MinIO service in the examples repo's `compose.yaml`.
 
 ```ts
-uploads.post<MultipartContext>("/avatar", limits, async (ctx) => {
-  const file = ctx.form.file("avatar");
-  if (!file) {
-    ctx.error(400, "avatar missing");
-    return;
-  }
-
-  const key = `${crypto.randomUUID()}.png`;
-  await Bun.write(`uploads/${key}`, file);
-  ctx.json({ key, size: file.size }, 201);
-});
-```
-
-Serve the folder back with [Bun's static routes](/router/static/).
-
-## Upload to S3 [#s3]
-
-For object storage, Bun's `S3Client` works with S3 and S3-compatible services (R2, MinIO, Spaces). Build it once as a [provider](/rhythm/providers/) and write the file under a generated key.
-
-```ts
+// src/storage.ts
 import { S3Client } from "bun";
-import { Rhythm } from "@rhythmjs/rhythm";
 
-export const storageModule = new Rhythm<RhythmHttpContext>({ name: "storage", type: "module" }).provide(() => ({
-  s3: new S3Client({
-    accessKeyId: process.env.S3_ACCESS_KEY_ID,
-    secretAccessKey: process.env.S3_SECRET_ACCESS_KEY,
-    bucket: process.env.S3_BUCKET,
-    endpoint: process.env.S3_ENDPOINT,
-  }),
-}));
-
-uploads.post<MultipartContext>("/documents", limits, async (ctx) => {
-  const file = ctx.form.file("document");
-  if (!file) {
-    ctx.error(400, "document missing");
-    return;
-  }
-
-  const key = `documents/${crypto.randomUUID()}`;
-  await ctx.s3.write(key, file, { type: file.type });
-  ctx.json({ key, url: ctx.s3.presign(key, { expiresIn: 3600 }) }, 201);
-});
+export function createStorage() {
+  return {
+    s3: new S3Client({
+      accessKeyId: process.env.S3_ACCESS_KEY_ID ?? "minioadmin",
+      secretAccessKey: process.env.S3_SECRET_ACCESS_KEY ?? "minioadmin",
+      bucket: process.env.S3_BUCKET ?? "uploads",
+      endpoint: process.env.S3_ENDPOINT ?? "http://localhost:9100",
+    }),
+  };
+}
 ```
 
-`presign` returns a temporary download URL, so the file stays private and the browser fetches it straight from storage.
+## The controller handles the uploads [#controller]
+
+`multipart` fills `ctx.form` and aborts mid-stream when a limit is crossed, so oversized uploads are never buffered. `POST /avatar` checks the type, names the file itself and writes it to disk with `Bun.write`; `GET /avatar/:key` serves it back, matching the key against a strict pattern so no path can leave the folder; `POST /documents` writes to S3 and returns a presigned URL.
+
+```ts
+// src/app.controller.ts
+import { mkdir } from "node:fs/promises";
+import { multipart, type MultipartContext } from "@rhythmjs/http/multipart";
+import { RhythmRouter } from "@rhythmjs/router";
+import type { RhythmHttpContext } from "@rhythmjs/router/adapters/context";
+import type { S3Client } from "bun";
+import type { appService } from "./app.service";
+
+export type AppContext = RhythmHttpContext & {
+  appService: typeof appService;
+  s3: S3Client;
+};
+
+const uploadDir = () => process.env.UPLOAD_DIR ?? "uploads";
+const ALLOWED_IMAGES = new Set(["image/png", "image/jpeg"]);
+const limits = multipart({ maxBytes: 5 * 1024 * 1024, maxFileSize: 2 * 1024 * 1024, maxFiles: 1 });
+
+export const appController = new RhythmRouter<AppContext>()
+  .get("/", (ctx) => {
+    ctx.response.headers.set("content-type", "text/plain");
+    ctx.response.body = ctx.appService.getHello();
+  })
+  .post<MultipartContext>("/avatar", limits, async (ctx) => {
+    const file = ctx.form.file("avatar");
+    if (!file) {
+      ctx.error(400, "avatar missing");
+      return;
+    }
+    if (!ALLOWED_IMAGES.has(file.type)) {
+      ctx.error(415, "avatar must be a PNG or JPEG");
+      return;
+    }
+
+    const key = `${crypto.randomUUID()}.${file.type === "image/png" ? "png" : "jpg"}`;
+    await mkdir(uploadDir(), { recursive: true });
+    await Bun.write(`${uploadDir()}/${key}`, file);
+    ctx.json({ key, size: file.size, url: `/avatar/${key}` }, 201);
+  })
+  .get("/avatar/:key", async (ctx) => {
+    const file = Bun.file(`${uploadDir()}/${ctx.params.key}`);
+    if (!/^[0-9a-f-]{36}\.(png|jpg)$/.test(ctx.params.key) || !(await file.exists())) {
+      ctx.error(404, "Not found");
+      return;
+    }
+
+    ctx.response.headers.set("content-type", ctx.params.key.endsWith(".png") ? "image/png" : "image/jpeg");
+    ctx.response.body = file;
+  })
+  .post<MultipartContext>("/documents", limits, async (ctx) => {
+    const file = ctx.form.file("document");
+    if (!file) {
+      ctx.error(400, "document missing");
+      return;
+    }
+
+    const key = `documents/${crypto.randomUUID()}`;
+    await ctx.s3.write(key, file, { type: file.type });
+    ctx.json({ key, size: file.size, url: ctx.s3.presign(key, { expiresIn: 3600 }) }, 201);
+  });
+```
+
+## Provide the client in the module [#module]
+
+```ts
+// src/app.module.ts
+import { Rhythm } from "@rhythmjs/rhythm";
+import type { RhythmHttpContext } from "@rhythmjs/router/adapters/context";
+import { appController } from "./app.controller";
+import { appService } from "./app.service";
+import { createStorage } from "./storage";
+
+export const appModule = new Rhythm<RhythmHttpContext>({ name: "app", type: "module" })
+  .provide(() => ({ appService }))
+  .provide(createStorage)
+  .use(appController.middleware())
+  .use((ctx) => {
+    ctx.response.status = 404;
+    ctx.response.headers.set("content-type", "application/json");
+    ctx.response.body = JSON.stringify({ success: false, status: 404, message: "Not Found" });
+  });
+```
 
 ## Things to check
 
-- **The file's type is client-supplied.** `file.type` and the filename come from the browser and can be anything. Allow only the types you expect, and store under a name you generate.
-- **Set every limit.** `maxBytes`, `maxFileSize` and `maxFiles` bound the cost of one request; add [rate limiting](/security/hardening/) so one client cannot send many.
-- **Require a user** with [`requireAuthentication`](/security/) before the route unless uploads are meant to be public.
-- **Do not trust the extension.** If you serve uploads back, set the `content-type` yourself rather than echoing the original, or you may serve a script as a page.
+- `file.type` and the filename come from the browser: allow only the types you expect, and never use the client's filename as a path.
+- Add [rate limiting](/security/hardening/) and [`requireAuthentication`](/security/) unless uploads are public.
+
+The full app, with tests, is [examples/file-upload](https://github.com/rhythmjs/examples/tree/main/examples/file-upload), built from the [template](https://github.com/rhythmjs/template).

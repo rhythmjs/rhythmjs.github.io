@@ -140,7 +140,8 @@ Walks the entries in order. A middleware entry carrying a fragment joins the *in
 ```ts
 function apiDocument(options: ApiDocumentOptions): Middleware<RhythmHttpContext>;
 interface ApiDocumentOptions extends GenerateOptions {
-  path?: string; // default "/openapi.json"
+  path?: string; // default "/openapi.json", or "/openapi.yaml" with format "yaml"
+  format?: "json" | "yaml"; // default json, or yaml when path ends in .yml / .yaml
   router: RouterSource;
   config: OpenAPIConfig;
 }
@@ -151,10 +152,14 @@ interface ApiReferenceOptions {
   specUrl?: string; // default "/openapi.json"
   ui?: "scalar" | "swagger"; // default scalar
   title?: string; // default "API Reference"
+  scalar?: ScalarOptions; // Scalar's own configuration: theme, layout, customCss, ...
+  swagger?: Record<string, unknown>; // merged into SwaggerUIBundle: docExpansion, persistAuthorization, ...
+  cdn?: string; // your own copy of the UI: an http(s) URL or a root-relative path
+  nonce?: string; // Content-Security-Policy nonce for every script tag
 }
 ```
 
-`apiDocument` matches `GET` on its path, generates once, caches the promise, and serves JSON; a rejected generation is evicted so the next request retries. Everything else falls through to `next()`. `apiReference` serves a self-contained HTML page loading Scalar from jsDelivr or Swagger UI from unpkg; `specUrl` and `title` are HTML-escaped.
+`apiDocument` matches `GET` on its path, generates once, caches the promise, and serves JSON, or YAML through Bun's built-in YAML support (Bun 1.2.21+); a rejected generation is evicted so the next request retries. Everything else falls through to `next()`. `apiReference` serves a self-contained HTML page loading Scalar from jsDelivr or Swagger UI from unpkg at a pinned version with Subresource Integrity hashes; `specUrl` and `title` are HTML-escaped. A custom `cdn` drops the built-in hashes, because they belong to the default files.
 
 ## /metadata [#metadata-subpath]
 

@@ -1,0 +1,63 @@
+---
+title: "Mounting handlers"
+lead: "Hand a path, and everything beneath it, to a fetch-style handler from another library: Better Auth, a webhook SDK, a tRPC server."
+description: "mount(path, handler) runs a fetch-style handler for matching paths with rou3 patterns, and passes every other request on."
+---
+
+## Mount a fetch handler [#mount]
+
+Many libraries expose a Web-standard `(request) => Response` handler. `mount(path, handler)` from `@rhythmjs/http/mount` runs it for the paths you give and lets every other request carry on through the app.
+
+```bash
+bun add @rhythmjs/http @rhythmjs/rhythm @rhythmjs/router
+```
+
+```ts
+import { mount } from "@rhythmjs/http/mount";
+
+const app = new Rhythm<RhythmHttpContext>()
+  .use(mount("/api/auth/**", (ctx) => auth.handler(ctx.request)))
+  .use(router.middleware());
+```
+
+When the handler returns a `Response`, its status, headers and body stream become the response and the chain stops. Every `Set-Cookie` header is kept, and headers set earlier in the chain (CORS, for example) stay unless the `Response` sets them again.
+
+## Paths follow the router's patterns [#paths]
+
+`path` uses the same rou3 conventions as [`RhythmRouter`](/router/): static segments, `:name` parameters, `*` for one segment and `**` as the catch-all. The HTTP method is not part of the match.
+
+- `"/api/auth/**"` matches `/api/auth` and everything beneath it at any depth, but not `/api/authx`. This is the usual choice for a library that owns a whole prefix.
+- `"/api/auth/*"` matches one segment only, so it would miss `/api/auth/sign-up/email`.
+- `"/hooks/:id/**"` matches a named segment followed by anything.
+- `"/**"` mounts the whole app.
+
+A path that does not start with `/` throws a `TypeError` when you call `mount`.
+
+## Return a Response, or behave like middleware [#handler]
+
+The handler is a middleware, `(ctx, next) => Response | void`. Returning a `Response` ends the request there. Returning nothing leaves the decision to the handler, which can write `ctx.response` itself or call `next()`.
+
+```ts
+mount("/api/**", async (ctx, next) => {
+  ctx.response.headers.set("x-mounted", "true");
+  await next();
+});
+```
+
+An error thrown by the handler propagates like any middleware error, so a [`filter()`](/middleware/filter/) above the mount maps it.
+
+## Order matters [#order]
+
+Middleware registered before the mount runs for the mounted path too, and one registered after it does not, because the mount ends the request. Put cross-cutting middleware such as [`cors()`](/security/protection/) first, so a preflight is answered before the handler and the handler's responses carry the headers.
+
+```ts
+.use(cors({ origin: frontendOrigin, credentials: true }))
+.use(mount("/api/auth/**", (ctx) => auth.handler(ctx.request)))
+```
+
+## Things to check
+
+- Rhythm middleware registered after the mount does not see the requests it answers, so rate-limit or authenticate those paths with the mounted library's own settings.
+- The handler reads `ctx.request`; if an earlier middleware already consumed the body, clone it first.
+
+The [Better Auth recipe](/integrations/better-auth/) mounts its handler this way, with CORS in front. The signature is in the [API reference](/http/api/#mount).

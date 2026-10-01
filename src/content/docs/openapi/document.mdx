@@ -39,11 +39,16 @@ const config = defineDocument({
 
 ## Serve the document
 
-`apiDocument({ router, config, path? })` is a middleware that answers `GET /openapi.json` (exact path match; everything else falls through) with the generated document. The document is generated lazily on the first request and cached as a promise; a failed generation is evicted so the next request retries instead of caching the error. Generation options (`openapi`, `includeUndocumented`) pass through.
+`apiDocument({ router, config, path?, format? })` is a middleware that answers `GET /openapi.json` (exact path match; everything else falls through) with the generated document. `format: "yaml"` serves it as YAML instead, at `/openapi.yaml` by default, and a `path` ending in `.yml` or `.yaml` selects YAML too; mount it twice to offer both. The document is generated lazily on the first request and cached as a promise; a failed generation is evicted so the next request retries instead of caching the error. Generation options (`openapi`, `includeUndocumented`) pass through.
 
 ## Reference UIs
 
-`apiReference({ path?, specUrl?, ui?, title? })` serves an interactive reference page at `/docs`, Scalar by default, Swagger UI with `ui: "swagger"` - pointing at `specUrl` (default `/openapi.json`; the value is HTML-escaped into the page). Both are static HTML shells loading the UI from a CDN.
+`apiReference({ path?, specUrl?, ui?, title?, scalar?, swagger?, cdn?, nonce? })` serves an interactive reference page at `/docs`, Scalar by default, Swagger UI with `ui: "swagger"`, loading the document from `specUrl` (default `/openapi.json`, and a YAML endpoint works as well; the value is HTML-escaped into the page). It plays the part of Scalar's framework packages, such as the one for Next.js: a small page that loads the UI from a CDN and takes the UI's own settings.
+
+- `scalar` is Scalar's configuration, passed through as it is: `theme`, `layout`, `darkMode`, `hideModels`, `customCss`, `withDefaultFonts`, and the rest of [Scalar's options](https://scalar.com/products/api-references/configuration).
+- `swagger` is merged into `SwaggerUIBundle`: `docExpansion`, `persistAuthorization`, `deepLinking`, and any other JSON-serializable option. The `url` stays under the middleware's control.
+- `nonce` sets a Content-Security-Policy nonce on every script tag the page renders.
+- `cdn` points at your own copy of the UI, for a version you pin yourself or a self-hosted folder. Scalar takes the package base URL (`https://cdn.jsdelivr.net/npm/@scalar/api-reference@1.67.0`), Swagger UI the folder holding `swagger-ui.css` and `swagger-ui-bundle.js`.
 
 ```ts
 import { defineDocument } from "@rhythmjs/openapi/document";
@@ -51,7 +56,7 @@ import { apiDocument, apiReference } from "@rhythmjs/openapi/docs";
 
 const app = new Rhythm<RhythmHttpContext>()
   .use(apiDocument({ router: users, config }))
-  .use(apiReference({ title: "Users API" }))
+  .use(apiReference({ title: "Users API", scalar: { theme: "purple" } }))
   .use(users.middleware());
 // GET /openapi.json => the document; GET /docs => Scalar UI
 ```
