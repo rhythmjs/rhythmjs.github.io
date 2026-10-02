@@ -36,8 +36,6 @@ interface WsRoute<Data extends object = WsParams> {
   message?(ws: Bun.ServerWebSocket<Data>, message: string | Buffer): void | Promise<void>;
   drain?(ws: Bun.ServerWebSocket<Data>): void | Promise<void>;
   close?(ws: Bun.ServerWebSocket<Data>, code: number, reason: string): void | Promise<void>;
-  ping?(ws: Bun.ServerWebSocket<Data>, data: Buffer): void | Promise<void>;
-  pong?(ws: Bun.ServerWebSocket<Data>, data: Buffer): void | Promise<void>;
 }
 ```
 

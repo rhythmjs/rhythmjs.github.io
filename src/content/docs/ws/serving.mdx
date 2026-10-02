@@ -18,7 +18,7 @@ Bun.serve({
 
 ## The websocket behavior
 
-`ws.websocket` is the one behavior object `Bun.serve` accepts. Each event looks up the connection's route through the shared registry keyed on `ws.data` identity and forwards to that route's handler: `open`, `message`, `drain`, `close`, `ping`, `pong`. The getter also carries the constructor's behavior tuning, passed through to Bun verbatim: `idleTimeout`, `maxPayloadLength`, `backpressureLimit`, `closeOnBackpressureLimit`, `sendPings`, `publishToSelf`, and `perMessageDeflate`.
+`ws.websocket` is the one behavior object `Bun.serve` accepts. Each event looks up the connection's route through the shared registry keyed on `ws.data` identity and forwards to that route's handler: `open`, `message`, `drain`, `close`. The getter also carries the constructor's behavior tuning, passed through to Bun verbatim: `idleTimeout`, `maxPayloadLength`, `backpressureLimit`, `closeOnBackpressureLimit`, `sendPings`, `publishToSelf`, and `perMessageDeflate`.
 
 ## Multiple apps, one server
 

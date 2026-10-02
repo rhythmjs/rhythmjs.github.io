@@ -14,7 +14,7 @@ bun add @rhythmjs/ws
 
 ## Routes are Bun handlers
 
-`route<Data>(path, handlers)` registers an endpoint. Paths use rou3 patterns (`:param`, `:param?`, `*`, `**`), the instance's `prefix` is prepended, and a static segment always beats a param segment regardless of registration order. The handlers object carries Bun's own lifecycle members (`open`, `message`, `drain`, `close`, `ping`, `pong`) with Bun's exact signatures (`message` receives `string | Buffer`, `close` receives `code` and `reason`), plus two upgrade-time members covered below.
+`route<Data>(path, handlers)` registers an endpoint. Paths use rou3 patterns (`:param`, `:param?`, `*`, `**`), the instance's `prefix` is prepended, and a static segment always beats a param segment regardless of registration order. The handlers object carries Bun's own lifecycle members (`open`, `message`, `drain`, `close`) with Bun's exact signatures (`message` receives `string | Buffer`, `close` receives `code` and `reason`), plus two upgrade-time members covered below.
 
 ```ts
 import { RhythmWs } from "@rhythmjs/ws";
