@@ -37,7 +37,7 @@ export const sections: NavSection[] = [
         items: [
           { id: "tutorial/index", label: "1. First steps" },
           { id: "tutorial/controllers", label: "2. Controllers & routing" },
-          { id: "tutorial/services", label: "3. Services & providers" },
+          { id: "tutorial/services", label: "3. Services & startup context" },
           { id: "tutorial/modules", label: "4. Modules" },
           { id: "tutorial/custom-modules", label: "5. Custom modules" },
           { id: "tutorial/validation", label: "6. Validation & errors" },

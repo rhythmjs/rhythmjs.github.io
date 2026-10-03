@@ -1,37 +1,65 @@
 ---
 title: "Databases on Rhythm"
-lead: "Rhythm ships no database layer on purpose — the kernel's provider lifecycle is already the right shape for one. Four recipes, one identical pattern."
-description: "The common shape for databases in Rhythm apps: a disposable connection provider, a service factory, zod contracts at the edges, and checked-in migrations."
+lead: "Rhythm ships no database layer on purpose — the kernel's startup context is already the right shape for one. Four recipes, one identical pattern."
+description: "The common shape for databases in Rhythm apps: a connection created at startup and closed on shutdown, a service factory, zod contracts at the edges, and checked-in migrations."
 ---
 
 ## A recipe, not a package
 
-There is no `@rhythmjs/data`. A database connection is just a resource with a lifetime, and `provide(factory, dispose)` on the [kernel](/rhythm/providers/) already manages lifetimes: open once at setup, share through the provider graph, close on teardown. Every ORM plugs into that the same way, so this section documents the pattern once and then shows it four times — [Drizzle](/data/drizzle/), [Prisma](/data/prisma/), and [MikroORM](/data/mikro-orm/) on PostgreSQL, plus the native [MongoDB](/data/mongodb/) driver. Each page is backed by a complete runnable app in [rhythmjs/examples](https://github.com/rhythmjs/examples), all serving the same notes CRUD API.
+There is no `@rhythmjs/data`. A database connection is just a resource with a lifetime, and the kernel's [startup context](/rhythm/context/) is the right place to hand it to the app: create the connection once at startup, assign it to `appModule.context`, and close it on shutdown. Every ORM plugs into that the same way, so this section documents the pattern once and then shows it four times — [Drizzle](/data/drizzle/), [Prisma](/data/prisma/), and [MikroORM](/data/mikro-orm/) on PostgreSQL, plus the native [MongoDB](/data/mongodb/) driver. Each page is backed by a complete runnable app in [rhythmjs/examples](https://github.com/rhythmjs/examples), all serving the same notes CRUD API.
 
-## The provider pair
+## The database handle
 
-Each recipe's `src/database.ts` exports a `createDatabase` factory and a `closeDatabase` dispose hook. The factory may be async (MikroORM's `init`, Mongo's `connect`); it resolves once when the module first runs, and teardown disposes providers in reverse registration order.
+Each recipe's `src/database.ts` exports a `createDatabase` factory that returns the connection together with a `close()` that releases it. The factory may be async (MikroORM's `init`, Mongo's `connect`); the entrypoint awaits it once before serving.
 
 ```ts
-export const appModule = new Rhythm<RhythmHttpContext>({ name: "app", type: "module" })
+// src/database.ts
+export interface Database {
+  prisma: PrismaClient;
+  close(): Promise<void>;
+}
+
+export function createDatabase(): Database {
+  const prisma = new PrismaClient({ datasourceUrl: databaseUrl });
+  return { prisma, close: () => prisma.$disconnect() };
+}
+```
+
+Anything that must be closed but is not needed by the app, such as Mongo's `MongoClient` behind its `Db` or the raw `Bun.SQL` client behind a drizzle instance, stays inside the handle's `close()` closure. Nothing needs a special key: only what you assign to `context` is visible to requests.
+
+## The app module
+
+The app module declares the connection in its startup shape, the second `Rhythm` type parameter. Modules below it take the connection as input and `derive()` their service from it. Only the context key changes between recipes (`db`, `prisma`, `orm`).
+
+```ts
+// src/app.module.ts
+export const appModule = new Rhythm<RhythmHttpContext, { prisma: PrismaClient }>({ name: "app", type: "module" })
   .use(filter())
-  .provide(createDatabase, closeDatabase)
-  .provide(({ db }) => ({ notesService: createNotesService(db) }))
-  .use(notesController.middleware())
+  .register(notesModule)
   .use(() => {
     throw new HttpError(404, "Route not found");
   });
 ```
 
-This module is the whole app in every recipe — only the provider name changes (`db`, `prisma`, `orm`). The entrypoint pairs it with a graceful shutdown so connections actually close:
+```ts
+// src/notes/notes.module.ts
+export const notesModule = new Rhythm<NotesModuleInput>({ name: "notes", type: "module" })
+  .use(derive(({ prisma }: NotesModuleInput) => ({ notesService: createNotesService(prisma) })))
+  .use(notesController.middleware());
+```
+
+`register()` checks at compile time that the app's startup shape satisfies `NotesModuleInput`. The entrypoint creates the database, assigns it, serves, and closes it on shutdown:
 
 ```ts
 // src/main.ts
+const database = await createDatabase();
+appModule.context.prisma = database.prisma;
+
 const server = Bun.serve({ port, fetch: toFetchHandler(appModule) });
 
 async function shutdown(): Promise<void> {
   await server.stop();
-  await appModule.teardown();
+  await database.close();
   process.exit(0);
 }
 
@@ -39,11 +67,11 @@ process.on("SIGINT", shutdown);
 process.on("SIGTERM", shutdown);
 ```
 
-When a handle is needed at teardown but nowhere else — Mongo's `MongoClient` behind its `Db`, the raw `Bun.SQL` client behind a drizzle instance — the factory returns it under a hash-key like `"#client"`. Hash-prefixed keys are stripped from the request context and the provider graph, but the dispose hook receives the value whole.
+Rhythm never closes the connection for you. Assign before the first request is served, since the declared type is not checked at runtime.
 
 ## The service factory
 
-Persistence lives in one factory — `createNotesService(db)` — registered as a second provider that receives the connection from the graph. The service owns every query and answers in plain terms: `list`, `get` (a note or nothing), `create`, `update` (the new note or nothing), `remove` (a boolean). ORM types stop at this boundary: Prisma's `P2025` becomes `null`, Mongo's `ObjectId` documents become `id: string` DTOs, and controllers stay identical across all four stacks.
+Persistence lives in one factory — `createNotesService(db)` — that the notes module derives from the connection in the context. The service owns every query and answers in plain terms: `list`, `get` (a note or nothing), `create`, `update` (the new note or nothing), `remove` (a boolean). ORM types stop at this boundary: Prisma's `P2025` becomes `null`, Mongo's `ObjectId` documents become `id: string` DTOs, and controllers stay identical across all four stacks.
 
 ## Contracts at the edges
 
@@ -74,7 +102,7 @@ Schema changes are checked-in files applied by an explicit `db:migrate` script, 
 
 Beyond the shared shape, each page demonstrates one thing its stack does differently:
 
-- [**Drizzle**](/data/drizzle/): Bun's native `SQL` class as the driver — no driver dependency — and the hash-key trick for the raw client.
-- [**Prisma**](/data/prisma/): a generated client as a provider, and mapping `P2025` error codes to plain not-found answers.
+- [**Drizzle**](/data/drizzle/): Bun's native `SQL` class as the driver — no driver dependency — and the raw client kept inside the handle's `close()`.
+- [**Prisma**](/data/prisma/): a generated client on the startup context, and mapping `P2025` error codes to plain not-found answers.
 - [**MikroORM**](/data/mikro-orm/): decorator-free `defineEntity` entities and a forked `EntityManager` per operation.
 - [**MongoDB**](/data/mongodb/): no ORM at all — documents mapped to DTOs at the service boundary, with zod as the only schema.

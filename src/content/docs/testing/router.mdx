@@ -1,7 +1,7 @@
 ---
 title: "Drive HTTP without a server"
-lead: "A fetch-based client over the real middleware chain (verb helpers, JSON shorthands, provider teardown) plus a runner for one HTTP middleware at a time."
-description: "Drive HTTP routes without a server: a supertest-style client over toFetchHandler with verb helpers, JSON bodies, raw fetch, teardown, and a single-middleware runner."
+lead: "A fetch-based client over the real middleware chain (verb helpers, JSON shorthands, startup context overrides) plus a runner for one HTTP middleware at a time."
+description: "Drive HTTP routes without a server: a supertest-style client over toFetchHandler with verb helpers, JSON bodies, raw fetch, startup context overrides, and a single-middleware runner."
 ---
 
 ## Create a client
@@ -21,9 +21,17 @@ expect(await created.json()).toEqual({ id: 1, name: "Ada" });
 
 Six verb helpers cover the routed methods (`get`, `head`, `post`, `put`, `patch`, `delete`), each taking a path and `TestRequestOptions`: `headers` (any `HeadersInit`), a raw `body` (anything a `Response` accepts), or `json`, which serializes the value and sets `content-type: application/json` unless you already did. For anything else (exotic methods, a prebuilt `Request`, custom `RequestInit`) the raw escape hatch is `client.fetch(input, init?)`.
 
-## Teardown
+## Startup context [#startup-context]
 
-`client.teardown()` disposes the app's providers in reverse order, the same lifecycle a real shutdown runs. Call it in `afterAll` when the app under test provides anything with cleanup semantics; for a bare router mounted by the client, it is a no-op that is still safe to call.
+An app that declares a startup shape, such as `Rhythm<RhythmHttpContext, { db: Db }>`, typechecks with `createTestClient`. Pass `context` to supply or replace startup values for the test: it is typed as a `Partial` of the declared shape and assigned onto the app's `context` before any request, so a fake wins over a real value that was already there. This mutates the app, so build a fresh app per test file when tests need different fakes.
+
+```ts
+const client = createTestClient(appModule, { context: { db: fakeDb } });
+const res = await client.get("/api/notes");
+expect(res.status).toBe(200);
+```
+
+The client has no `teardown()` and Rhythm has no lifecycle to run: if the test created a real resource (a database connection, a queue), close it yourself in `afterAll`.
 
 ## A single HTTP middleware [#single-middleware]
 

@@ -1,7 +1,7 @@
 ---
 title: "Drizzle on Bun's native SQL"
-lead: "The database is a provider with a dispose hook, the queries live in a service factory, and Drizzle talks to PostgreSQL through Bun.SQL — no driver package."
-description: "Wire Drizzle ORM into Rhythm on Bun's native SQL driver: the database as a disposable provider, a service factory, and drizzle-kit migrations."
+lead: "The database is created at startup and closed on shutdown, the queries live in a service factory, and Drizzle talks to PostgreSQL through Bun.SQL — no driver package."
+description: "Wire Drizzle ORM into Rhythm on Bun's native SQL driver: the database on the startup context, a service factory, and drizzle-kit migrations."
 ---
 
 ## Install
@@ -13,9 +13,9 @@ bun add drizzle-orm zod @rhythmjs/middleware
 bun add -d drizzle-kit
 ```
 
-## The database provider [#database-provider]
+## The database handle [#database-handle]
 
-The factory returns the drizzle instance under `db` and the raw client under the hash-key `"#client"`. Hash-prefixed keys never reach the request context or the provider graph, but the dispose hook receives the *whole* value — so the pool stays private and still gets closed when the module tears down.
+The factory returns the drizzle instance under `db` and a `close()` that closes the raw `Bun.SQL` client. The client itself never leaves the closure, so the pool stays private and still gets closed on shutdown.
 
 ```ts
 // src/database.ts
@@ -27,18 +27,14 @@ const databaseUrl = process.env.DATABASE_URL ?? "postgres://postgres:postgres@lo
 
 export type Database = BunSQLDatabase<typeof schema>;
 
-export interface DatabaseValue {
+export interface DatabaseHandle {
   db: Database;
-  "#client": SQL;
+  close(): Promise<void>;
 }
 
-export function createDatabase(): DatabaseValue {
+export function createDatabase(): DatabaseHandle {
   const client = new SQL(databaseUrl);
-  return { db: drizzle({ client, schema }), "#client": client };
-}
-
-export async function closeDatabase(value: DatabaseValue): Promise<void> {
-  await value["#client"].close();
+  return { db: drizzle({ client, schema }), close: () => client.close() };
 }
 ```
 
@@ -98,21 +94,26 @@ export type NotesService = ReturnType<typeof createNotesService>;
 
 ## Wiring the module [#module-wiring]
 
-The app module chains it together: a [`filter()`](/middleware/filter/) error boundary first, then the database provider, then the service provider — which receives `db` from the provider graph — then the controller. Handlers throw `HttpError` for missing notes; `validate("body", …)` guards the writes and `intercept(…)` enforces the response contract.
+The app module declares `db` in its startup shape and chains a [`filter()`](/middleware/filter/) error boundary, the notes module, and a 404 fallback. The notes module takes `db` as input and derives `notesService` from it before mounting the controller. Handlers throw `HttpError` for missing notes; `validate("body", …)` guards the writes and `intercept(…)` enforces the response contract.
 
 ```ts
 // src/app.module.ts
-export const appModule = new Rhythm<RhythmHttpContext>({ name: "app", type: "module" })
+export const appModule = new Rhythm<RhythmHttpContext, { db: Database }>({ name: "app", type: "module" })
   .use(filter())
-  .provide(createDatabase, closeDatabase)
-  .provide(({ db }) => ({ notesService: createNotesService(db) }))
-  .use(notesController.middleware())
+  .register(notesModule)
   .use(() => {
     throw new HttpError(404, "Route not found");
   });
 ```
 
-On shutdown, `appModule.teardown()` disposes providers in reverse order: the service (nothing to do) and then the pool.
+```ts
+// src/notes/notes.module.ts
+export const notesModule = new Rhythm<NotesModuleInput>({ name: "notes", type: "module" })
+  .use(derive(({ db }: NotesModuleInput) => ({ notesService: createNotesService(db) })))
+  .use(notesController.middleware());
+```
+
+`src/main.ts` creates the database and assigns it with `appModule.context.db = database.db` before serving. On shutdown it stops the server and then calls `database.close()`, which closes the pool.
 
 ## Migrations
 

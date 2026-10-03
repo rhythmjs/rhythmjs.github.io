@@ -1,12 +1,12 @@
 ---
 title: "Custom modules"
-lead: "Build your own forRoot-style modules: options in, lifecycle managed, typed out."
+lead: "Build your own forRoot-style modules: options in, service built, typed out."
 description: "Author your own forRoot-style modules: options in, services out."
 ---
 
 ## A module of your own
 
-Every @rhythmjs module — config, events, schedule, queue — is built from the same three pieces you already know: an options interface, a service factory, and a `forRoot` factory that wraps them in a `Rhythm` module with disposal. Nothing is reserved for the framework; a mailer module of your own is the identical shape:
+Every @rhythmjs module — config, events, schedule, queue — is built from the same three pieces you already know: an options interface, a service factory, and a `forRoot` factory that builds the service and assigns it to a `Rhythm` module's startup context. Nothing is reserved for the framework; a mailer module of your own is the identical shape:
 
 ```ts
 // src/mailer/mailer.module.ts
@@ -34,13 +34,14 @@ export type MailerService = ReturnType<typeof createMailerService>;
 
 export const mailerModule = {
   forRoot(options: MailerOptions) {
-    return new Rhythm({ type: "module", name: "mailer" }).provide(
-      () => ({ mailerService: createMailerService(options) }),
-      (value) => value.mailerService.close(),
-    );
+    const module = new Rhythm<{}, { mailerService: MailerService }>({ type: "module", name: "mailer" });
+    module.context.mailerService = createMailerService(options);
+    return module;
   },
 };
 ```
+
+The module only builds the service; it does not own its shutdown. The service already exposes `close()`, so the composition root keeps a reference and calls it when the process stops. If building the service is async (connecting, loading), make `forRoot` async and `await` it where you register — `await configModule.forRoot(...)` works exactly this way.
 
 Consumers register it exactly like the built-ins — options at the composition root, the service wherever the context flows:
 
@@ -68,9 +69,12 @@ const adminController = new RhythmRouter<AdminContext>({ prefix: "/admin" })
 
 export const adminModule = {
   forRoot(options: AdminOptions) {
-    return new Rhythm<RhythmHttpContext>({ name: "admin", type: "module" })
-      .provide(() => ({ adminService: createAdminService(options) }))
-      .use(adminController.middleware());
+    const module = new Rhythm<RhythmHttpContext, { adminService: AdminService }>({
+      name: "admin",
+      type: "module",
+    });
+    module.context.adminService = createAdminService(options);
+    return module.use(adminController.middleware());
   },
 };
 
@@ -89,10 +93,9 @@ import { derive } from "@rhythmjs/rhythm";
 
 export const storageModule = {
   forRoot(options: StorageOptions) {
-    return new Rhythm({ type: "module", name: "storage" }).provide(
-      () => ({ storageService: createStorageService(options) }),
-      (value) => value.storageService.close(),
-    );
+    const module = new Rhythm<{}, { storageService: StorageService }>({ type: "module", name: "storage" });
+    module.context.storageService = createStorageService(options);
+    return module;
   },
   forFeature(bucket: string) {
     return derive((ctx: { storageService: StorageService }) => ({
@@ -115,7 +118,7 @@ uploadsController
   });
 ```
 
-The division of labor is the convention across the ecosystem: `forRoot` owns lifecycle (built once, disposed on teardown), `forFeature` owns per-request derivation — and because it is just `derive()`, the extension is visible to the type system downstream.
+The division of labor is the convention across the ecosystem: `forRoot` owns the shared service (built once, closed by whoever called it), `forFeature` owns per-request derivation — and because it is just `derive()`, the extension is visible to the type system downstream.
 
 ## Packaging conventions
 
@@ -144,7 +147,6 @@ test("mailer sends through the console transport", async () => {
     });
 
   await app.run({});
-  await app.teardown();
   expect(seen[0]).toContain("t@example.com -> u@example.com");
 });
 ```

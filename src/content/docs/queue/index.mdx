@@ -1,12 +1,12 @@
 ---
 title: "Typed jobs in, typed jobs out"
-lead: "Declare a typed job map, produce with delays, priorities, and dedupe ids, and process with named handlers, retries with backoff, and lifecycle-managed workers."
-description: "Producing and processing typed jobs with @rhythmjs/queue: the job map, add/addBulk options, retries with backoff, worker concurrency, and lifecycle."
+lead: "Declare a typed job map, produce with delays, priorities, and dedupe ids, and process with named handlers, retries with backoff, and workers you close on shutdown."
+description: "Producing and processing typed jobs with @rhythmjs/queue: the job map, add/addBulk options, retries with backoff, worker concurrency, and shutdown."
 ---
 
 ## Install the package
 
-`@rhythmjs/queue` is typed job queues for Rhythm on Bun: background work with retries, delays, priorities, and repeatable schedules, declared through a typed job map and processed by lifecycle-managed workers. The engines are in-house - no queue library underneath; [Engines & repeats](/queue/engines/) covers them.
+`@rhythmjs/queue` is typed job queues for Rhythm on Bun: background work with retries, delays, priorities, and repeatable schedules, declared through a typed job map and processed by workers you close on shutdown. The engines are in-house - no queue library underneath; [Engines & repeats](/queue/engines/) covers them.
 
 ```bash
 bun add @rhythmjs/queue @rhythmjs/rhythm
@@ -30,7 +30,7 @@ export type AppQueueContext = QueueContext<AppJobs>;
 
 ## The kernel module
 
-`queueModule.forRoot<TJobs>(options?)` provides `queueService` and owns the lifecycle: the kernel's `teardown()` closes workers first (draining in-flight jobs), then the engine. `defaultJobOptions` merge under every job's own options.
+`queueModule.forRoot<TJobs>(options?)` builds `queueService` eagerly and puts it on the module context. Nothing closes it for you: call `await queueService.close()` on shutdown, which closes workers first (draining in-flight jobs), then the engine. `defaultJobOptions` merge under every job's own options.
 
 ```ts
 import { Rhythm } from "@rhythmjs/rhythm";

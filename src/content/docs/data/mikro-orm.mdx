@@ -48,9 +48,9 @@ NoteSchema.setClass(Note);
 
 `EntitySchema` is still available if you prefer the explicit-object style, but the MikroORM docs now recommend `defineEntity`.
 
-## The database provider [#database-provider]
+## The database handle [#database-handle]
 
-`MikroORM.init` is async, and providers may be — the factory resolves once at setup, and `orm.close()` is the dispose hook. Registering the `Migrator` extension here means the same config serves the app and the migration runner.
+`MikroORM.init` is async, so `createDatabase` is too: `main.ts` awaits it once before serving, and the handle's `close()` calls `orm.close()` on shutdown. Registering the `Migrator` extension here means the same config serves the app and the migration runner.
 
 ```ts
 // src/database.ts
@@ -61,24 +61,25 @@ import { NoteSchema } from "./notes/note.entity";
 
 const clientUrl = process.env.DATABASE_URL ?? "postgres://postgres:postgres@localhost:5432/notes_mikro_orm";
 
-export async function createDatabase(): Promise<{ orm: MikroORM }> {
+export interface Database {
+  orm: MikroORM;
+  close(): Promise<void>;
+}
+
+export async function createDatabase(): Promise<Database> {
   const orm = await MikroORM.init({
     clientUrl,
     entities: [NoteSchema],
     extensions: [Migrator],
     migrations: { path: join(import.meta.dirname, "migrations"), snapshot: false },
   });
-  return { orm };
-}
-
-export async function closeDatabase({ orm }: { orm: MikroORM }): Promise<void> {
-  await orm.close();
+  return { orm, close: () => orm.close() };
 }
 ```
 
 ## Fork per operation
 
-MikroORM's `EntityManager` carries an identity map — a unit of work that must not be shared across concurrent requests. The provider holds the long-lived `orm`; every service method starts from `orm.em.fork()`, so each operation gets its own isolated context and the global-context guard never fires.
+MikroORM's `EntityManager` carries an identity map — a unit of work that must not be shared across concurrent requests. The startup context holds the long-lived `orm`; every service method starts from `orm.em.fork()`, so each operation gets its own isolated context and the global-context guard never fires.
 
 ```ts
 // src/notes/notes.service.ts
@@ -113,7 +114,7 @@ export function createNotesService(orm: MikroORM) {
 
 Three things to know about MikroORM 7 here. `em.create` marks the new entity for persistence (`persistOnCreate`, on by default), so `flush()` inserts it; there is no constructor to call. An entity loaded with `findOne` is already managed, so `assign` followed by `flush()` is enough and needs no `persist`. And the combined `persistAndFlush` and `removeAndFlush` helpers are gone: `em.remove(note).flush()` replaces `removeAndFlush`.
 
-The module wiring is the shared pattern from the [overview](/data/): `filter()`, the provider pair, the service provider (`({ orm }) => …`), the controller, a thrown 404.
+The module wiring is the shared pattern from the [overview](/data/): `filter()`, the notes module that derives its service from `orm` (`derive(({ orm }) => …)`), the controller, a thrown 404. The app module is `Rhythm<RhythmHttpContext, { orm: MikroORM }>`, and `main.ts` assigns `appModule.context.orm = database.orm`.
 
 ## Migrations
 
@@ -145,9 +146,9 @@ export class Migration20260930000000_init extends Migration {
 
 ```ts
 // src/migrate.ts
-const { orm } = await createDatabase();
+const { orm, close } = await createDatabase();
 const migrated = await orm.migrator.up();
-await closeDatabase({ orm });
+await close();
 console.log(`applied ${migrated.length} migration(s)`);
 ```
 

@@ -60,7 +60,7 @@ scheduler.stop();
 
 ## The kernel module
 
-`scheduleModule.forRoot(...jobs)` provides `scheduleService` on the kernel context (`ScheduleContext`).
+`scheduleModule.forRoot(...jobs)` builds `scheduleService` and assigns it to the module context (`ScheduleContext`). The service has no `stop()`; the cron runner below does.
 
 ```ts
 import { Rhythm } from "@rhythmjs/rhythm";
@@ -71,7 +71,6 @@ const app = new Rhythm().register(
   scheduleModule.forRoot(...jobs),
   ({ scheduleService }) => ({ scheduleService }),
 );
-await app.setup();
 const { scheduleService } = await app.run({});
 const scheduler = startScheduler(scheduleService);
 ```

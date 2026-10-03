@@ -1,7 +1,7 @@
 ---
 title: "MongoDB, no ORM"
-lead: "The official driver straight into the provider graph: the Db is public, the MongoClient hides behind a hash-key, and zod at the edges replaces the schema the database doesn't have."
-description: "Wire the native MongoDB driver into Rhythm: the client hidden behind a hash-key, ObjectId documents mapped to DTOs, and zod contracts instead of a schema."
+lead: "The official driver straight onto the startup context: the Db is public, the MongoClient is closed by the handle, and zod at the edges replaces the schema the database doesn't have."
+description: "Wire the native MongoDB driver into Rhythm: the client closed on shutdown, ObjectId documents mapped to DTOs, and zod contracts instead of a schema."
 ---
 
 ## Install
@@ -10,9 +10,9 @@ description: "Wire the native MongoDB driver into Rhythm: the client hidden behi
 bun add mongodb zod @rhythmjs/middleware
 ```
 
-## The hash-key provider [#hash-key-provider]
+## The database handle [#database-handle]
 
-The interesting Rhythm mechanic here: a provider's value can carry keys prefixed with `#`. Those keys are stripped from the request context and from the provider graph — downstream code sees only `db` — but the dispose hook receives the value whole, so the client it must close is right there. Handles you need at teardown but nowhere else belong under a hash-key. Being schemaless, there is no migration step either: the startup factory is also where the collection's index is ensured.
+The app only needs the `Db`, so that is what goes on the context. The `MongoClient` stays inside the handle, where its `close()` is the shutdown hook. Being schemaless, there is no migration step: the startup factory is also where the collection's index is ensured.
 
 ```ts
 // src/database.ts
@@ -21,23 +21,21 @@ import { MongoClient, type Db } from "mongodb";
 const mongoUrl = process.env.MONGODB_URL ?? "mongodb://localhost:27017";
 const dbName = process.env.MONGODB_DB ?? "notes_mongodb";
 
-export interface DatabaseValue {
+export interface Database {
   db: Db;
-  "#client": MongoClient;
+  close(): Promise<void>;
 }
 
-export async function createDatabase(): Promise<DatabaseValue> {
+export async function createDatabase(): Promise<Database> {
   const client = new MongoClient(mongoUrl);
   await client.connect();
   const db = client.db(dbName);
   await db.collection("notes").createIndex({ createdAt: -1 });
-  return { db, "#client": client };
-}
-
-export async function closeDatabase(value: DatabaseValue): Promise<void> {
-  await value["#client"].close();
+  return { db, close: () => client.close() };
 }
 ```
+
+`main.ts` awaits `createDatabase()`, assigns `appModule.context.db = database.db`, and calls `database.close()` on shutdown. The app module is `Rhythm<RhythmHttpContext, { db: Db }>`.
 
 ## Documents in, DTOs out [#documents-and-dtos]
 
@@ -91,7 +89,7 @@ export function createNotesService(db: Db) {
 
 ## zod is the schema
 
-With no database schema, the zod contracts in `src/notes/notes.schema.ts` do the guarding: `validate("body", createNoteSchema)` keeps malformed documents out of the collection, and `intercept(notesResponseSchema)` keeps stray document fields from leaking into responses. The module wiring is the shared pattern from the [overview](/data/) page, with `({ db }) => …` feeding the service.
+With no database schema, the zod contracts in `src/notes/notes.schema.ts` do the guarding: `validate("body", createNoteSchema)` keeps malformed documents out of the collection, and `intercept(notesResponseSchema)` keeps stray document fields from leaking into responses. The module wiring is the shared pattern from the [overview](/data/) page, with the notes module deriving the service from `db`.
 
 ```ts
 // src/notes/notes.schema.ts

@@ -54,7 +54,7 @@ const eventsModule: {
 };
 ```
 
-Returns an encapsulated Rhythm module (name `events`) whose provider builds one `createEventBus<TEvents>(options)` and exposes it as `eventBus`. Register it with `app.register(eventsModule.forRoot<AppEvents>(), ({ eventBus }) => ({ eventBus }))`.
+Returns an encapsulated Rhythm module (name `events`) that builds one `createEventBus<TEvents>(options)` at `forRoot` time and assigns it to its context as `eventBus`. The bus owns nothing to close; unsubscribe through the function `on()` returns, `off()`, or an `AbortSignal`. Register it with `app.register(eventsModule.forRoot<AppEvents>(), ({ eventBus }) => ({ eventBus }))`.
 
 ## @rhythmjs/events/types [#types-subpath]
 
@@ -68,5 +68,5 @@ Every type is exported from the root as well; the subpath exists for type-only i
 <Def sig={"MatchingNames<TEvents, P> / MatchingPayload<TEvents, P>"} id="matchingnames">The union of matching event names, and the union of their payloads: the types a wildcard handler's `(payload, event)` arguments carry.</Def>
 <Def sig="OnOptions" id="onoptions">`{ signal?: AbortSignal }`.</Def>
 <Def sig="EventBusOptions" id="eventbusoptions">`{ onError?: (error: unknown, event: string, payload: unknown) => void }`.</Def>
-<Def sig={"EventsContext<TEvents>"} id="eventscontext">`{ eventBus: EventBus<TEvents> }`, the context slice the module provides.</Def>
+<Def sig={"EventsContext<TEvents>"} id="eventscontext">`{ eventBus: EventBus<TEvents> }`, the context slice the module declares.</Def>
 </DefList>

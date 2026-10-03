@@ -26,9 +26,9 @@ export const appModule = new Rhythm<RhythmHttpContext>({ name: "app", type: "mod
 The health module separates liveness (the process is up) from readiness (its dependencies answer). Indicators are small objects with a `check()`; results are cached briefly so load balancers cannot hammer your database through the endpoint:
 
 ```ts
-import { healthModule, healthRoutes } from "@rhythmjs/observability/health";
+import { createHealthService, healthRoutes } from "@rhythmjs/observability/health";
 
-const health = healthModule.forRoot({
+export const healthService = createHealthService({
   indicators: [
     {
       name: "postgres",
@@ -46,9 +46,7 @@ const health = healthModule.forRoot({
   ],
 });
 
-appModule
-  .register(health, ({ healthService }) => ({ healthService }))
-  .use(healthRoutes(healthService).middleware()); // GET /health/live, GET /health/ready
+appModule.use(healthRoutes(healthService).middleware()); // GET /health/live, GET /health/ready
 ```
 
 <Callout title="Readiness detail exposure">
@@ -59,13 +57,14 @@ Indicator `details` and failure messages appear in the readiness body. Keep them
 
 ## Graceful shutdown
 
-Production `main.ts` ties it together: an error boundary around the handler, signal-driven shutdown that flips readiness, drains, stops the server, and tears the module tree down in reverse:
+Production `main.ts` ties it together: an error boundary around the handler, signal-driven shutdown that flips readiness, drains, then runs one `close` hook that stops the server and releases everything you opened:
 
 ```ts
 // src/main.ts
 import { errorToResponse, toFetchHandler } from "@rhythmjs/router/fetch";
 import { gracefulShutdown } from "@rhythmjs/observability/health";
 import { appModule } from "./app.module";
+import { healthService } from "./health";
 
 const handler = toFetchHandler(appModule);
 
@@ -83,8 +82,10 @@ const server = Bun.serve({
 
 gracefulShutdown({
   healthService,                       // readiness flips down first
-  app: appModule,                      // teardown(): dispose providers in reverse
-  close: () => server.stop(),
+  close: async () => {                 // then, after drainMs, release resources in the order you choose
+    await server.stop();
+    await database.close();
+  },
   drainMs: 5_000,
   timeoutMs: 15_000,
 });
@@ -92,4 +93,4 @@ gracefulShutdown({
 console.log(`listening on ${server.url}`);
 ```
 
-With that, deploys are boring: the balancer sees `/health/ready` go down, traffic drains, in-flight requests finish, the pool closes last. Which leaves exactly one thing to prove — that all of it works.
+With that, deploys are boring: the balancer sees `/health/ready` go down, traffic drains, in-flight requests finish, the pool closes last, because your `close` hook says so. Which leaves exactly one thing to prove — that all of it works.

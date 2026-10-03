@@ -14,7 +14,7 @@ bun add resend
 
 ## A service wraps the client [#service]
 
-The client holds only an API key, so there is nothing to dispose. A plain service creates it lazily and sends; the module provides the service, and tests stub it. Until a domain is verified, send from Resend's `onboarding@resend.dev`, the default here.
+The client holds only an API key, so there is nothing to close. A plain service creates it lazily and sends; the app module puts the service on its startup context, and tests stub it. Until a domain is verified, send from Resend's `onboarding@resend.dev`, the default here.
 
 ```ts
 // src/mail/mail.service.ts
@@ -74,7 +74,7 @@ export const appController = new RhythmRouter<AppContext>()
   });
 ```
 
-## Provide the service in the module [#module]
+## Put the service on the context [#module]
 
 ```ts
 // src/app.module.ts
@@ -84,14 +84,19 @@ import { appController } from "./app.controller";
 import { appService } from "./app.service";
 import { mailService } from "./mail/mail.service";
 
-export const appModule = new Rhythm<RhythmHttpContext>({ name: "app", type: "module" })
-  .provide(() => ({ appService, mailService }))
+export const appModule = new Rhythm<
+  RhythmHttpContext,
+  { appService: typeof appService; mailService: typeof mailService }
+>({ name: "app", type: "module" })
   .use(appController.middleware())
   .use((ctx) => {
     ctx.response.status = 404;
     ctx.response.headers.set("content-type", "application/json");
     ctx.response.body = JSON.stringify({ success: false, status: 404, message: "Not Found" });
   });
+
+appModule.context.appService = appService;
+appModule.context.mailService = mailService;
 ```
 
 ## Things to check

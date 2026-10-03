@@ -1,28 +1,26 @@
 ---
 title: "The config service"
-lead: "One validated tree merged at setup, read through dot paths that the compiler checks, and boot failures that report everything at once."
+lead: "One validated tree built at startup, read through dot paths that the compiler checks, and boot failures that report everything at once."
 description: "configModule.forRoot, deep-merged trees, aggregated ConfigError reports, and the dot-path-typed ConfigService."
 ---
 
 ## Register the module
 
-`configModule.forRoot(...factories)` returns a Rhythm module that runs every factory once at `setup()`, not per run, and deep-merges the outputs into one tree. Plain factories merge at the root; namespaced factories merge under their token; on conflicts, later factories win, with nested plain objects merged key by key (arrays and other values replace wholesale).
+`configModule.forRoot(...factories)` is async and returns a promise of a Rhythm module. Every factory runs once, when you `await` it at startup (not per run), and the outputs are deep-merged the outputs into one tree. Plain factories merge at the root; namespaced factories merge under their token; on conflicts, later factories win, with nested plain objects merged key by key (arrays and other values replace wholesale). The module carries `configService` on its startup context; export it to the parent with the `register` callback.
 
 ```ts
 import { Rhythm } from "@rhythmjs/rhythm";
 import { configModule } from "@rhythmjs/config";
 
-const app = new Rhythm().register(
-  configModule.forRoot(appConfig, databaseConfig),
-  (m) => ({ configService: m.configService }),
-);
-
-await app.setup(); // every factory runs and validates here
+// every factory runs and validates here, once, before the app serves
+const app = new Rhythm().register(await configModule.forRoot(appConfig, databaseConfig), (m) => ({
+  configService: m.configService,
+}));
 ```
 
 ## Aggregated failures
 
-Validation does not stop at the first bad file. A factory that throws `ConfigError` contributes its issues and loading continues; after all factories have run, the collected issues are thrown together as one `ConfigError`: a single boot failure reports the whole broken environment, namespaced paths included. Only unexpected errors (not `ConfigError`) abort immediately and propagate as-is.
+Validation does not stop at the first bad file. A factory that throws `ConfigError` contributes its issues and loading continues; after all factories have run, the collected issues are thrown together as one `ConfigError`, so the `await configModule.forRoot(...)` rejects at startup, never on the first request: a single startup failure reports the whole broken environment, namespaced paths included. Only unexpected errors (not `ConfigError`) abort immediately and propagate as-is.
 
 ```text
 ConfigError: Invalid configuration:
@@ -32,7 +30,7 @@ ConfigError: Invalid configuration:
 
 ## Read with the service
 
-The provided `configService` is typed from the exact factories you passed. `get(path)` takes a dot path - `"database.port"`, resolved segment by segment; `value` is the whole merged tree. The optional second argument is a fallback applied with `??`, so it kicks in for `null` as well as `undefined` and missing paths. `getOrThrow(path)` throws a `ConfigError` naming the path when the value is null or missing; reach for it at boot for values the app cannot run without.
+The `configService` on the module's context is typed from the exact factories you passed. `get(path)` takes a dot path - `"database.port"`, resolved segment by segment; `value` is the whole merged tree. The optional second argument is a fallback applied with `??`, so it kicks in for `null` as well as `undefined` and missing paths. `getOrThrow(path)` throws a `ConfigError` naming the path when the value is null or missing; reach for it at startup for values the app cannot run without.
 
 ```ts
 const port = ctx.configService.get("database.port"); // number

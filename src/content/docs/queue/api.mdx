@@ -16,7 +16,7 @@ const queueModule: {
 };
 ```
 
-`createQueueService` picks the engine: `options.engine` when given, else `redisEngine(options.redis, { prefix })` when `options.redis` is set (key prefix `` `${prefix ?? "rhythm"}:${name ?? "queue"}` ``), else `memoryEngine()`. `defaultJobOptions` merge under per-call options. `queueModule.forRoot` provides `{ queueService }` and disposes it on teardown, workers first, then the engine.
+`createQueueService` picks the engine: `options.engine` when given, else `redisEngine(options.redis, { prefix })` when `options.redis` is set (key prefix `` `${prefix ?? "rhythm"}:${name ?? "queue"}` ``), else `memoryEngine()`. `defaultJobOptions` merge under per-call options. `queueModule.forRoot` builds the service synchronously and assigns it as `queueService` on the module context; shut down with `await queueService.close()`, workers first, then the engine.
 
 <DefList>
 <Def sig="QueueModuleOptions" id="queuemoduleoptions">`{ name?: string; prefix?: string; defaultJobOptions?: JobOptions; redis?: string | Bun.RedisClient; engine?: QueueEngine }`.</Def>

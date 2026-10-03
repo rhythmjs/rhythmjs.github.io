@@ -6,7 +6,7 @@ description: "Health indicators, liveness and readiness probes, and graceful shu
 
 ## The health module
 
-`@rhythmjs/observability/health` is a kernel module rather than a middleware. `healthModule.forRoot(options)` provides a `healthService`; the options are `indicators` (the checks below), `timeout` (per-indicator default, `5000` ms), and `cacheTtl` (readiness report cache, `1000` ms).
+`@rhythmjs/observability/health` is a kernel module rather than a middleware. `healthModule.forRoot(options)` builds a `healthService` and assigns it to the module context; the options are `indicators` (the checks below), `timeout` (per-indicator default, `5000` ms), and `cacheTtl` (readiness report cache, `1000` ms).
 
 ```ts
 import { Rhythm } from "@rhythmjs/rhythm";
@@ -47,15 +47,17 @@ router.use(healthRoutes(healthService).middleware());
 
 ## Graceful shutdown
 
-`gracefulShutdown(options)` ties the pieces to process signals (`SIGTERM` and `SIGINT` by default). On the first signal it runs one ordered sequence: flip the `healthService` to shutting-down (readiness starts failing, so load balancers drain the instance), wait `drainMs` (default `0`), run your `close` hook (stop servers, close sockets), then the app's `teardown()` (providers dispose in reverse order), then exit `0`. A force timer - `timeoutMs`, default `10 000` ms, unref'd so it never keeps the process alive, and exits `1` if the sequence hangs. Repeated signals are ignored once shutdown has started.
+`gracefulShutdown(options)` ties the pieces to process signals (`SIGTERM` and `SIGINT` by default). On the first signal it runs one ordered sequence: flip the `healthService` to shutting-down (readiness starts failing, so load balancers drain the instance), wait `drainMs` (default `0`), run your `close` hook (stop servers, close databases, `queueService.close()`, `scheduler.stop()`), then exit `0`. The helper owns no resources itself; whatever you created, `close` releases. A force timer - `timeoutMs`, default `10 000` ms, unref'd so it never keeps the process alive, and exits `1` if the sequence hangs. Repeated signals are ignored once shutdown has started.
 
 ```ts
 import { gracefulShutdown } from "@rhythmjs/observability/health";
 
 const shutdown = gracefulShutdown({
   healthService,
-  app,
-  close: () => server.stop(),
+  close: async () => {
+    server.stop();
+    await db.close();
+  },
   drainMs: 5000,
 });
 

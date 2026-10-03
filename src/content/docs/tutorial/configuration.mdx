@@ -6,7 +6,7 @@ description: "Typed, validated settings on the kernel with namespaced factories.
 
 ## Settings as a module
 
-Configuration is just another module. `configModule.forRoot(...factories)` runs each factory at startup, deep-merges the results, and provides a typed `configService`. Register it first so everything after it can read settings:
+Configuration is just another module. `configModule.forRoot(...factories)` runs each factory, deep-merges the results, and exposes a typed `configService`. It is async — loaders run once, when you `await` it — so the app is only built from valid settings. Register it first so everything after it can read them:
 
 ```ts
 import { configModule } from "@rhythmjs/config";
@@ -16,7 +16,7 @@ const loadApp = () => ({
 });
 
 export const appModule = new Rhythm<RhythmHttpContext>({ name: "app", type: "module" })
-  .register(configModule.forRoot(loadApp), ({ configService }) => ({ configService }))
+  .register(await configModule.forRoot(loadApp), ({ configService }) => ({ configService }))
   .use((ctx) => {
     ctx.configService.get("port"); // number — the path and value are typed
   });
@@ -24,7 +24,7 @@ export const appModule = new Rhythm<RhythmHttpContext>({ name: "app", type: "mod
 
 ## Namespaces with registerAs
 
-`registerAs(token, schema, factory)` names a config namespace and validates it with any Standard Schema validator. Validation failures from *all* factories aggregate into one startup error — the app refuses to boot on malformed config rather than failing later at 3 a.m.:
+`registerAs(token, schema, factory)` names a config namespace and validates it with any Standard Schema validator. Validation failures from *all* factories aggregate into one startup error, rejected from `await configModule.forRoot(...)` — the app refuses to boot on malformed config rather than failing later at 3 a.m.:
 
 ```ts
 import { registerAs } from "@rhythmjs/config";
@@ -51,7 +51,7 @@ export const authConfig = registerAs(
 
 ```ts
 appModule.register(
-  configModule.forRoot(loadApp, databaseConfig, authConfig),
+  await configModule.forRoot(loadApp, databaseConfig, authConfig),
   ({ configService }) => ({ configService }),
 );
 
@@ -61,17 +61,17 @@ ctx.configService.get("database.poolSize");       // number, defaulted
 ctx.configService.getOrThrow("auth.tokenTtl");    // throws if missing
 ```
 
-## Config in providers
+## Config at startup
 
-Because registered exports land on the context *and* providers resolve in order, later providers can consume the config service through a factory module of their own — or more simply, read validated values at wiring time:
+Startup is ordinary top-level code, so wiring that needs validated settings just reads them first. Config factories are callable directly, and a failure throws before anything else is built:
 
 ```ts
-const database = await databaseConfig(); // factories are callable directly
+// src/main.ts
+const databaseSettings = await databaseConfig();
 // { url: "...", poolSize: 10 } — validated or thrown
 
-export const appModule = new Rhythm<RhythmHttpContext>({ name: "app", type: "module" })
-  .register(configModule.forRoot(loadApp, databaseConfig), (v) => v)
-  .provide(() => createDatabase(database.url), closeDatabase);
+const database = await createDatabase(databaseSettings.url);
+appModule.context.db = database.db;
 ```
 
 <Callout title="Secrets in error messages">

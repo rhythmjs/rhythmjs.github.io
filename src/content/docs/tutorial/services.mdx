@@ -1,7 +1,7 @@
 ---
-title: "Services & providers"
-lead: "Business logic in factories, injected once at startup, disposed in reverse."
-description: "Business logic in factories, injected once, disposed in reverse."
+title: "Services & startup context"
+lead: "Business logic in factories, built once at startup and closed by whoever created it."
+description: "Business logic in factories, built once into the startup context."
 ---
 
 ## Factories over classes
@@ -38,16 +38,24 @@ export function createNotesService(store: Map<string, Note> = new Map()) {
 export type NotesService = ReturnType<typeof createNotesService>;
 ```
 
-## Provide once, use everywhere
+## Assign once, use everywhere
 
-`provide()` registers a provider: its factory runs once at startup (in declaration order), and the returned object is merged onto every request context of everything mounted afterwards. Later factories receive earlier providers as their argument — dependency injection as a plain function parameter:
+A `Rhythm` kernel carries a startup context: a plain object, `module.context`, typed by the kernel's second generic. Assign built services onto it; every run starts from a copy of it merged with the request input, so everything mounted in the module sees the values on `ctx`. Services are built eagerly, in plain code — dependency injection is a function argument:
 
 ```ts
-export const appModule = new Rhythm<RhythmHttpContext>({ name: "app", type: "module" })
-  .provide(() => ({ notesService: createNotesService() }))
-  .provide(({ notesService }) => ({ statsService: createStatsService(notesService) }))
-  .use(notesController.middleware());
+export const appModule = new Rhythm<
+  RhythmHttpContext,
+  { notesService: NotesService; statsService: StatsService }
+>({ name: "app", type: "module" });
+
+const notesService = createNotesService();
+appModule.context.notesService = notesService;
+appModule.context.statsService = createStatsService(notesService);
+
+appModule.use(notesController.middleware());
 ```
+
+TypeScript cannot infer a type from a later property assignment, so the shape is declared once as the second generic. Nothing checks at runtime that every declared key was assigned, so assign them next to the declaration.
 
 The controller declares what it needs in its context type and reads it off `ctx`:
 
@@ -62,27 +70,25 @@ export const notesController = new RhythmRouter<NotesContext>({ prefix: "/api/no
   });
 ```
 
-## Disposal
+## Closing resources
 
-A provider can take a second argument: a dispose function, called on `teardown()` in reverse declaration order — the database closes after everything that used it. Keys prefixed with `#` stay internal: they are stripped before the value reaches request contexts or module exports, so handles nobody should touch stay private:
+Rhythm has no lifecycle: no setup hook, no teardown, no dispose. Whoever creates a resource closes it. A service that holds something open exposes `close()`, and the code that created it calls that on shutdown — `main.ts` in the next steps:
 
 ```ts
-export function createDatabase() {
-  const client = connect(process.env.DATABASE_URL!);
-  return { db: wrap(client), "#client": client };
+export async function createDatabase(url: string) {
+  const client = connect(url);
+  return { db: wrap(client), close: () => client.close() };
 }
 
-export function closeDatabase(value: ReturnType<typeof createDatabase>) {
-  return value["#client"].close();
-}
-
-appModule.provide(createDatabase, closeDatabase);
-// handlers see ctx.db; nobody sees ctx["#client"]
+// main.ts
+const database = await createDatabase(process.env.DATABASE_URL!);
+appModule.context.db = database.db;
+// handlers see ctx.db; main.ts owns database.close()
 ```
 
 ## Per-request values
 
-Providers are per-application. For per-request values — the current user, a request id, a scoped transaction — use `derive()`: a middleware whose return value extends the context, with the extension visible to the type system downstream:
+Startup values are per-application. For per-request values — the current user, a request id, a scoped transaction — use `derive()`: a middleware whose return value extends the context, with the extension visible to the type system downstream:
 
 ```ts
 import { derive } from "@rhythmjs/rhythm";
@@ -97,4 +103,4 @@ router.use(withRequestMeta).get("/", (ctx) => {
 });
 ```
 
-The rule of thumb: `provide()` for things built once and shared, `derive()` for things computed per request. Both put values on `ctx`; only their lifetimes differ.
+The rule of thumb: `context` for things built once and shared, `derive()` for things computed per request. Both put values on `ctx`; only their lifetimes differ.

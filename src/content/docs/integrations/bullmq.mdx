@@ -1,7 +1,7 @@
 ---
 title: BullMQ
 lead: "Run typed background jobs on full BullMQ: Redis-durable work, stalled-job recovery, and replica-safe schedules behind the same queueService."
-description: "Use BullMQ with Rhythm through @rhythmjs/bullmq: a typed job map, a kernel module that owns the Queue and Workers, BullMQ's own job options, Job Schedulers, and testing without Redis."
+description: "Use BullMQ with Rhythm through @rhythmjs/bullmq: a typed job map, a kernel module that builds the Queue and Workers at startup, BullMQ's own job options, Job Schedulers, and testing without Redis."
 ---
 
 `@rhythmjs/bullmq` gives a typed job map and a kernel module over [BullMQ](https://docs.bullmq.io). It exposes the same `queueService` as [`@rhythmjs/queue`](/queue/), so producers and handlers do not change if you switch between the two. Start from the [template](https://github.com/rhythmjs/template); the full app, with tests, is [examples/bullmq](https://github.com/rhythmjs/examples/tree/main/examples/bullmq).
@@ -23,7 +23,7 @@ The honest differences: job ids are `string | undefined` (BullMQ's own typing), 
 
 ## Register the module [#module]
 
-The module owns the BullMQ lifecycle: on the kernel's `teardown()` every worker closes first, then the queue. A job map types producers and processors.
+The module builds the `queueService` when `forRoot` runs and puts it on its startup context. Rhythm never closes it: on shutdown you call `await queueService.close()`, which closes every worker first, then the queue. A job map types producers and processors.
 
 ```ts
 // src/jobs.ts
@@ -53,32 +53,55 @@ Options: `name` (the queue name, default `rhythm`), `connection` (ioredis `Conne
 
 ## Start a worker with the app [#worker]
 
-To process jobs in the same process, build the queue service in a provider, start a worker on it, and close it with the app. `close()` closes every worker first, then the queue, so one dispose function releases Redis:
+To process jobs in the same process, build the queue service at startup, start a worker on it, and close it with the app. `close()` closes every worker first, then the queue, so one call releases Redis:
 
 ```ts
 // src/emails/queue.ts
-import { createQueueService, type QueueService } from "@rhythmjs/bullmq";
+import { createQueueService } from "@rhythmjs/bullmq";
+import type { mailService } from "./mail.service";
 
-export function createQueue({ mailService }: { mailService: typeof import("./mail.service").mailService }) {
+export function createQueue(mail: typeof mailService) {
   const queueService = createQueueService<AppJobs>({ name: "emails", connection: { host: "127.0.0.1", port: 6379 } });
-  queueService.process({ "email.send": (payload) => mailService.send(payload) }, { concurrency: 4 });
-  return { queueService };
-}
-
-export function closeQueue({ queueService }: { queueService: QueueService<AppJobs> }) {
-  return queueService.close();
+  queueService.process({ "email.send": (payload) => mail.send(payload) }, { concurrency: 4 });
+  return queueService;
 }
 ```
+
+The emails module declares the `queueService` it needs as input and carries `mailService` on its own context. The app declares `queueService` in its startup shape, and `main.ts` assigns it and closes it:
 
 ```ts
 // src/emails/emails.module.ts
-export const emailsModule = new Rhythm<RhythmHttpContext>({ name: "emails", type: "module" })
-  .provide(() => ({ mailService }))
-  .provide(createQueue, closeQueue)
-  .use(emailsController.middleware());
+export const emailsModule = new Rhythm<
+  RhythmHttpContext & { queueService: QueueService<AppJobs> },
+  { mailService: typeof mailService }
+>({ name: "emails", type: "module" }).use(emailsController.middleware());
+
+emailsModule.context.mailService = mailService;
 ```
 
-Controllers then read `ctx.queueService`, for example `await ctx.queueService.add("email.send", { to, subject })`, and tests stub it. `bullmqModule.forRoot` above is the same service as a ready-made module, for apps that only produce jobs.
+```ts
+// src/app.module.ts (startup shape)
+export const appModule = new Rhythm<
+  RhythmHttpContext,
+  { appService: typeof appService; queueService: QueueService<AppJobs> }
+>({ name: "app", type: "module" }).register(emailsModule);
+```
+
+```ts
+// src/main.ts
+const queueService = createQueue(mailService);
+appModule.context.queueService = queueService;
+
+const server = Bun.serve({ port, fetch: toFetchHandler(appModule) });
+
+process.on("SIGINT", async () => {
+  await server.stop();
+  await queueService.close();
+  process.exit(0);
+});
+```
+
+Controllers then read `ctx.queueService`, for example `await ctx.queueService.add("email.send", { to, subject })`, and tests stub it. `bullmqModule.forRoot` above is the same service as a ready-made module, for apps that only produce jobs; close its `queueService` the same way.
 
 ## Produce and process [#produce-and-process]
 

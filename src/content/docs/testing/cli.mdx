@@ -6,7 +6,7 @@ description: "Execute CLI commands in-process: string or argv input through the 
 
 ## Create a runner
 
-`createCliRunner(appOrCli)` from `@rhythmjs/testing/cli` wraps a Rhythm CLI app (or a bare `RhythmCli`, which it mounts for you) behind a single `run()`. The app's real middleware chain executes through `callback()`; nothing touches the process's actual stdio, argv, or exit code.
+`createCliRunner(appOrCli, options?)` from `@rhythmjs/testing/cli` wraps a Rhythm CLI app (or a bare `RhythmCli`, which it mounts for you) behind a single `run()`. The app's real middleware chain executes through `callback()`; nothing touches the process's actual stdio, argv, or exit code.
 
 ```ts
 import { createCliRunner } from "@rhythmjs/testing/cli";
@@ -32,6 +32,12 @@ const result = await runner.run("import --format=json", {
 expect(result.exitCode).toBe(0);
 ```
 
-## Teardown
+## Startup context
 
-`runner.teardown()` disposes the app's providers in reverse order, mirroring a real process exit. Prompts are a provider concern: a CLI that prompts should receive a fake `RhythmPromptIO` through its own providers, keeping the runner byte-deterministic.
+Pass `context` to assign startup values onto the app's `context` before any run. It is typed as a `Partial` of the app's declared startup shape, and it overrides values the app already holds, so a fake wins over a real one. Prompts are a startup concern: a CLI that prompts should receive a fake `RhythmPrompt` this way, keeping the runner byte-deterministic.
+
+```ts
+const runner = createCliRunner(app, { context: { db: fakeDb } });
+```
+
+The runner has no `teardown()`: close any resource the test created yourself in `afterAll`.

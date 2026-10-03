@@ -16,7 +16,7 @@ bun add better-auth @rhythmjs/better-auth
 
 ## Mount the handler [#module]
 
-Register `betterAuthModule.forRoot({ auth })`. It mounts `auth.handler` at `path` (default: the instance's `basePath`, else `/api/auth`) and provides `auth`. Nothing reaches the context until you export it in the `register` callback, so export `auth` for the middleware below.
+Register `betterAuthModule.forRoot({ auth })`. It mounts `auth.handler` at `path` (default: the instance's `basePath`, else `/api/auth`) and sets `auth` on its own startup context. Nothing reaches the parent until you export it in the `register` callback, so export `auth` for the middleware below.
 
 ```ts
 // src/app.module.ts
@@ -31,7 +31,7 @@ export const appModule = new Rhythm<RhythmHttpContext>({ name: "app", type: "mod
 );
 ```
 
-Under the hood the module uses [`mount`](/http/mount/). Without the module, `authHandler({ auth })` is the bare mounting middleware; provide `ctx.auth` yourself in that case.
+Under the hood the module uses [`mount`](/http/mount/). Without the module, `authHandler({ auth })` is the bare mounting middleware; put `auth` on the context yourself in that case (for example `appModule.context.auth = auth`).
 
 ## CORS [#cors]
 

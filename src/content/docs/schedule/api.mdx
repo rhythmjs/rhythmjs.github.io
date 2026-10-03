@@ -32,7 +32,7 @@ Builds the registry and state map. Throws on duplicate job names; every service 
 
 ```ts
 const scheduleModule: {
-  forRoot(...jobs: ScheduleJob[]): Rhythm<...>; // provides { scheduleService }
+  forRoot(...jobs: ScheduleJob[]): Rhythm<...>; // context: { scheduleService }
 };
 ```
 
@@ -70,7 +70,7 @@ interface ScheduleService {
 <Def sig="ScheduleJob" id="schedulejob">The frozen job value: `{ name, kind, schedule: string | number, handler, timezone?, overlap, disabled }`.</Def>
 <Def sig="JobState" id="jobstate">`{ running: boolean; runs: number; lastRun?: Date; lastError?: string; nextRun?: Date }`.</Def>
 <Def sig="JobRunResult" id="jobrunresult">`{ name: string; ran: boolean; durationMs?: number; error?: string }`.</Def>
-<Def sig="ScheduleContext" id="schedulecontext">`{ scheduleService: ScheduleService }`, the context slice the module provides.</Def>
+<Def sig="ScheduleContext" id="schedulecontext">`{ scheduleService: ScheduleService }`, the context slice the module declares.</Def>
 </DefList>
 
 ## @rhythmjs/schedule/cron [#cron-subpath]

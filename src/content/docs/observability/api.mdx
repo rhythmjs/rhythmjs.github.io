@@ -41,7 +41,7 @@ Returns middleware that appends a `Server-Timing` header after `next()` resolves
 
 ```ts
 function createHealthService(options?: HealthModuleOptions): HealthService
-const healthModule: { forRoot(options?): Rhythm } // provides { healthService }
+const healthModule: { forRoot(options?): Rhythm } // context: { healthService }
 function healthRoutes(service: HealthService, options?: { path?: string }): RhythmRouter
 function gracefulShutdown(options?: GracefulShutdownOptions): () => Promise<void>
 ```
@@ -50,5 +50,5 @@ function gracefulShutdown(options?: GracefulShutdownOptions): () => Promise<void
 <Def sig="HealthIndicator" id="healthindicator">`{ name, check(): HealthResult, critical?, timeout? }`. `critical` defaults to true; a down critical indicator makes the whole report down; non-critical failures are reported but do not. Each check races its own `timeout` (falling back to the module-level `timeout`, default 5000ms) and a throw or timeout counts as down with the error in `details`.</Def>
 <Def sig="HealthService" id="healthservice">`live()` - `{ status: "up", uptime, timestamp }`, no indicators involved. `ready()` returns a `HealthReport` (`status`, `shuttingDown`, per-indicator `checks` with durations), cached for `cacheTtl` (default 1000ms). `shutdown()` flips `isShuttingDown` and makes `ready()` report down immediately.</Def>
 <Def sig={"healthRoutes(service, { path? })"} id="healthroutes">A router (default prefix `/health`) serving `GET /live` (always 200) and `GET /ready` (200 up, 503 down).</Def>
-<Def sig="GracefulShutdownOptions" id="gracefulshutdownoptions">`healthService` (flipped first), `app` (its `teardown()` runs), `close` hook, `signals` (default `SIGTERM`/`SIGINT`), `drainMs` (default 0), `timeoutMs` (hard cap, default 10 000), and `exit`. Returns the shutdown function so you can also invoke it directly.</Def>
+<Def sig="GracefulShutdownOptions" id="gracefulshutdownoptions">`healthService` (flipped first), `close` hook (runs after the drain; release your own resources here), `signals` (default `SIGTERM`/`SIGINT`), `drainMs` (default 0), `timeoutMs` (hard cap, default 10 000), and `exit`. Returns the shutdown function so you can also invoke it directly.</Def>
 </DefList>

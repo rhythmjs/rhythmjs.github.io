@@ -1,7 +1,7 @@
 ---
-title: "Prisma as a provider"
-lead: "One PrismaClient for the app's lifetime, opened by a provider and closed by its dispose hook — with Prisma's error codes translated to plain answers at the service boundary."
-description: "Wire Prisma into Rhythm: PrismaClient as a disposable provider, not-found error codes mapped at the service boundary, and deploy-style migrations."
+title: "Prisma on the startup context"
+lead: "One PrismaClient for the app's lifetime, created at startup and closed on shutdown — with Prisma's error codes translated to plain answers at the service boundary."
+description: "Wire Prisma into Rhythm: PrismaClient on the startup context, not-found error codes mapped at the service boundary, and deploy-style migrations."
 ---
 
 ## Install
@@ -26,9 +26,9 @@ model Note {
 }
 ```
 
-## The database provider [#database-provider]
+## The database handle [#database-handle]
 
-`PrismaClient` manages its own pool, so the provider pair is short: construct at setup, `$disconnect()` at teardown. Passing `datasourceUrl` keeps the runtime independent of the `.env` file the CLI reads.
+`PrismaClient` manages its own pool, so the handle is short: construct it at startup and expose `$disconnect()` as `close()`. Passing `datasourceUrl` keeps the runtime independent of the `.env` file the CLI reads.
 
 ```ts
 // src/database.ts
@@ -36,12 +36,14 @@ import { PrismaClient } from "@prisma/client";
 
 const databaseUrl = process.env.DATABASE_URL ?? "postgres://postgres:postgres@localhost:5432/notes_prisma";
 
-export function createDatabase(): { prisma: PrismaClient } {
-  return { prisma: new PrismaClient({ datasourceUrl: databaseUrl }) };
+export interface Database {
+  prisma: PrismaClient;
+  close(): Promise<void>;
 }
 
-export async function closeDatabase({ prisma }: { prisma: PrismaClient }): Promise<void> {
-  await prisma.$disconnect();
+export function createDatabase(): Database {
+  const prisma = new PrismaClient({ datasourceUrl: databaseUrl });
+  return { prisma, close: () => prisma.$disconnect() };
 }
 ```
 
@@ -83,18 +85,23 @@ export function createNotesService(prisma: PrismaClient) {
 
 ## Wiring the module [#module-wiring]
 
-Identical to every other recipe — only the provider name changes. The service factory receives `prisma` from the provider graph; the controller validates bodies with zod through `validate("body", …)` and checks responses with `intercept(…)`.
+Identical to every other recipe — only the context key changes. The app module declares `prisma` in its startup shape, `src/main.ts` assigns `appModule.context.prisma = database.prisma` before serving and calls `database.close()` on shutdown, and the notes module derives the service from it. The controller validates bodies with zod through `validate("body", …)` and checks responses with `intercept(…)`.
 
 ```ts
 // src/app.module.ts
-export const appModule = new Rhythm<RhythmHttpContext>({ name: "app", type: "module" })
+export const appModule = new Rhythm<RhythmHttpContext, { prisma: PrismaClient }>({ name: "app", type: "module" })
   .use(filter())
-  .provide(createDatabase, closeDatabase)
-  .provide(({ prisma }) => ({ notesService: createNotesService(prisma) }))
-  .use(notesController.middleware())
+  .register(notesModule)
   .use(() => {
     throw new HttpError(404, "Route not found");
   });
+```
+
+```ts
+// src/notes/notes.module.ts
+export const notesModule = new Rhythm<NotesModuleInput>({ name: "notes", type: "module" })
+  .use(derive(({ prisma }: NotesModuleInput) => ({ notesService: createNotesService(prisma) })))
+  .use(notesController.middleware());
 ```
 
 ## Migrations

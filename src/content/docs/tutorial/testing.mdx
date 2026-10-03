@@ -6,38 +6,40 @@ description: "In-process clients, module mocks, and WebSocket harnesses."
 
 ## An in-process client
 
-`@rhythmjs/testing` tests the real pipeline without opening a socket: `createTestClient` dispatches `Request` objects straight into the app's fetch handler. Tests are plain `bun:test`:
+`@rhythmjs/testing` tests the real pipeline without opening a socket: `createTestClient` dispatches `Request` objects straight into the app's fetch handler. Its `context` option assigns startup values onto the app's `context` — real or fake, they win over whatever is already there. Tests are plain `bun:test`, and they close what they open:
 
 ```ts
-import { describe, expect, test } from "bun:test";
+import { afterAll, describe, expect, test } from "bun:test";
 import { createTestClient } from "@rhythmjs/testing/router";
 import { appModule } from "../src/app.module";
+import { createDatabase } from "../src/database";
+
+// the app declares { db }; main.ts assigns it in production, the test assigns its own
+const database = createDatabase(process.env.TEST_DATABASE_URL!);
+afterAll(() => database.close()); // the test created the pool, the test closes it
 
 describe("notes api", () => {
   test("creates and lists notes", async () => {
-    const client = createTestClient(appModule);
+    const client = createTestClient(appModule, { context: { db: database.db } });
 
     const created = await client.post("/api/notes", { json: { title: "first" } });
     expect(created.status).toBe(201);
 
     const list = await client.get("/api/notes");
     expect(await list.json()).toHaveLength(1);
-
-    await client.teardown(); // disposes providers
   });
 
   test("rejects invalid input", async () => {
-    const client = createTestClient(appModule);
+    const client = createTestClient(appModule, { context: { db: database.db } });
     const res = await client.post("/api/notes", { json: { title: "" } });
     expect(res.status).toBe(400);
-    await client.teardown();
   });
 });
 ```
 
 ## Swap modules with mocks
 
-Because dependencies are providers, faking one is building a smaller pipeline. `mockModule(values)` wraps any exports object as a module, so a controller tests against a stub service with no database anywhere:
+Because dependencies are values on the startup context, faking one is building a smaller pipeline. `mockModule(values)` wraps any exports object as a module, so a controller tests against a stub service with no database anywhere:
 
 ```ts
 import { mockModule } from "@rhythmjs/testing/rhythm";
@@ -86,6 +88,6 @@ test("a bad ticket is rejected", async () => {
 
 ## Where you are now
 
-You have built the whole arc: a controller on a Bun-native router, services and modules with explicit boundaries, validated input and output, typed configuration, a real database with clean teardown, a hardened edge, live WebSockets, background work, a generated API document, production observability — and proof that it works. Everything was middleware, providers, and modules on one small kernel.
+You have built the whole arc: a controller on a Bun-native router, services and modules with explicit boundaries, validated input and output, typed configuration, a real database you open and close yourself, a hardened edge, live WebSockets, background work, a generated API document, production observability — and proof that it works. Everything was middleware, startup context, and modules on one small kernel.
 
 From here, the [package docs](/rhythm/) are the depth pass for each layer, the [philosophy](/#philosophy) explains why the pieces are shaped this way, and the [example repositories](https://github.com/rhythmjs) hold complete runnable versions of these patterns.

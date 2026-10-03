@@ -1,7 +1,7 @@
 ---
 title: Nodemailer
-lead: "Send mail over SMTP: build the transport once as a provider, close it on teardown, and call it from a controller."
-description: "Use Nodemailer with Rhythm: an SMTP transport provider with disposal, a mailer on the context, and a JSON transport that needs no mail server."
+lead: "Send mail over SMTP: build the transport once at startup, close it on shutdown, and call it from a controller."
+description: "Use Nodemailer with Rhythm: an SMTP transport created at startup and closed on shutdown, a mailer on the context, and a JSON transport that needs no mail server."
 ---
 
 Start from the [template](https://github.com/rhythmjs/template). `src/app.service.ts` stays as it is.
@@ -13,9 +13,9 @@ bun add nodemailer
 bun add -d @types/nodemailer
 ```
 
-## The transport is a provider [#provider]
+## The transport is created at startup [#transport]
 
-A transport holds connection settings, so it is built once as a [provider](/rhythm/providers/) and closed on teardown. Without `SMTP_HOST`, the JSON transport builds each message and returns it instead of sending, so the app runs and tests with no mail server. The `#transport` key stays off the request context, but `closeMailer` still receives it.
+A transport holds connection settings, so it is built once at startup, handed to the app through its [startup context](/rhythm/context/), and closed on shutdown. Without `SMTP_HOST`, the JSON transport builds each message and returns it instead of sending, so the app runs and tests with no mail server. The factory returns the `mailer` the app uses together with a `close()` that closes the transport, so the transport itself never reaches the request context.
 
 ```ts
 // src/mail/mail.ts
@@ -40,12 +40,8 @@ export function createMailer() {
           text: `Hi ${name}, thanks for signing up.`,
         }),
     },
-    "#transport": transport,
+    close: () => transport.close(),
   };
-}
-
-export function closeMailer(value: ReturnType<typeof createMailer>) {
-  value["#transport"].close();
 }
 
 export type Mailer = ReturnType<typeof createMailer>["mailer"];
@@ -84,7 +80,9 @@ export const appController = new RhythmRouter<AppContext>()
   });
 ```
 
-## Provide it in the module [#module]
+## Assign it to the app [#module]
+
+The app module declares `mailer` in its startup shape. `main.ts` creates the mailer, assigns it before serving, and closes it on `SIGINT`.
 
 ```ts
 // src/app.module.ts
@@ -92,34 +90,38 @@ import { Rhythm } from "@rhythmjs/rhythm";
 import type { RhythmHttpContext } from "@rhythmjs/router/adapters/context";
 import { appController } from "./app.controller";
 import { appService } from "./app.service";
-import { closeMailer, createMailer } from "./mail/mail";
+import type { Mailer } from "./mail/mail";
 
-export const appModule = new Rhythm<RhythmHttpContext>({ name: "app", type: "module" })
-  .provide(() => ({ appService }))
-  .provide(createMailer, closeMailer)
+export const appModule = new Rhythm<RhythmHttpContext, { appService: typeof appService; mailer: Mailer }>({
+  name: "app",
+  type: "module",
+})
   .use(appController.middleware())
   .use((ctx) => {
     ctx.response.status = 404;
     ctx.response.headers.set("content-type", "application/json");
     ctx.response.body = JSON.stringify({ success: false, status: 404, message: "Not Found" });
   });
-```
 
-`main.ts` closes the app on `SIGINT`, which closes the transport:
+appModule.context.appService = appService;
+```
 
 ```ts
 // src/main.ts
 import { toFetchHandler } from "@rhythmjs/router/fetch";
 import { appModule } from "./app.module";
+import { createMailer } from "./mail/mail";
 
 const port = Number(process.env.PORT ?? 3009);
+const { mailer, close } = createMailer();
+appModule.context.mailer = mailer;
 
 const server = Bun.serve({ port, fetch: toFetchHandler(appModule) });
 console.log(`listening on ${server.url}`);
 
 process.on("SIGINT", async () => {
   await server.stop();
-  await appModule.teardown();
+  close();
   process.exit(0);
 });
 ```

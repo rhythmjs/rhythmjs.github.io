@@ -1,7 +1,7 @@
 ---
 title: Redis
-lead: "Bun ships a Redis client: build it once as a provider, keep the feature in one module, and cache with an expiry."
-description: "Use Redis with Rhythm through Bun's built-in RedisClient: a provider with disposal, a products module and controller, and cache-aside with invalidation."
+lead: "Bun ships a Redis client: build it once at startup, keep the feature in one module, and cache with an expiry."
+description: "Use Redis with Rhythm through Bun's built-in RedisClient: a client on the startup context, a products module and controller, and cache-aside with invalidation."
 ---
 
 Start from the [template](https://github.com/rhythmjs/template). `src/app.service.ts` and `src/app.controller.ts` stay as they are.
@@ -10,20 +10,18 @@ Start from the [template](https://github.com/rhythmjs/template). `src/app.servic
 
 Nothing: `RedisClient` is part of Bun.
 
-## The client is a provider [#provider]
+## The client is created at startup [#client]
 
 ```ts
 // src/redis.ts
 import { RedisClient } from "bun";
 
-export function createRedis() {
-  return { redis: new RedisClient(process.env.REDIS_URL ?? "redis://localhost:6379") };
-}
-
-export function closeRedis(value: ReturnType<typeof createRedis>) {
-  value.redis.close();
+export function createRedis(): RedisClient {
+  return new RedisClient(process.env.REDIS_URL ?? "redis://localhost:6379");
 }
 ```
+
+`main.ts` creates it once, assigns it to the app's [startup context](/rhythm/context/), and closes it on shutdown. Rhythm does not close it for you.
 
 ## A service holds the data [#service]
 
@@ -121,34 +119,44 @@ export const productsController = new RhythmRouter<ProductsContext>({ prefix: "/
 
 ## The products module owns the feature [#module]
 
-The module provides the client and the service and mounts the controller.
+The module declares the `redis` it needs as input, carries the service on its own context, and mounts the controller.
 
 ```ts
 // src/products/products.module.ts
+import type { RedisClient } from "bun";
 import { Rhythm } from "@rhythmjs/rhythm";
 import type { RhythmHttpContext } from "@rhythmjs/router/adapters/context";
-import { closeRedis, createRedis } from "../redis";
 import { productsController } from "./products.controller";
 import { productsService } from "./products.service";
 
-export const productsModule = new Rhythm<RhythmHttpContext>({ name: "products", type: "module" })
-  .provide(createRedis, closeRedis)
-  .provide(() => ({ productsService }))
-  .use(productsController.middleware());
+export const productsModule = new Rhythm<
+  RhythmHttpContext & { redis: RedisClient },
+  { productsService: typeof productsService }
+>({
+  name: "products",
+  type: "module",
+}).use(productsController.middleware());
+
+productsModule.context.productsService = productsService;
 ```
 
 ## Register it in the app [#app]
 
+The app declares the startup shape `{ appService, redis }`. `register(productsModule)` is type-checked against it: the parent must be able to supply `redis`.
+
 ```ts
 // src/app.module.ts
+import type { RedisClient } from "bun";
 import { Rhythm } from "@rhythmjs/rhythm";
 import type { RhythmHttpContext } from "@rhythmjs/router/adapters/context";
 import { appController } from "./app.controller";
 import { appService } from "./app.service";
 import { productsModule } from "./products/products.module";
 
-export const appModule = new Rhythm<RhythmHttpContext>({ name: "app", type: "module" })
-  .provide(() => ({ appService }))
+export const appModule = new Rhythm<RhythmHttpContext, { appService: typeof appService; redis: RedisClient }>({
+  name: "app",
+  type: "module",
+})
   .register(productsModule)
   .use(appController.middleware())
   .use((ctx) => {
@@ -156,23 +164,28 @@ export const appModule = new Rhythm<RhythmHttpContext>({ name: "app", type: "mod
     ctx.response.headers.set("content-type", "application/json");
     ctx.response.body = JSON.stringify({ success: false, status: 404, message: "Not Found" });
   });
+
+appModule.context.appService = appService;
 ```
 
-`main.ts` closes the app on `SIGINT`, which closes the Redis client:
+`main.ts` assigns the client and closes it on `SIGINT`:
 
 ```ts
 // src/main.ts
 import { toFetchHandler } from "@rhythmjs/router/fetch";
 import { appModule } from "./app.module";
+import { createRedis } from "./redis";
 
 const port = Number(process.env.PORT ?? 3011);
+const redis = createRedis();
+appModule.context.redis = redis;
 
 const server = Bun.serve({ port, fetch: toFetchHandler(appModule) });
 console.log(`listening on ${server.url}`);
 
 process.on("SIGINT", async () => {
   await server.stop();
-  await appModule.teardown();
+  redis.close();
   process.exit(0);
 });
 ```

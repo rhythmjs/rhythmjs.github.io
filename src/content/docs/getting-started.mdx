@@ -47,7 +47,7 @@ Five small files cover the whole Nest-style pattern: a module, a controller, a s
 ```text
 src/
   main.ts your own Bun.serve call over toFetchHandler(appModule)
-  app.module.ts Rhythm instance: provides the service, mounts the controller
+  app.module.ts Rhythm instance: holds the service in its startup context, mounts the controller
   app.controller.ts RhythmRouter instance: routes and handlers
   app.service.ts plain object holding the business logic
   app.controller.spec.ts bun:test specs for the controller
@@ -55,22 +55,26 @@ src/
 
 ## The pattern
 
-The service holds business logic and knows nothing about HTTP. The module provides it with `provide()`, which places it on the request context of everything mounted afterwards. The controller declares that dependency in its context type, so handlers use `ctx.appService` with full type safety: the type-level equivalent of constructor injection.
+The service holds business logic and knows nothing about HTTP. The module declares it in the kernel's startup context and assigns it to `context`, which places it on the request context of everything mounted in that module. The controller declares that dependency in its context type, so handlers use `ctx.appService` with full type safety: the type-level equivalent of constructor injection.
 
 ```ts
-export const appModule = new Rhythm<RhythmHttpContext>({ name: "app", type: "module" })
-  .provide(() => ({ appService }))
-  .use(appController.middleware())
-  .use((ctx) => {
-    ctx.response.status = 404;
-    ctx.response.headers.set("content-type", "application/json");
-    ctx.response.body = JSON.stringify({ success: false, status: 404, message: "Not Found" });
-  });
+export const appModule = new Rhythm<RhythmHttpContext, { appService: typeof appService }>({
+  name: "app",
+  type: "module",
+});
+
+appModule.context.appService = appService;
+
+appModule.use(appController.middleware()).use((ctx) => {
+  ctx.response.status = 404;
+  ctx.response.headers.set("content-type", "application/json");
+  ctx.response.body = JSON.stringify({ success: false, status: 404, message: "Not Found" });
+});
 ```
 
 ## Test it
 
-The controller spec builds a small test harness instead of booting the whole application: a fresh Rhythm provides the service, mounts the controller's routes, and is wrapped in a fetch handler. Substituting a stub service proves the controller delegates instead of hardcoding responses.
+The controller spec avoids booting the whole application: `runHttpMiddleware` runs the controller's middleware directly with a service placed on the context. Substituting a stub service proves the controller delegates instead of hardcoding responses.
 
 ```bash
 bun test # bun test runner
@@ -80,7 +84,7 @@ bun run check # prettier --check + oxlint + tsc
 
 ## Grow the app
 
-Add a feature by repeating the pattern: a `users.service.ts`, a `users.controller.ts` router with a `prefix`, provide the service in the module, and mount the controller before the 404 handler. Validation, sessions, logging, CORS, and friends come from the [Middleware](/middleware/), [HTTP](/http/), [Security](/security/), and [Observability](/observability/) packages.
+Add a feature by repeating the pattern: a `users.service.ts`, a `users.controller.ts` router with a `prefix`, assign the service in the module's `context`, and mount the controller before the 404 handler. Validation, sessions, logging, CORS, and friends come from the [Middleware](/middleware/), [HTTP](/http/), [Security](/security/), and [Observability](/observability/) packages.
 
 ## Under the hood
 

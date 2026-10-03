@@ -20,7 +20,7 @@ The documentation site for [RhythmJS](https://github.com/rhythmjs), published at
 
 ```
 src/
-  content/docs/       one MDX file per docs page, mirroring the URL (rhythm/providers.mdx -> /rhythm/providers/)
+  content/docs/       one MDX file per docs page, mirroring the URL (rhythm/context.mdx -> /rhythm/context/)
   landing/            MDX parts of the landing page: features, can-do, philosophy, closing
   data/nav.ts         docs navigation: sections, groups, page order and sidebar labels (single source of truth)
   data/site.ts        site name, version, URLs
@@ -73,14 +73,14 @@ Its content lives in `src/landing/*.mdx` and is assembled in `src/pages/index.as
 
    ```mdx
    ---
-   title: Providers & lifecycle
-   lead: Initialize shared dependencies once, then dispose of them deliberately.
+   title: Startup context
+   lead: Create shared dependencies once, assign them to the context, and close them yourself.
    description: Optional longer text for search engines and social cards; falls back to the lead.
    ---
    ```
 
 2. Add `{ id: "<group>/<page>", label: "Sidebar label" }` to the group's `items` in `src/data/nav.ts`. The build fails if a page and the navigation disagree.
-3. Link to other pages with their final URLs: `[Providers](/rhythm/providers/)`. A group's landing page is `<group>/index.mdx` and lives at `/<group>/`.
+3. Link to other pages with their final URLs: `[Startup context](/rhythm/context/)`. A group's landing page is `<group>/index.mdx` and lives at `/<group>/`.
 
 ### Content conventions
 
@@ -96,7 +96,7 @@ Its content lives in `src/landing/*.mdx` and is assembled in `src/pages/index.as
   </Callout>
 
   <DefList>
-    <Def sig="provide(factory, dispose?)" id="provide">
+    <Def sig="derive(fn)" id="derive">
       What it does.
     </Def>
   </DefList>

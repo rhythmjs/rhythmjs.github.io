@@ -6,18 +6,23 @@ description: "Encapsulated features, registered imports, and the forRoot pattern
 
 ## Feature modules
 
-As features multiply, each one becomes its own module: a `Rhythm` instance with `{ type: "module", name }` that owns its providers and controllers. The notes feature now ships as one unit:
+As features multiply, each one becomes its own module: a `Rhythm` instance with `{ type: "module", name }` that owns its startup values and controllers. The notes feature now ships as one unit:
 
 ```ts
 // src/notes/notes.module.ts
-export const notesModule = new Rhythm<RhythmHttpContext>({ name: "notes", type: "module" })
-  .provide(() => ({ notesService: createNotesService() }))
-  .use(notesController.middleware());
+export const notesModule = new Rhythm<RhythmHttpContext, { notesService: NotesService }>({
+  name: "notes",
+  type: "module",
+});
+
+notesModule.context.notesService = createNotesService();
+
+notesModule.use(notesController.middleware());
 ```
 
 ## Register and export
 
-`register(module, exportValue?)` mounts another module inside this one. The child's providers set up with the parent (and tear down with it), its middleware runs in place, and its context stays *encapsulated*: nothing leaks to the parent unless `exportValue` picks it out. Explicit boundaries, not folder conventions:
+`register(module, exportValue?)` mounts another module inside this one. The child runs on a copy of the parent's context with its own `context` merged on top, so it inherits everything the parent holds, its middleware runs in place, and what it adds stays *encapsulated*: nothing leaks to the parent unless `exportValue` picks it out. Registration also type-checks that the parent satisfies the child's input. Explicit boundaries, not folder conventions:
 
 ```ts
 export const appModule = new Rhythm<RhythmHttpContext>({ name: "app", type: "module" })
@@ -28,19 +33,18 @@ export const appModule = new Rhythm<RhythmHttpContext>({ name: "app", type: "mod
   });
 ```
 
-A registered module that fails to set up fails the whole app loudly at startup — `registered module "notes" failed` with the original error as `cause` — never a silent half-boot.
+Because services are built eagerly, a module that cannot construct its service throws while the app is being assembled — at startup, with the original error — never on the first request.
 
 ## The forRoot pattern
 
-Reusable modules follow one naming convention: a `somethingModule.forRoot(options)` factory returning a configured `Rhythm` module. Every @rhythmjs package that provides a service ships one, and your own shared modules should too:
+Reusable modules follow one naming convention: a `somethingModule.forRoot(options)` factory returning a configured `Rhythm` module. Every @rhythmjs package that exposes a service ships one, and your own shared modules should too:
 
 ```ts
 export const cacheModule = {
   forRoot(options: { ttl?: number } = {}) {
-    return new Rhythm({ type: "module", name: "cache" }).provide(
-      () => ({ cacheService: createCacheService(options) }),
-      (value) => value.cacheService.close(),
-    );
+    const module = new Rhythm<{}, { cacheService: CacheService }>({ type: "module", name: "cache" });
+    module.context.cacheService = createCacheService(options);
+    return module;
   },
 };
 
@@ -49,7 +53,7 @@ appModule.register(cacheModule.forRoot({ ttl: 300 }), (v) => v);
 
 ## The app as a tree
 
-The finished shape is a tree of modules with the app module at the root — setup flows down, teardown flows back up in reverse, and every request runs the flattened onion top to bottom:
+The finished shape is a tree of modules with the app module at the root — startup values flow down to children, exports flow back up only where you choose, and every request runs the flattened onion top to bottom:
 
 ```text
 appModule

@@ -48,7 +48,7 @@ Note the difference: `emit` is fire-and-forget with errors funneled to `onError`
 
 ## The kernel module
 
-`eventsModule.forRoot<TEvents>(options?)` wraps `createEventBus` in an encapsulated Rhythm module that provides `eventBus`; `options.onError` is the same hook.
+`eventsModule.forRoot<TEvents>(options?)` wraps `createEventBus` in an encapsulated Rhythm module whose context holds `eventBus`; `options.onError` is the same hook.
 
 ```ts
 import { Rhythm } from "@rhythmjs/rhythm";
@@ -58,7 +58,6 @@ const app = new Rhythm().register(
   eventsModule.forRoot<AppEvents>(),
   ({ eventBus }) => ({ eventBus }),
 );
-await app.setup();
 const { eventBus } = await app.run({});
 ```
 

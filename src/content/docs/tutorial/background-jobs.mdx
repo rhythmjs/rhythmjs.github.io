@@ -37,10 +37,10 @@ Pass `forRoot({ onError })` in real apps: the default rethrows a failing listene
 
 ## Run on a schedule
 
-`@rhythmjs/schedule` runs cron, interval, and timeout jobs on an in-house cron engine (no dependencies). Define jobs, register the module, and start the scheduler alongside the server:
+`@rhythmjs/schedule` runs cron, interval, and timeout jobs on an in-house cron engine (no dependencies). Define jobs, register the module, and start the scheduler alongside the server. `forRoot` builds the service eagerly; when `main.ts` needs the same instance, build it with `createScheduleService` and assign it to the context:
 
 ```ts
-import { cronJob, cronPatterns, intervalJob, scheduleModule } from "@rhythmjs/schedule";
+import { createScheduleService, cronJob, cronPatterns, intervalJob } from "@rhythmjs/schedule";
 import { startScheduler } from "@rhythmjs/schedule/scheduler";
 
 const jobs = [
@@ -53,31 +53,32 @@ const jobs = [
   intervalJob("heartbeat", 30_000, () => pingUptimeMonitor()),
 ];
 
-appModule.register(scheduleModule.forRoot(...jobs), ({ scheduleService }) => ({ scheduleService }));
+export const scheduleService = createScheduleService(...jobs);
+// or, as a module: appModule.register(scheduleModule.forRoot(...jobs), ({ scheduleService }) => ({ scheduleService }))
 
 // in main.ts, after Bun.serve:
 const scheduler = startScheduler(scheduleService);
-// scheduler.stop() on shutdown
+// scheduler.stop() in your shutdown hook
 ```
 
 Overlap protection defaults to `"skip"` (a still-running job is not started again), handler errors are recorded on `scheduleService.state(name)` rather than thrown, and a removed job's timer cancels itself.
 
 ## Durable work with queues
 
-For work that must survive the request — emails, exports, webhooks — use a typed queue. In-memory by default; pass `redis` for durability across processes. The job map types both producers and processors:
+For work that must survive the request — emails, exports, webhooks — use a typed queue. In-memory by default; pass `redis` for durability across processes. The job map types both producers and processors. Build the service once at startup and put it on the context; `close()` is yours to call on shutdown:
 
 ```ts
-import { queueModule } from "@rhythmjs/queue";
+import { createQueueService } from "@rhythmjs/queue";
 
 interface Jobs {
   "email.digest": { userId: string };
   "notes.export": { noteIds: string[] };
 }
 
-appModule.register(
-  queueModule.forRoot<Jobs>({ redis: process.env.REDIS_URL }),
-  ({ queueService }) => ({ queueService }),
-);
+export const queueService = createQueueService<Jobs>({ redis: process.env.REDIS_URL });
+// declared on the app: new Rhythm<RhythmHttpContext, { queueService: typeof queueService }>(...)
+appModule.context.queueService = queueService;
+// (queueModule.forRoot<Jobs>(...) does the same inside a module you register)
 
 // produce (from a handler):
 await ctx.queueService.add("email.digest", { userId }, { attempts: 3, backoff: 5_000 });
@@ -94,6 +95,9 @@ queueService.process(
     onError: (error) => log.warn("queue engine hiccup", error),  // backend errors; the loop survives
   },
 );
+
+// on shutdown: stops the workers, then releases the engine
+await queueService.close();
 ```
 
 `schedule(name, { pattern }, payload)` adds repeatable jobs on the same cron engine, and `counts()` exposes queue depth for your health checks — which is exactly where the next step picks up.

@@ -10,11 +10,11 @@ description: "Every export of @rhythmjs/config: configModule, defineConfig, regi
 const configModule: {
   forRoot<const TLoad extends readonly ConfigFactory[]>(
     ...configs: TLoad
-  ): Rhythm<..., { configService: ConfigService<MergedConfig<TLoad>> }>;
+  ): Promise<Rhythm<{}, { configService: ConfigService<MergedConfig<TLoad>> }>>;
 };
 ```
 
-Returns a Rhythm module (name `"config"`) whose provider runs every factory once at `setup()` and provides `configService`. Outputs deep-merge in argument order: plain factory outputs spread at the root, namespaced outputs nest under their token, plain objects merge recursively, and anything else (including arrays) is replaced by the later value. If any factory throws `ConfigError`, its issues are collected and the remaining factories still run; one combined `ConfigError` is thrown after all of them. Non-config errors propagate immediately.
+Resolves to a Rhythm module (name `"config"`). `forRoot` is async: it runs every factory once when awaited and sets `configService` on the module's startup `context`, so a failure rejects at startup, not on the first request. Outputs deep-merge in argument order: plain factory outputs spread at the root, namespaced outputs nest under their token, plain objects merge recursively, and anything else (including arrays) is replaced by the later value. If any factory throws `ConfigError`, its issues are collected and the remaining factories still run; the promise rejects with one combined `ConfigError` after all of them. Non-config errors propagate immediately.
 
 ## defineConfig
 
@@ -77,7 +77,7 @@ interface ConfigIssue {
 }
 ```
 
-Thrown by validating factories, by `forRoot` as the aggregate of all files' issues, and by `getOrThrow` for missing values. The message lists every issue as `path: message` lines under an `"Invalid configuration:"` heading, so the boot log names every broken variable at once.
+Thrown by validating factories, by `forRoot` as the aggregate of all files' issues, and by `getOrThrow` for missing values. The message lists every issue as `path: message` lines under an `"Invalid configuration:"` heading, so the startup log names every broken variable at once.
 
 ## @rhythmjs/config/types [#types-subpath]
 
@@ -87,10 +87,10 @@ The type machinery, also re-exported from the root.
 <Def sig="ConfigFactory" id="configfactory">(() =\> object | Promise\<object\>) | NamespacedConfigFactory\<string, object\>: anything forRoot accepts.</Def>
 <Def sig={"NamespacedConfigFactory<TToken, TValue>"} id="namespacedconfigfactory">A callable factory with a readonly `namespace: TToken` property, as produced by registerAs.</Def>
 <Def sig={"ConfigType<TFactory>"} id="configtype">The output type of one factory: the namespaced value for registerAs factories, the awaited return type otherwise.</Def>
-<Def sig={"MergedConfig<TLoad>"} id="mergedconfig">The intersection of every factory's contribution (namespaced outputs as \{ token: value \}, plain outputs as-is), simplified into one object type. This is the T behind the provided service.</Def>
+<Def sig={"MergedConfig<TLoad>"} id="mergedconfig">The intersection of every factory's contribution (namespaced outputs as \{ token: value \}, plain outputs as-is), simplified into one object type. This is the T behind the service.</Def>
 <Def sig={"ConfigPath<T>"} id="configpath">Union of every dot path reachable in T. Nested objects contribute both the slice key and its deeper paths; arrays are leaves; optional segments are traversed through NonNullable.</Def>
 <Def sig={"ConfigValue<T, P>"} id="configvalue">The value type found at dot path P inside T.</Def>
 <Def sig={"ConfigService<T>"} id="configservice">The reader interface documented above.</Def>
-<Def sig={"ConfigContext<TLoad>"} id="configcontext">\{ configService: ConfigService\<MergedConfig\<TLoad\>\> \}, the context extension consumers declare, matching what the module provides for the same factory tuple.</Def>
+<Def sig={"ConfigContext<TLoad>"} id="configcontext">\{ configService: ConfigService\<MergedConfig\<TLoad\>\> \}, the context extension consumers declare, matching what the module puts on its context for the same factory tuple.</Def>
 <Def sig="ConfigIssue" id="configissue">\{ message: string; path?: readonly (string | number)\[\] \}.</Def>
 </DefList>

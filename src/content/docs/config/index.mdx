@@ -31,7 +31,7 @@ export const appConfig = defineConfig(
 
 ## Namespace with registerAs
 
-`registerAs(token, schema, factory)` builds the same kind of self-validating factory but tags it with a namespace: its output lands under `token` in the merged tree, and validation issues carry the token prefixed to their paths (`database.port`, not `port`), so aggregated boot errors stay readable. The two-argument form `registerAs(token, factory)` skips validation for values that are already trusted. Factories may be async: fetching remote configuration at boot works.
+`registerAs(token, schema, factory)` builds the same kind of self-validating factory but tags it with a namespace: its output lands under `token` in the merged tree, and validation issues carry the token prefixed to their paths (`database.port`, not `port`), so aggregated boot errors stay readable. The two-argument form `registerAs(token, factory)` skips validation for values that are already trusted. Factories may be async: fetching remote configuration at startup works.
 
 ```ts
 import { registerAs } from "@rhythmjs/config";
@@ -54,10 +54,11 @@ const remoteConfig = registerAs("remote", async () => fetchSettings());
 Every validation failure surfaces as a `ConfigError`. Its `issues` array holds `{ message, path? }` entries serialized from the schema library's Standard Schema issues (symbol path segments are dropped, object segments reduced to their keys), and its message lists every issue with its dot path, one line per problem. `createConfigService(value)` is also exported directly for building a service from an already-validated object, without the module.
 
 ```ts
-import { ConfigError } from "@rhythmjs/config";
+import { ConfigError, configModule } from "@rhythmjs/config";
 
 try {
-  await app.setup();
+  const config = await configModule.forRoot(appConfig, databaseConfig); // loads and validates at startup
+  app.register(config, ({ configService }) => ({ configService }));
 } catch (error) {
   if (error instanceof ConfigError) {
     for (const issue of error.issues) report(issue.path?.join("."), issue.message);

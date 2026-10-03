@@ -1,12 +1,12 @@
 ---
 title: "Persistence"
-lead: "A real database as a disposable provider — pool, schema, service, CRUD."
-description: "A real database as a disposable provider, from pool to CRUD."
+lead: "A real database in the startup context — pool, schema, service, CRUD."
+description: "A real database in the startup context, from pool to CRUD."
 ---
 
-## The database as a provider
+## The database as a startup resource
 
-A database is the canonical disposable provider: open the pool in the factory, close it in the dispose function, and hide the raw client behind a `#` key. This example uses [Drizzle on Bun's native SQL driver](/data/drizzle/); the [data recipes](/data/) cover Prisma, MikroORM, and MongoDB with the same shape:
+A database is the canonical startup resource: open the pool once, assign the query handle to the context, and keep `close()` where the code that opened it can reach it. This example uses [Drizzle on Bun's native SQL driver](/data/drizzle/); the [data recipes](/data/) cover Prisma, MikroORM, and MongoDB with the same shape:
 
 ```ts
 // src/database.ts
@@ -16,20 +16,14 @@ import * as schema from "./notes/notes.table";
 
 export type Database = BunSQLDatabase<typeof schema>;
 
-export interface DatabaseValue {
+export interface DatabaseHandle {
   db: Database;
-  "#client": SQL;
+  close(): Promise<void>;
 }
 
-export function createDatabase(url: string): () => DatabaseValue {
-  return () => {
-    const client = new SQL(url);
-    return { db: drizzle({ client, schema }), "#client": client };
-  };
-}
-
-export async function closeDatabase(value: DatabaseValue): Promise<void> {
-  await value["#client"].close();
+export function createDatabase(url: string): DatabaseHandle {
+  const client = new SQL(url);
+  return { db: drizzle({ client, schema }), close: () => client.close() };
 }
 ```
 
@@ -92,19 +86,44 @@ export type NotesService = ReturnType<typeof createNotesService>;
 
 ## Wire it together
 
-The module chain now reads as a dependency graph: config first, then the pool (consuming config), then the service (consuming the pool), then the controller (consuming the service). Teardown walks it backwards:
+The startup now reads as a dependency graph: config first, then the pool (consuming config), then the service (consuming the pool), then the controller (consuming the service). The app module declares the pool's shape, the notes module derives its service from it, and `main.ts` assigns the real pool and owns shutting it down:
 
 ```ts
-export const appModule = new Rhythm<RhythmHttpContext>({ name: "app", type: "module" })
+// src/notes/notes.module.ts
+export type NotesModuleInput = RhythmHttpContext & { db: Database };
+
+export const notesModule = new Rhythm<NotesModuleInput>({ name: "notes", type: "module" })
+  .use(derive(({ db }: NotesModuleInput) => ({ notesService: createNotesService(db) })))
+  .use(notesController.middleware());
+```
+
+```ts
+// src/app.module.ts
+export const appModule = new Rhythm<RhythmHttpContext, { db: Database }>({ name: "app", type: "module" })
   .use(filter())
-  .register(configModule.forRoot(databaseConfig), (v) => v)
-  .provide(createDatabase(database.url), closeDatabase)
-  .provide(({ db }) => ({ notesService: createNotesService(db) }))
-  .use(notesController.middleware())
+  .register(await configModule.forRoot(databaseConfig), (v) => v)
+  .register(notesModule)
   .use(() => {
     throw new HttpError(404, "Route not found");
   });
 ```
+
+```ts
+// src/main.ts
+const { url } = await databaseConfig();
+const database = createDatabase(url);
+appModule.context.db = database.db;
+
+const server = Bun.serve({ port, fetch: toFetchHandler(appModule) });
+
+process.on("SIGTERM", async () => {
+  await server.stop();
+  await database.close(); // whoever opened the pool closes it
+  process.exit(0);
+});
+```
+
+`register(notesModule)` is type-checked: the app's input plus its startup shape must satisfy the notes module's input, so forgetting to declare `db` is a compile error, not a 3 a.m. surprise.
 
 For local development, run Postgres from a compose file bound to loopback only — never publish a dev database on all interfaces:
 

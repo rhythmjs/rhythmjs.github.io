@@ -14,7 +14,7 @@ bun add ai @ai-sdk/openai @rhythmjs/config zod
 
 ## Config picks the model [#config]
 
-A [config](/config/) namespace holds the model id, so swapping models is an environment change: `AI_MODEL=gpt-4o`. An empty value stops the app from booting.
+A [config](/config/) namespace holds the model id, so swapping models is an environment change: `AI_MODEL=gpt-4o`. An empty value stops the app from booting: the config loads at startup, when `await configModule.forRoot(...)` runs, and a bad value rejects with a `ConfigError` before any request.
 
 ```ts
 // src/config/ai.config.ts
@@ -30,7 +30,7 @@ export const load = [aiConfig] as const;
 
 ## A service creates the model [#service]
 
-`modelService` is a plain service. The module provides it, and tests stub `modelService.create` with the SDK's mock model.
+`modelService` is a plain service. The chat module puts it on its startup context, and tests stub `modelService.create` with the SDK's mock model.
 
 ```ts
 // src/chat/models.ts
@@ -101,7 +101,7 @@ export const chatController = new RhythmRouter<ChatContext>({ prefix: "/api" })
 
 ## The chat module owns the feature [#module]
 
-The module registers the config module, derives the model from the configured id with the service, and mounts the controller.
+The module registers the awaited config module, derives the model from the configured id with the service, and mounts the controller.
 
 ```ts
 // src/chat/chat.module.ts
@@ -114,16 +114,20 @@ import { modelService } from "./models";
 
 type ConfiguredContext = RhythmHttpContext & ConfigContext<typeof load> & { modelService: typeof modelService };
 
-export const chatModule = new Rhythm<RhythmHttpContext>({ name: "chat", type: "module" })
-  .provide(() => ({ modelService }))
-  .register(configModule.forRoot(...load), ({ configService }) => ({ configService }))
+export const chatModule = new Rhythm<RhythmHttpContext, { modelService: typeof modelService }>({
+  name: "chat",
+  type: "module",
+})
+  .register(await configModule.forRoot(...load), ({ configService }) => ({ configService }))
   .use(derive((ctx: ConfiguredContext) => ctx.modelService.create(ctx.configService.get("ai.model"))))
   .use(chatController.middleware());
+
+chatModule.context.modelService = modelService;
 ```
 
 ## Register it in the app [#app]
 
-The app module only registers the chat module, before the template's own controller. `main.ts` calls `appModule.setup()` first, so a bad config fails at startup and not at the first request.
+The app module only registers the chat module, before the template's own controller. Because `configModule.forRoot` is awaited when the chat module is imported, a bad config fails at startup and not at the first request; `main.ts` needs no setup call.
 
 ```ts
 // src/app.module.ts
@@ -133,8 +137,10 @@ import { appController } from "./app.controller";
 import { appService } from "./app.service";
 import { chatModule } from "./chat/chat.module";
 
-export const appModule = new Rhythm<RhythmHttpContext>({ name: "app", type: "module" })
-  .provide(() => ({ appService }))
+export const appModule = new Rhythm<RhythmHttpContext, { appService: typeof appService }>({
+  name: "app",
+  type: "module",
+})
   .register(chatModule)
   .use(appController.middleware())
   .use((ctx) => {
@@ -142,14 +148,14 @@ export const appModule = new Rhythm<RhythmHttpContext>({ name: "app", type: "mod
     ctx.response.headers.set("content-type", "application/json");
     ctx.response.body = JSON.stringify({ success: false, status: 404, message: "Not Found" });
   });
+
+appModule.context.appService = appService;
 ```
 
 ```ts
 // src/main.ts
 import { toFetchHandler } from "@rhythmjs/router/fetch";
 import { appModule } from "./app.module";
-
-await appModule.setup();
 
 const port = Number(process.env.PORT ?? 3008);
 
