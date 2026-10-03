@@ -65,7 +65,7 @@ export const sections: NavSection[] = [
         items: [
           { id: "rhythm/index", label: "Overview" },
           { id: "rhythm/middleware", label: "Middleware & context" },
-          { id: "rhythm/providers", label: "Providers & lifecycle" },
+          { id: "rhythm/context", label: "Startup context" },
           { id: "rhythm/modules", label: "Encapsulated modules" },
           { id: "rhythm/api", label: "API reference" },
         ],

@@ -25,11 +25,7 @@ const app = new Rhythm<RhythmCliContext>()
     ctx.response.exit(1).printError("Unknown command");
   });
 
-try {
-  process.exitCode = await toCliHandler(app)(process.argv.slice(2));
-} finally {
-  await app.teardown();
-}
+process.exitCode = await toCliHandler(app)(process.argv.slice(2));
 ```
 
 ## Read flags and stdin

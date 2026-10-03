@@ -3,9 +3,9 @@ title: "Interactive prompts"
 lead: "Ask for input over Bun's console line iterator and keep the prompt lifecycle under control."
 ---
 
-## Provide a prompt
+## Provide the prompt
 
-`createPrompt()` from `@rhythmjs/cli/run` returns `{ prompt, close }`, reading answer lines through Bun's async-iterable `console`. Providers live on the host `Rhythm` app, not on the cli: keep the close function in a private provider field there, provide it before mounting `middleware()`, and dispose it via the app's `teardown()`. The cli declares that its handlers expect the prompt through its context generic.
+`createPrompt()` from `@rhythmjs/cli/run` returns `{ prompt, close }`, reading answer lines through Bun's async-iterable `console`. Startup values live on the host `Rhythm` app, not on the cli: create the prompt before serving, assign it to the app's `context`, and call `close()` when the command finishes. The cli declares that its handlers expect the prompt through its context generic.
 
 ```ts
 import { Rhythm } from "@rhythmjs/rhythm";
@@ -21,20 +21,15 @@ const cli = new RhythmCli<RhythmCliContext & { prompt: RhythmPrompt }>()
     if (confirmed) ctx.response.print(`Created ${name}`);
   });
 
-const app = new Rhythm<RhythmCliContext>()
-  .provide(
-    () => {
-      const { prompt, close } = createPrompt();
-      return { prompt, "#close": close };
-    },
-    (value) => value["#close"](),
-  )
-  .use(cli.middleware());
+const { prompt, close } = createPrompt();
+
+const app = new Rhythm<RhythmCliContext, { prompt: RhythmPrompt }>().use(cli.middleware());
+app.context.prompt = prompt;
 
 try {
   process.exitCode = await toCliHandler(app)(process.argv.slice(2));
 } finally {
-  await app.teardown();
+  close();
 }
 ```
 

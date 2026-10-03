@@ -1,0 +1,83 @@
+---
+title: "Startup context"
+lead: "Create long-lived dependencies once, hand them to the app, and let Rhythm handle requests."
+---
+
+## Two phases
+
+An app has a startup phase and a request phase. Rhythm only runs the request phase. Anything created at startup, such as a database connection, a client, or configuration, is created by your code before you serve, and handed to the app through its `context`. There is no setup step, no teardown step, and no dispose hook: you close what you opened.
+
+## Declare the shape, then assign
+
+`context` is a plain object on every `Rhythm` instance. Its type is the second type parameter, `Rhythm<TInput, TStartup>`. Assignments and reads are checked against it, and the same fields are typed on `ctx` in every middleware.
+
+```ts
+import { Rhythm } from "@rhythmjs/rhythm";
+
+const app = new Rhythm<{ jobId: string }, { db: Db; logger: Logger }>().use((ctx) => {
+  ctx.logger.info(`job ${ctx.jobId}`);
+  return ctx.db.run(ctx.jobId);
+});
+
+app.context.db = await createDb();
+app.context.logger = createLogger();
+
+app.context.db = 1; // type error: not a Db
+app.context.cache = cache; // type error: not in the declared shape
+
+await app.run({ jobId: "job-1" });
+```
+
+TypeScript cannot infer a type from a later property assignment, so the shape is declared once on the instance. Everything after that is inferred.
+
+<Callout title="Assign before you serve">
+
+Values are read when a request runs, so assign them before the first request. Nothing checks that every declared key was assigned: a key you forget is `undefined` at runtime even though its type says otherwise.
+
+</Callout>
+
+## Merge order
+
+Each run builds its context as `{ ...app.context, ...input }`, so a per-request input field wins over a startup value with the same name. The values are shared references, not copies. Mutating an object you stored on `context` is visible to the next run, which is what you want for a connection and a hazard for request-scoped state.
+
+## Modules inherit, parents do not
+
+A registered module sees everything its parent has in its context, and can add values of its own through `module.context`. A module's values are visible inside that module and to modules it registers, never to its parent, and they shadow the parent's values only inside the module.
+
+`register()` checks at compile time that the parent can satisfy the module's input. A module declares what it needs in `TInput`; the parent supplies it from its input or its startup shape.
+
+```ts
+const notesModule = new Rhythm<{ db: Db }>({ name: "notes" })
+  .use(derive(({ db }: { db: Db }) => ({ notesService: createNotesService(db) })))
+  .use(notesController.middleware());
+
+const app = new Rhythm<{}, { db: Db }>().register(notesModule);
+app.context.db = await createDb();
+
+new Rhythm<{}>().register(notesModule); // type error: the parent has no `db`
+```
+
+Flat mounting with `use(child.middleware())` shares the parent's context object instead of copying it. A mounted child's startup values are merged into that shared context, so later parent middleware can see them. Use `register()` when you want the boundary.
+
+## Shut down yourself
+
+Because Rhythm does not own your resources, closing them is part of your shutdown code.
+
+```ts
+const db = await createDb();
+app.context.db = db;
+
+const server = Bun.serve({ port: 3000, fetch: toFetchHandler(app) });
+
+process.on("SIGTERM", async () => {
+  await server.stop();
+  await db.close();
+  process.exit(0);
+});
+```
+
+<Callout title="Moving from provide()">
+
+`provide(factory, dispose)`, `setup()` and `teardown()` were removed. Create the value yourself, assign it to `app.context`, and call its close method on shutdown. Providers that depended on earlier providers through `deps` are now ordinary code: build the first value, pass it to the function that builds the second.
+
+</Callout>

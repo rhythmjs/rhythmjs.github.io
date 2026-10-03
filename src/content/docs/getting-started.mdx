@@ -5,19 +5,17 @@ lead: "Create a project with one command, run it, and grow it into your applicat
 
 ## A first look
 
-Providers initialize once. Middleware runs for each input. The resulting context carries your input and dependencies through the pipeline.
+Startup values are assigned once. Middleware runs for each input. The resulting context carries your input and dependencies through the pipeline.
 
 ```ts
 import { Rhythm } from "@rhythmjs/rhythm";
 
-const app = new Rhythm<{ name: string }>()
-  .provide(() => ({ greeting: "Hello" }))
-  .use((ctx) => {
-    console.log(ctx.greeting + ", " + ctx.name);
-  });
+const app = new Rhythm<{ name: string }, { greeting: string }>().use((ctx) => {
+  console.log(ctx.greeting + ", " + ctx.name);
+});
+app.context.greeting = "Hello";
 
 await app.run({ name: "world" }); // Hello, world
-await app.teardown();
 ```
 
 ## Create a project
@@ -92,19 +90,17 @@ There is no scaffolding magic in the template: it is just the kernel and the rou
 bun add @rhythmjs/rhythm @rhythmjs/router
 ```
 
-The kernel alone composes middleware over any input. Providers initialize once; middleware runs per input; the typed context carries both.
+The kernel alone composes middleware over any input. Startup values are assigned once; middleware runs per input; the typed context carries both.
 
 ```ts
 import { Rhythm } from "@rhythmjs/rhythm";
 
-const app = new Rhythm<{ name: string }>()
-  .provide(() => ({ greeting: "Hello" }))
-  .use((ctx) => {
-    console.log(`${ctx.greeting}, ${ctx.name}`);
-  });
+const app = new Rhythm<{ name: string }, { greeting: string }>().use((ctx) => {
+  console.log(`${ctx.greeting}, ${ctx.name}`);
+});
+app.context.greeting = "Hello";
 
 await app.run({ name: "world" }); // Hello, world
-await app.teardown();
 ```
 
 ## Serve HTTP

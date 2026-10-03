@@ -10,8 +10,7 @@ A child receives the parent context as its input. Its added top-level fields sta
 ```ts
 import { Rhythm } from "@rhythmjs/rhythm";
 
-const identity = new Rhythm<{ userId: string }>({ name: "identity" })
-  .provide(() => ({ source: "local" }))
+const identity = new Rhythm<{ userId: string }, { source: string }>({ name: "identity" })
   .use<{ user: { name: string } }>(async (_ctx, next) => {
     await next({ user: { name: "Ada" } });
   });
@@ -20,8 +19,9 @@ const app = new Rhythm<{ userId: string }>()
   .register(identity, (result) => ({ user: result.user }))
   .use((ctx) => console.log(ctx.user.name));
 
+identity.context.source = "local";
+
 await app.run({ userId: "u1" });
-await app.teardown();
 ```
 
 ## Export deliberately
@@ -33,9 +33,12 @@ Without an export function, no child-added fields are merged back into the paren
 A registered module is part of the request's chain, not a separate pass. If the module's chain calls `next()` past its last middleware, the parent carries on with whatever it registered next, and the exports are applied at that moment. If the chain ends without calling `next()`, the request ends there: the parent's later middleware does not run. That is how a module that mounts a controller answers its own requests, while a catch-all 404 registered after it only sees what no module handled.
 
 ```ts
-const productsModule = new Rhythm<RhythmHttpContext>({ name: "products", type: "module" })
-  .provide(createProductsService)
-  .use(productsController.middleware()); // answers /api/products/** and does not call next()
+const productsModule = new Rhythm<RhythmHttpContext, { productsService: ProductsService }>({
+  name: "products",
+  type: "module",
+}).use(productsController.middleware());
+
+productsModule.context.productsService = createProductsService(); // answers /api/products/** and does not call next()
 
 const app = new Rhythm<RhythmHttpContext>()
   .register(productsModule)
@@ -44,13 +47,13 @@ const app = new Rhythm<RhythmHttpContext>()
   });
 ```
 
-## Own the lifecycle
+## Inherit context, wrap errors
 
-Registration includes child setup and teardown in the parent provider sequence. Errors thrown by a registered child during dispatch are wrapped with its type and name; the original error is available as `cause`. Errors thrown by the parent's later middleware are not wrapped: they are not the module's failure. Because the wrapped error no longer carries the status of an `HttpError`, give a module that throws `HttpError`s its own `filter()` at the top of its chain.
+A registered module inherits its parent's context, including the parent's startup values, and may add its own through `module.context`; those never reach the parent (see [Startup context](/rhythm/context/)). Errors thrown by a registered child during dispatch are wrapped with its type and name; the original error is available as `cause`. Errors thrown by the parent's later middleware are not wrapped: they are not the module's failure. Because the wrapped error no longer carries the status of an `HttpError`, give a module that throws `HttpError`s its own `filter()` at the top of its chain.
 
 ## Mount controllers flat
 
-`RhythmRouter` and `RhythmCli` are standalone controllers, not `Rhythm` modules: they have no `provide()` or `register()`, and they cannot be passed to `register()` either; it composes `Rhythm` instances only. Mount them into a core module with `use(router.middleware())` or `use(cli.middleware())`, and nest controller into controller the same way. The mount is opaque, so a nested controller carries its own full prefix.
+`RhythmRouter` and `RhythmCli` are standalone controllers, not `Rhythm` modules: they have no startup `context` or `register()`, and they cannot be passed to `register()` either; it composes `Rhythm` instances only. Mount them into a core module with `use(router.middleware())` or `use(cli.middleware())`, and nest controller into controller the same way. The mount is opaque, so a nested controller carries its own full prefix.
 
 ## Inspect the app [#inspect]
 

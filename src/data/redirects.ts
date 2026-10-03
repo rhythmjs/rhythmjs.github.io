@@ -7,4 +7,6 @@ export const urlFor = (id: string): string => (id.endsWith("/index") ? `/${id.sl
 export const legacyRedirects: Record<string, string> = {
   ...Object.fromEntries(ids.filter((id) => !id.endsWith("/index")).map((id) => [`/${id}.html`, urlFor(id)])),
   "/philosophy.html": "/#philosophy",
+  "/rhythm/providers/": "/rhythm/context/",
+  "/rhythm/providers.html": "/rhythm/context/",
 };

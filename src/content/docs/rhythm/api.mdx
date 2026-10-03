@@ -6,17 +6,15 @@ lead: "The public API and types exported by @rhythmjs/rhythm."
 ## Rhythm
 
 <DefList>
-<Def sig={"new Rhythm<TInput>(options?)"} id="rhythm">Create a pipeline. Options include name and type.</Def>
+<Def sig={"new Rhythm<TInput, TStartup>(options?)"} id="rhythm">Create a pipeline. TStartup declares the shape of context. Options include name and type.</Def>
 <Def sig={"use<TExtra>(middleware)"} id="use">Append a middleware step. Returns the same instance with an extended context type.</Def>
-<Def sig="provide(factory, dispose?)" id="provide">Add a sync or async object factory and optional cleanup callback. Resolved once, injected at its chain position so only later steps see it. Excludes # keys from context fields.</Def>
-<Def sig="register(child, exportValue?)" id="register">Register a child Rhythm module, its lifecycle, and optional context exports. The child runs in place: if it ends the chain without calling next(), the parent stops there. Accepts Rhythm instances only; controllers mount via use() instead.</Def>
+<Def sig="context" id="context">Plain object of startup values, typed TStartup. Assign before serving; each run starts from `{ ...context, ...input }`. Registered modules inherit their parent's values and may add their own, which never reach the parent.</Def>
+<Def sig="register(child, exportValue?)" id="register">Register a child Rhythm module and optional context exports. The parent's input and startup shape must satisfy the child's input type. The child runs in place: if it ends the chain without calling next(), the parent stops there. Accepts Rhythm instances only; controllers mount via use() instead.</Def>
 <Def sig="parent" id="parent">The module this one was registered into with register(), or added to with use(child.middleware()). Undefined for a root.</Def>
 <Def sig="sources" id="sources">Read-only list of what the module and everything under it was built from, in order: the sources of tagged middleware (routers, clis, any extension) with registered modules expanded in place. Read it lazily, once the app is assembled.</Def>
-<Def sig={"run(input): Promise<TContext>"} id="run">Initialize and dispatch one input, returning the final context.</Def>
+<Def sig={"run(input): Promise<TContext>"} id="run">Dispatch one input, returning the final context.</Def>
 <Def sig={"callback(): (input) => Promise<TContext>"} id="callback">Get a cached reusable handler for the current middleware stack.</Def>
 <Def sig={"middleware(): Middleware<TContext>"} id="middleware">Get flat middleware that shares its caller’s context and supports fallthrough. It is tagged with this module as its source.</Def>
-<Def sig={"setup(): Promise<void>"} id="setup">Resolve providers in order. Shares the initialization promise and permits retry after failure.</Def>
-<Def sig={"teardown(): Promise<void>"} id="teardown">Await registered disposers in reverse order. Does not reset the instance.</Def>
 </DefList>
 
 ## Core exports

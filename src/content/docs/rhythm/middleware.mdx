@@ -55,7 +55,7 @@ Context properties are deeply readonly at the type level, including arrays, maps
 
 ## Use the dispatcher directly
 
-`compose(middleware)` creates the standalone onion dispatcher. It does not initialize providers or manage lifecycle.
+`compose(middleware)` creates the standalone onion dispatcher. It knows nothing about the startup context.
 
 ```ts
 import { compose } from "@rhythmjs/rhythm";

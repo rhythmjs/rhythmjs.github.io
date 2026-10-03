@@ -5,18 +5,14 @@ lead: "toCliHandler and createPrompt on Bun natives: Bun.stdin.stream() for pipe
 
 ## Run a cli app
 
-`toCliHandler(app)` from `@rhythmjs/cli/run` takes the Rhythm host app and returns `(argv: string[]) => Promise<number>`. It parses flags, seeds the cli context, runs the pipeline once, flushes `response.stdout` then `response.stderr` to the console, and resolves with the exit code. Nothing calls `process.exit()` for you; set `process.exitCode` and let teardown run.
+`toCliHandler(app)` from `@rhythmjs/cli/run` takes the Rhythm host app and returns `(argv: string[]) => Promise<number>`. It parses flags, seeds the cli context, runs the pipeline once, flushes `response.stdout` then `response.stderr` to the console, and resolves with the exit code. Nothing calls `process.exit()` for you; set `process.exitCode` and close what you opened.
 
 ```ts
 #!/usr/bin/env bun
 import { toCliHandler } from "@rhythmjs/cli/run";
 import { app } from "./app";
 
-try {
-  process.exitCode = await toCliHandler(app)(process.argv.slice(2));
-} finally {
-  await app.teardown();
-}
+process.exitCode = await toCliHandler(app)(process.argv.slice(2));
 ```
 
 ## Pipe stdin
@@ -36,7 +32,7 @@ cli.command("import", async (ctx) => {
 
 ## Prompt I/O
 
-`createPrompt()` wires the prompt surface to Bun directly: questions write to `process.stdout`, and answers are read from Bun's async-iterable `console` (one `await` per line, no readline interface). `close()` releases the line iterator; tie it to a provider's dispose so `teardown()` cleans up. See [interactive prompts](/cli/prompts/) for the provider pattern.
+`createPrompt()` wires the prompt surface to Bun directly: questions write to `process.stdout`, and answers are read from Bun's async-iterable `console` (one `await` per line, no readline interface). `close()` releases the line iterator; call it when the command finishes. See [interactive prompts](/cli/prompts/) for the startup-context pattern.
 
 ## Compatibility aliases
 
