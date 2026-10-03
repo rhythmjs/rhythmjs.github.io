@@ -9,15 +9,21 @@ description: "CORS with preflight handling and origin-checked CSRF protection fo
 `@rhythmjs/security/cors` sets the `Access-Control-*` headers on every response and answers preflights before the router runs. The `origin` option accepts the wildcard `"*"` (the default), one origin string, an array of origins, or an `(origin) => string | null` function for dynamic rules. A non-wildcard origin is echoed back only when the request's `Origin` matches, and `Vary: Origin` is appended so shared caches keep per-origin responses apart.
 
 ```ts
+import { Rhythm } from "@rhythmjs/rhythm";
 import { RhythmRouter } from "@rhythmjs/router";
+import type { RhythmHttpContext } from "@rhythmjs/router/context";
 import { cors } from "@rhythmjs/security/cors";
 
-new RhythmRouter()
+const router = new RhythmRouter().get("/api/data", (ctx) => {
+  ctx.json({ ok: true });
+});
+
+new Rhythm<RhythmHttpContext>()
   .use(cors({ origin: ["https://app.example.com"], credentials: true, maxAge: 600 }))
-  .get("/api/data", (ctx) => {
-    ctx.json({ ok: true });
-  });
+  .use(router.middleware());
 ```
+
+Mount `cors()` on the app, before the router. A middleware added with `router.use()` runs only when one of the router's later routes matches the request's method and path, so a preflight `OPTIONS` request for a path that only has a `GET` route would skip it.
 
 ## Preflight requests
 
