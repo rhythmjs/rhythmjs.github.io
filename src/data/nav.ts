@@ -234,6 +234,17 @@ export const sections: NavSection[] = [
           { id: "cli/api", label: "API reference" },
         ],
       },
+      {
+        id: "climax",
+        label: "Climax",
+        pkg: "@rhythmjs/climax",
+        repo: "https://github.com/rhythmjs/climax",
+        items: [
+          { id: "climax/index", label: "Command help" },
+          { id: "climax/options", label: "Options and nesting" },
+          { id: "climax/api", label: "API reference" },
+        ],
+      },
     ],
   },
   {

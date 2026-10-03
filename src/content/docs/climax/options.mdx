@@ -1,0 +1,73 @@
+---
+title: "Options and nesting"
+lead: "Describe flags once, share them with the commands that follow, and document nested clis."
+description: "Document CLI flags with optionHelp, share them across commands by registration order, and see how mounted clis are walked for help."
+---
+
+## Document an option [#option]
+
+`optionHelp` describes a flag. The cli's parser is schema-less, so it is documentation only: it does not validate, coerce or default anything at runtime.
+
+```ts
+import { optionHelp } from "@rhythmjs/climax/help/option";
+
+const cli = new RhythmCli().command(
+  "deploy :environment",
+  commandHelp({ summary: "Deploy the app" }),
+  optionHelp({ name: "force", alias: "f", description: "Skip checks", default: false }),
+  optionHelp({ name: "target", type: "string", required: true, description: "Deploy target" }),
+  (ctx) => {
+    ctx.response.print(`Deploying to ${ctx.args.environment}`);
+  },
+);
+```
+
+`name` and `alias` are written without dashes. `type` is the placeholder shown after the flag, and `required` and `default` become notes after the description.
+
+```text
+Options:
+  -f, --force            Skip checks (default: false)
+      --target <string>  Deploy target (required)
+```
+
+## Share options with later commands [#inherit]
+
+Put `optionHelp` through `.use()` and it applies to every command registered after it, the same way any middleware wraps only what follows. Use it for flags that more than one command reads.
+
+```ts
+const cli = new RhythmCli()
+  .command("version", (ctx) => ctx.response.print("1.0.0")) // no --json listed
+  .use(optionHelp({ name: "json", description: "Print JSON" }))
+  .command("deploy :environment", deploy) // --json listed
+  .command("status", status); // --json listed
+```
+
+Passed as a command handler, as in the previous section, it applies to that command only.
+
+## Nested clis [#nested]
+
+A cli mounted with `use(child.middleware())` is walked too, and it inherits the options registered before the mount. Options a child registers stay in the child and never leak into the parent or its siblings.
+
+Mounting is opaque, so the parent's prefix is not added to the child's commands (see [CLI commands](/cli/#nest-command-groups)): the child carries its full prefix, and that is what help prints.
+
+```ts
+const user = new RhythmCli({ prefix: "user" }).command(
+  "add :name",
+  commandHelp({ summary: "Add a user" }),
+  addUser,
+);
+
+const cli = new RhythmCli()
+  .use(optionHelp({ name: "json", description: "Print JSON" }))
+  .use(user.middleware());
+```
+
+`app --help` lists `user add <name>`, and `app user --help` lists the subcommands under `user`. Both show `--json`, because it was registered before the mount.
+
+## Custom output [#custom]
+
+The module provides `ctx.helpService` to later handlers. `commands()` returns the structured list, one entry per command with `segments`, `usage`, `summary`, `description`, `examples`, `deprecated` and `options`, and `render(topic)` returns the lines for a topic. Use the first to feed another renderer, such as Markdown for your docs.
+
+```ts
+const docs = ctx.helpService.commands();
+```

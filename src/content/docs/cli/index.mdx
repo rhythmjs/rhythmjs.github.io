@@ -54,3 +54,7 @@ const root = new RhythmCli().use(remote.middleware()); // matches "remote add or
 `print(line)`, `printError(line)`, and `exit(code)` are chainable. They buffer stdout, stderr, and the exit code. `toCliHandler` flushes stdout then stderr after the pipeline completes and returns the exit code (zero by default).
 
 `exit()` sets a value; it does not terminate the process or stop middleware. Return without calling `next()` to stop downstream execution. Registration order is execution order: a `use()` middleware wraps only the commands registered after it.
+
+## Add `--help`
+
+The cli has no help output of its own. [`@rhythmjs/climax`](/climax/) adds `--help`, `-h` and `help <command>` from the commands you registered, with a documentation middleware for each command and flag.

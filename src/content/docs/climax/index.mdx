@@ -1,0 +1,94 @@
+---
+title: "Command help"
+lead: "Answer --help, -h and help <command> from the commands you already registered."
+description: "Add --help to a Rhythm CLI: document commands with commandHelp, register helpModule before the cli, and the module renders usage from the registered commands."
+---
+
+`@rhythmjs/climax` is a plain package of opt-in extras for [`@rhythmjs/cli`](/cli/). Each feature lives under its own subpath, and nothing in it is part of the core. The first feature is help.
+
+## Install
+
+```bash
+bun add @rhythmjs/climax @rhythmjs/cli @rhythmjs/rhythm
+```
+
+## Document a command [#document]
+
+`commandHelp` is ordinary middleware that carries documentation and does nothing at runtime, so the command stays the single source of truth: what is documented is what runs. Put it before the handler.
+
+```ts
+import { Rhythm } from "@rhythmjs/rhythm";
+import { RhythmCli } from "@rhythmjs/cli";
+import { toCliHandler } from "@rhythmjs/cli/run";
+import type { RhythmCliContext } from "@rhythmjs/cli/context";
+import { commandHelp } from "@rhythmjs/climax/help/command";
+import { helpModule } from "@rhythmjs/climax/help/module";
+
+const cli = new RhythmCli().command(
+  "deploy :environment",
+  commandHelp({
+    summary: "Deploy the app",
+    description: "Builds and ships the current commit.",
+    examples: ["app deploy prod"],
+  }),
+  (ctx) => {
+    ctx.response.print(`Deploying to ${ctx.args.environment}`);
+  },
+);
+
+const app = new Rhythm<RhythmCliContext>()
+  .register(helpModule.forRoot({ name: "app", description: "Example app" }))
+  .use(cli.middleware());
+
+process.exitCode = await toCliHandler(app)(process.argv.slice(2));
+```
+
+## Register the module first [#module]
+
+`helpModule` is never handed the cli. Like the OpenAPI module, it documents the app it is registered in by scanning that app's `sources`, and it follows nested clis. Registration order is execution order, and help answers without calling `next()`, so register it before the cli.
+
+`name` is the program name shown in `Usage:` lines and `description` is printed above the index. Without a parent app the module throws a clear error instead of rendering an empty page.
+
+## What it prints [#output]
+
+Help is triggered by `--help` or `-h` anywhere before `--`, or by `help` as the first word. What follows decides the output.
+
+```text
+$ app --help
+Example app
+
+Usage: app <command> [options]
+
+Commands:
+  deploy <environment>  Deploy the app
+  user add <name>       Add a user
+
+Run `app help <command>` for details on a command.
+```
+
+```text
+$ app help deploy
+Usage: app deploy <environment>
+
+Deploy the app
+
+Builds and ships the current commit.
+
+Examples:
+  $ app deploy prod
+```
+
+- **No topic** prints the index of every command.
+- **A command** (`app help deploy`, `app deploy prod -h`) prints usage, summary, description, options and examples.
+- **A prefix** (`app user --help`) lists the subcommands under it.
+- **An unknown topic** prints `Unknown command: …` followed by the index, and exits with code 1. Every other case exits with 0.
+
+<Callout title="Flag values and topics">
+Help reads raw argv, so the value of another flag (`--env prod`) counts as a word of the topic. Put `--help` first or use `app help <command>` when a flag value could be mistaken for a command.
+</Callout>
+
+## Mark commands [#mark]
+
+`commandHelp` also takes `deprecated` (`true` or a message, shown in the index and on the command page) and `hidden`, which leaves a command out of the output while it still runs. Undocumented commands are listed by default, with usage and no summary; set `includeUndocumented: false` on the module to show only documented ones, or `includeHidden: true` to show hidden ones too.
+
+Options have their own page: see [options and inheritance](/climax/options/). Every export is listed in the [API reference](/climax/api/).
