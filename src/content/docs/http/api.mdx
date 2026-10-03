@@ -66,7 +66,7 @@ function etag(options?: EtagOptions): Middleware<RhythmHttpContext>
 
 ## @rhythmjs/http/timeout [#timeout]
 
-`timeout(ms)` returns middleware that races the downstream chain against a deadline of `ms` milliseconds. When the deadline wins, the response becomes status 504 with a `content-type: application/json` header and the body `{ "success": false, "status": 504, "message": "Gateway Timeout" }`.
+`timeout(ms)` returns middleware that races the downstream chain against a deadline of `ms` milliseconds. When the deadline wins, the response becomes status 504 with a `content-type: application/json; charset=utf-8` header and the body `{ "success": false, "status": 504, "message": "Gateway Timeout" }`.
 
 ```ts
 function timeout(ms: number): Middleware<RhythmHttpContext>
@@ -77,7 +77,7 @@ function timeout(ms: number): Middleware<RhythmHttpContext>
 
 ## @rhythmjs/http/body-limit [#body-limit]
 
-`bodyLimit(maxBytes)` returns middleware that rejects request bodies larger than `maxBytes` with status 413 and the JSON body `{ "success": false, "status": 413, "message": "Payload Too Large" }`. Downstream middleware is not called for a rejected request.
+`bodyLimit(maxBytes)` returns middleware that rejects request bodies larger than `maxBytes` with status 413 and the JSON body (`application/json; charset=utf-8`) `{ "success": false, "status": 413, "message": "Payload Too Large" }`. Downstream middleware is not called for a rejected request.
 
 ```ts
 function bodyLimit(maxBytes: number): Middleware<RhythmHttpContext>

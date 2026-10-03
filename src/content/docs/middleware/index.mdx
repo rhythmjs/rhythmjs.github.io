@@ -32,7 +32,7 @@ const router = new RhythmRouter().post<Validated<"body", typeof createUser>>(
   validate("body", createUser),
   (ctx) => {
     // ctx.valid.body is typed as { name: string; age: number }
-    ctx.response.body = JSON.stringify(ctx.valid.body);
+    ctx.json(ctx.valid.body);
   },
 );
 ```
@@ -57,7 +57,7 @@ router.get<Validated<"query", typeof paging> & Validated<"param", typeof userPar
 
 ## The failure shape [#failure-shape]
 
-On failure the chain short-circuits with status 400, `content-type: application/json`, and a `ValidationFailure` body. Schema issues are serialized to `{ message, path? }`: property-key path segments are unwrapped to their keys and symbol segments are dropped, so the payload is always JSON-safe.
+On failure the chain short-circuits with status 400, `content-type: application/json; charset=utf-8`, and a `ValidationFailure` body. Schema issues are serialized to `{ message, path? }`: property-key path segments are unwrapped to their keys and symbol segments are dropped, so the payload is always JSON-safe.
 
 ```json
 {

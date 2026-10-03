@@ -8,7 +8,7 @@ lead: "The public API and types exported by @rhythmjs/rhythm."
 <DefList>
 <Def sig={"new Rhythm<TInput, TStartup>(options?)"} id="rhythm">Create a pipeline. TStartup declares the shape of context. Options include name and type.</Def>
 <Def sig={"use<TExtra>(middleware)"} id="use">Append a middleware step. Returns the same instance with an extended context type.</Def>
-<Def sig="use(middleware, when)" id="use-when">Append a middleware that only runs when `when(ctx)` is true (sync or async); otherwise the request falls through to `next()`. The context type is not extended, even for a `derive()`, because it may be skipped.</Def>
+<Def sig="use(middleware, condition)" id="use-condition">Append a middleware that only runs when `condition(ctx)` returns true (sync or async); otherwise the request falls through to `next()`. The context type is not extended, even for a `derive()`, because it may be skipped.</Def>
 <Def sig="context" id="context">Plain object of startup values, typed TStartup. Assign before serving; each run starts from `{ ...context, ...input }`. Registered modules inherit their parent's values and may add their own, which never reach the parent.</Def>
 <Def sig="register(child, exportValue?)" id="register">Register a child Rhythm module and optional context exports. The parent's input and startup shape must satisfy the child's input type. The child runs in place: if it ends the chain without calling next(), the parent stops there. Accepts Rhythm instances only; controllers mount via use() instead.</Def>
 <Def sig="parent" id="parent">The module this one was registered into with register(), or added to with use(child.middleware()). Undefined for a root.</Def>
@@ -22,9 +22,10 @@ lead: "The public API and types exported by @rhythmjs/rhythm."
 
 <DefList>
 <Def sig="compose(middleware[])" id="compose">Return a dispatcher accepting a context and optional final next handler.</Def>
-<Def sig="gate(fn, when)" id="gate">From @rhythmjs/rhythm/compose. Wrap a middleware so it only runs when `when(ctx)` is true; what `use(fn, when)` uses internally.</Def>
+<Def sig="gate(fn, condition)" id="gate">From @rhythmjs/rhythm/compose. Wrap a middleware so it only runs when `condition(ctx)` returns true; what `use(fn, condition)` uses internally.</Def>
 <Def sig="withSource(fn, source)" id="withsource">From @rhythmjs/rhythm/source. Tag a middleware with the object it was built from and return it. use() records the tag in the module's sources.</Def>
 <Def sig="sourceOf(fn)" id="sourceof">From @rhythmjs/rhythm/source. Read the tag back, or undefined for an untagged function.</Def>
+<Def sig={"Condition<TContext>"} id="condition">A (ctx) function returning boolean or Promise\<boolean\>; the second argument of use(). The middleware runs only when it returns true.</Def>
 <Def sig={"Middleware<TContext>"} id="middleware-2">A (ctx, next) function returning void or Promise\<void\>.</Def>
 <Def sig={"NextFn<TContext>"} id="nextfn">Continue with optional extra context fields; resolves to readonly context.</Def>
 <Def sig={"DeepReadonly<T>"} id="deepreadonly">Recursively readonly types, except callable and RhythmMutable-branded values.</Def>

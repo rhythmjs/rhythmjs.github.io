@@ -29,7 +29,7 @@ An `OPTIONS` request short-circuits with `204 No Content` before any handler run
 
 ## The CSRF model [#csrf-model]
 
-`@rhythmjs/security/csrf` blocks cross-site form submissions by checking the `Origin` header instead of managing tokens. A request is rejected only when all three hold: the method is unsafe (anything but `GET` or `HEAD`), the content type is form-shaped (`application/x-www-form-urlencoded`, `multipart/form-data`, or `text/plain` - what a plain HTML form can send), and the `Origin` is missing or not allowed. The rejection is a `403` with a JSON body of `{ success: false, status: 403, message: "Forbidden" }`.
+`@rhythmjs/security/csrf` blocks cross-site form submissions by checking the `Origin` header instead of managing tokens. A request is rejected only when all three hold: the method is unsafe (anything but `GET` or `HEAD`), the content type is form-shaped (`application/x-www-form-urlencoded`, `multipart/form-data`, or `text/plain` - what a plain HTML form can send), and the `Origin` is missing or not allowed. The rejection is a `403` with a JSON body (`application/json; charset=utf-8`) of `{ success: false, status: 403, message: "Forbidden" }`.
 
 JSON and other non-form content types pass through untouched, because a cross-site page cannot send them without a CORS preflight; that path is [CORS's](#cors-basics) job, not CSRF's.
 

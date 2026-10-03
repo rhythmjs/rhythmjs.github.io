@@ -39,7 +39,7 @@ The rest of the stack cooperates: `compress` and `cache` both skip `text/event-s
 import { timeout } from "@rhythmjs/http/timeout";
 
 router.use(timeout(5000)).get("/slow-upstream", async (ctx) => {
-  ctx.response.body = await fetchThatMightHang();
+  ctx.text(await fetchThatMightHang());
 });
 ```
 

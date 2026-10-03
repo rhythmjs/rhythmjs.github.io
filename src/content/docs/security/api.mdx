@@ -45,7 +45,7 @@ function memoryRateLimitStore(): RateLimitStore
 <DefList>
 <Def sig="RateLimitOptions" id="ratelimitoptions">`limit` (default 100), `windowMs` (default 60 000), `store` (`RateLimitStore`: `increment(key, windowMs)` returning `RateLimitInfo`, plus `reset`), `keyOf(request)`, `skip(request)`, `headers` (emit `RateLimit-*`; default true), `message`, and `trustProxy` (default `false`; `true` or a hop count enables `X-Forwarded-For` keying).</Def>
 <Def sig="Default key" id="default">With `trustProxy` set, the `X-Forwarded-For` entry that many hops from the right (the trusted proxy's append), truncated to 64 characters; else `request.ip` when your `Bun.serve` fetch exposes it (via `server.requestIP()`), else the literal key `"global"`. `X-Forwarded-For` is never consulted without `trustProxy`, since the client controls it.</Def>
-<Def sig="On refusal" id="on">Status 429 with `Retry-After` (seconds to reset) and the JSON body `{ "success": false, "status": 429, "message": ... }`. `rateLimitWs` is a ws-shaped middleware (`(ctx, next)`) that sets the same `429 Response` on `ctx.response` instead, for `RhythmWs.use()`.</Def>
+<Def sig="On refusal" id="on">Status 429 with `Retry-After` (seconds to reset) and the JSON body `{ "success": false, "status": 429, "message": ... }` (`application/json; charset=utf-8`). `rateLimitWs` is a ws-shaped middleware (`(ctx, next)`) that sets the same `429 Response` on `ctx.response` instead (its content type stays bare `application/json`), for `RhythmWs.use()`.</Def>
 </DefList>
 
 ## @rhythmjs/security/cors [#cors]
@@ -73,7 +73,7 @@ The `CorsOptions` interface is also exported from the subpath.
 function csrf(options?: CsrfOptions): Middleware<RhythmHttpContext>
 ```
 
-Returns middleware that rejects a request with `403` and the JSON body `{ "success": false, "status": 403, "message": "Forbidden" }` when all three conditions hold: the method is not `GET` or `HEAD`, the content type is a form type (`application/x-www-form-urlencoded`, `multipart/form-data`, or `text/plain`), and the `Origin` header is missing or not allowed. Every other request passes through.
+Returns middleware that rejects a request with `403` and the JSON body `{ "success": false, "status": 403, "message": "Forbidden" }` (`application/json; charset=utf-8`) when all three conditions hold: the method is not `GET` or `HEAD`, the content type is a form type (`application/x-www-form-urlencoded`, `multipart/form-data`, or `text/plain`), and the `Origin` header is missing or not allowed. Every other request passes through.
 
 <DefList>
 <Def sig={"origin?: string | string[] | ((origin: string) => boolean)"} id="origin-2">Default: allow only the request URL's own origin. A string allows one origin, an array allows each listed origin, and a predicate returns whether the given origin is allowed.</Def>

@@ -36,9 +36,7 @@ router.use(
   filter(async (error, ctx) => {
     log.error(error);
     if (error instanceof NotFoundInDb) {
-      ctx.response.status = 404;
-      ctx.response.headers.set("content-type", "application/json");
-      ctx.response.body = JSON.stringify({ success: false, status: 404, message: "not found" });
+      ctx.json({ success: false, status: 404, message: "not found" }, 404);
       return;
     }
     throw error; // let an outer filter or serve()'s error handler take it
@@ -60,7 +58,7 @@ const router = new RhythmRouter()
     async (ctx) => {
       const user = await users.create(ctx.valid.body);
       if (!user) throw new HttpError(409, "user already exists");
-      ctx.response.body = JSON.stringify(user);
+      ctx.json(user);
     },
   );
 ```

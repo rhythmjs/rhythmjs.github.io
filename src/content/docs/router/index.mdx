@@ -99,7 +99,7 @@ router
 ```
 
 - `ctx.json(data, status?)`: serializes `data` and sets `application/json; charset=utf-8`.
-- `ctx.text(body, status?)` / `ctx.html(body, status?)`: plain-text and HTML bodies with their content types.
+- `ctx.text(body, status?)` / `ctx.html(body, status?)`: bodies with `text/plain; charset=utf-8` and `text/html; charset=utf-8`.
 - `ctx.error(status, message?)`: sets the status and a plain-text message, defaulting the message from the status code (`ctx.error(404)` → `"Not Found"`).
 - `ctx.redirect(url, status = 302)`: sets the `location` header and clears the body.
 

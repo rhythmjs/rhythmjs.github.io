@@ -36,7 +36,7 @@ await app.run({ userId: "u1" });
 
 ## Run conditionally [#conditional]
 
-`use(fn, when)` takes a predicate as its second argument. When `when(ctx)` returns `true`, `fn` runs as usual; when it returns `false`, the request skips `fn` and goes straight to `next()`. The predicate receives the context as it stands at that point in the chain, including startup values and anything an earlier `derive()` added, and may be async.
+`use(fn, condition)` takes a second callback that receives only the context. When `condition(ctx)` returns `true`, `fn` runs as usual; when it returns `false`, the request skips `fn` and goes straight to `next()`. The second callback receives the context as it stands at that point in the chain, including startup values and anything an earlier `derive()` added, and may be async.
 
 ```ts
 const app = new Rhythm<{ path: string }>()
@@ -46,11 +46,11 @@ const app = new Rhythm<{ path: string }>()
   });
 ```
 
-A skipped middleware does not end the chain and does not change the onion order: outer middleware still wrap everything downstream. A predicate that throws rejects the run, like any other middleware failure. Core knows nothing about paths; for HTTP, `matches()` and `routed()` from `@rhythmjs/router/match` build predicates from the request (see the [router API](/router/api/)).
+A skipped middleware does not end the chain and does not change the onion order: outer middleware still wrap everything downstream. A second callback that throws rejects the run, like any other middleware failure. Core knows nothing about paths; for HTTP, `matches()` and `routed()` from `@rhythmjs/router/match` build predicates from the request (see the [router API](/router/api/)).
 
 <Callout title="A conditional derive adds nothing to the type">
 
-`use(derive(...), when)` can skip the derive, so its fields may be missing downstream. The overload with a predicate therefore returns the context type unchanged, and the extra fields are not typed on later middleware.
+`use(derive(...), condition)` can skip the derive, so its fields may be missing downstream. The overload with a second callback therefore returns the context type unchanged, and the extra fields are not typed on later middleware.
 
 </Callout>
 

@@ -18,7 +18,7 @@ const User = z
   .transform((u) => ({ fullName: `${u.first_name} ${u.last_name}` }));
 
 const router = new RhythmRouter().get("/users/ada", intercept(User), (ctx) => {
-  ctx.response.body = JSON.stringify({ first_name: "Ada", last_name: "Lovelace" });
+  ctx.json({ first_name: "Ada", last_name: "Lovelace" });
 });
 // GET /users/ada => 200 {"fullName":"Ada Lovelace"}
 ```
@@ -31,7 +31,7 @@ The string body is parsed as JSON first; if parsing fails, the *raw string* is v
 
 ## Writing the result back [#writing-the-result]
 
-The schema’s output replaces the body. An object or array result is `JSON.stringify`-ed and the `content-type` is set to `application/json`. A string result is written verbatim and the content-type is left alone, so text stays text.
+The schema’s output replaces the body. An object or array result is `JSON.stringify`-ed and the `content-type` is set to `application/json; charset=utf-8`. A string result is written verbatim and the content-type is left alone, so text stays text.
 
 Transforms are first-class: rename fields, derive values, or collapse a database row into an API shape in one place instead of in every handler.
 

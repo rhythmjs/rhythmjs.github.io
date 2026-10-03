@@ -6,20 +6,20 @@ description: "Request body limits and streaming multipart uploads with per-file 
 
 ## Cap the request body [#cap-the-body]
 
-`bodyLimit(maxBytes)` rejects oversized payloads with `413 Payload Too Large` (a JSON error body) before your handler runs. When the client sends a valid `Content-Length`, the check is free; without one (a chunked body), the stream is counted and cancelled the moment it crosses the limit, so at most `maxBytes` plus one chunk is ever held in memory. Bodies that pass are re-exposed on `ctx.request` already buffered, so the handler reads them as usual.
+`bodyLimit(maxBytes)` rejects oversized payloads with `413 Payload Too Large` (a JSON error body with `content-type: application/json; charset=utf-8`) before your handler runs. When the client sends a valid `Content-Length`, the check is free; without one (a chunked body), the stream is counted and cancelled the moment it crosses the limit, so at most `maxBytes` plus one chunk is ever held in memory. Bodies that pass are re-exposed on `ctx.request` already buffered, so the handler reads them as usual.
 
 ```ts
 import { bodyLimit } from "@rhythmjs/http/body-limit";
 
 router.use(bodyLimit(1024 * 1024)).post("/import", async (ctx) => {
   const rows = await ctx.request.json(); // at most 1 MiB
-  ctx.response.body = JSON.stringify({ imported: rows.length });
+  ctx.json({ imported: rows.length });
 });
 ```
 
 ## Parse multipart uploads [#parse-multipart]
 
-`multipart(options?)` parses `multipart/form-data` requests and puts a `MultipartForm` on the context as `ctx.form` (`MultipartContext`). Requests that are not multipart answer `415`; an empty or malformed body answers `400`; every limit violation answers `413`.
+`multipart(options?)` parses `multipart/form-data` requests and puts a `MultipartForm` on the context as `ctx.form` (`MultipartContext`). Requests that are not multipart answer `415`; an empty or malformed body answers `400`; every limit violation answers `413`. These errors are JSON bodies with `content-type: application/json; charset=utf-8`.
 
 ```ts
 import { multipart, type MultipartContext } from "@rhythmjs/http/multipart";

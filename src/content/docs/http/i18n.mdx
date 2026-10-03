@@ -15,7 +15,7 @@ import { i18n, type I18nContext } from "@rhythmjs/http/i18n";
 await i18next.init({ fallbackLng: "en", supportedLngs: ["en", "de"], resources });
 
 router.use<I18nContext>(i18n({ i18next, cacheCookie: true })).get("/", (ctx) => {
-  ctx.response.body = ctx.t("welcome"); // content-language set from ctx.language
+  ctx.text(ctx.t("welcome")); // content-language set from ctx.language
 });
 ```
 

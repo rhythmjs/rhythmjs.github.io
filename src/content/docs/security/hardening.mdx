@@ -6,7 +6,7 @@ description: "Fixed-window rate limiting with RateLimit-* headers, pluggable sto
 
 ## Fixed-window rate limits [#fixed-window-limits]
 
-`@rhythmjs/security/rate-limit` counts requests per key in a fixed window: `limit` requests (default `100`) per `windowMs` (default `60 000`). Within the window each request increments the key's counter; once the counter passes the limit, the middleware answers `429` with a `Retry-After` header holding the seconds until the window resets and a JSON body of `{ success: false, status: 429, message }` (`message` defaults to `"Too Many Requests"`). A `skip(request)` predicate exempts requests (health probes, allowlisted callers) before any counting happens.
+`@rhythmjs/security/rate-limit` counts requests per key in a fixed window: `limit` requests (default `100`) per `windowMs` (default `60 000`). Within the window each request increments the key's counter; once the counter passes the limit, the middleware answers `429` with a `Retry-After` header holding the seconds until the window resets and a JSON body (`application/json; charset=utf-8`) of `{ success: false, status: 429, message }` (`message` defaults to `"Too Many Requests"`). A `skip(request)` predicate exempts requests (health probes, allowlisted callers) before any counting happens.
 
 ```ts
 import { rateLimit } from "@rhythmjs/security/rate-limit";

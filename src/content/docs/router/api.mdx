@@ -8,16 +8,16 @@ lead: "Route methods, response helpers, and Bun serving exports for @rhythmjs/ro
 <DefList>
 <Def sig={"new RhythmRouter({ prefix? })"} id="rhythmrouter">Create an HTTP controller. A router does not extend Rhythm; it compiles routes and middleware down to a single middleware. The prefix joins onto every route path registered on this instance.</Def>
 <Def sig="get / post / put / patch / delete(path, ...handlers)" id="get">Add one or more handlers for a method and path; multiple handlers compose left to right, and a leading derive middleware types the context for the handlers after it. Matched parameters are in `ctx.params`.</Def>
-<Def sig="use(fn, when?)" id="use">Add a middleware. It takes only functions; mount a nested router as `use(child.middleware())`; the mount is opaque, so the child carries its own full prefix. Registration order is execution order: a middleware wraps only the routes registered after it. With `when`, it also needs `when(ctx)` to be true (sync or async); the predicate only narrows, so a middleware placed after every route still never runs. A conditional `derive()` does not extend the context type. There is no startup `context` or `register()`; startup values live on the host Rhythm app.</Def>
+<Def sig="use(fn, condition?)" id="use">Add a middleware. It takes only functions; mount a nested router as `use(child.middleware())`; the mount is opaque, so the child carries its own full prefix. Registration order is execution order: a middleware wraps only the routes registered after it. With a second callback, it also needs `condition(ctx)` to return true (sync or async); the callback only narrows, so a middleware placed after every route still never runs. A conditional `derive()` does not extend the context type. There is no startup `context` or `register()`; startup values live on the host Rhythm app.</Def>
 <Def sig="middleware()" id="middleware">Compile this router to a plain middleware: the one form that mounts anywhere, into a Rhythm app or into another router. The middleware is tagged with the router as its source, so a parent module lists it in its `sources`.</Def>
 <Def sig="entries" id="entries">A read-only snapshot of registered middlewares and routes, in order.</Def>
 <Def sig="joinPath(prefix, path)" id="joinpath">The exported prefix-joining helper the router uses internally.</Def>
 </DefList>
 
 <DefList>
-<Def sig="ctx.json(data, status?)" id="ctx-json">Serialize data as the body with an application/json content type; status is optional.</Def>
-<Def sig="ctx.text(body, status?) / ctx.html(body, status?)" id="ctx-text">Set a plain-text or HTML body with the matching content type.</Def>
-<Def sig="ctx.error(status, message?)" id="ctx-error">Set the status and a plain-text message, defaulting the message from the status code.</Def>
+<Def sig="ctx.json(data, status?)" id="ctx-json">Serialize data as the body with an `application/json; charset=utf-8` content type; status is optional.</Def>
+<Def sig="ctx.text(body, status?) / ctx.html(body, status?)" id="ctx-text">Set a body with `text/plain; charset=utf-8` or `text/html; charset=utf-8`.</Def>
+<Def sig="ctx.error(status, message?)" id="ctx-error">Set the status and a `text/plain; charset=utf-8` message, defaulting the message from the status code.</Def>
 <Def sig="ctx.redirect(url, status?)" id="ctx-redirect">Set the location header with a 302 default and no body.</Def>
 </DefList>
 
@@ -33,7 +33,7 @@ The helpers are sugar over `ctx.response`, built into the context by `createHttp
 
 ## Matching helpers
 
-From `@rhythmjs/router/match`. Both return a predicate for `use(fn, when)`. Paths are full pathnames, so include any router prefix.
+From `@rhythmjs/router/match`. Both return a predicate for `use(fn, condition)`. Paths are full pathnames, so include any router prefix.
 
 <DefList>
 <Def sig="matches(pattern | patterns | options)" id="matches">True when the request's method and pathname match. Patterns are rou3 patterns (`/api/users`, `/api/users/:id`, `/api/**`). Options are `include`, `exclude` (wins over include) and `methods`; with no `include`, every path matches.</Def>

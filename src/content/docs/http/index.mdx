@@ -26,7 +26,7 @@ new RhythmRouter().use<CookiesContext>(cookies()).get("/", (ctx) => {
   const theme = ctx.cookies.get("theme") ?? "light";
   ctx.cookies.set("theme", theme, { httpOnly: true, maxAge: 3600 });
   ctx.cookies.delete("legacy");
-  ctx.response.body = theme;
+  ctx.text(theme);
 });
 ```
 
@@ -45,11 +45,11 @@ new RhythmRouter()
   .use<SessionContext>(session({ secure: true }))
   .post("/login", (ctx) => {
     ctx.session.set("user", "ada"); // stored + cookie issued after the handler
-    ctx.response.body = "logged in";
+    ctx.text("logged in");
   })
   .post("/logout", (ctx) => {
     ctx.session.destroy(); // store entry deleted, cookie expired with Max-Age=0
-    ctx.response.body = "bye";
+    ctx.text("bye");
   });
 ```
 
@@ -64,7 +64,7 @@ import { requestScope, RequestScope } from "@rhythmjs/http/request-scope";
 
 router.use(requestScope()).get("/orders", async (ctx) => {
   RequestScope.set("tenant", ctx.request.headers.get("x-tenant"));
-  ctx.response.body = JSON.stringify(await listOrders());
+  ctx.json(await listOrders());
 });
 
 // deep inside the data layer, no ctx in sight:
