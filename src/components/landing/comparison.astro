@@ -7,7 +7,11 @@ const rows = [
   { topic: "Structure", cells: ["Build it yourself", "Composable middleware and modules", "Imposed by the framework"] },
   { topic: "Types", cells: ["Cast by hand", "Flow through the request", "Depends on decorators"] },
   { topic: "Magic", cells: ["None", "None, everything explicit", "Decorators, DI, conventions"] },
-  { topic: "DX", cells: ["Lots of boilerplate", "A small, readable pipeline", "Powerful, heavy to learn"], score: [2, 5, 3] },
+  {
+    topic: "DX",
+    cells: ["Lots of boilerplate", "A small, readable pipeline", "Powerful, heavy to learn"],
+    score: [2, 5, 3],
+  },
 ];
 ---
 
@@ -24,27 +28,31 @@ const rows = [
         <thead>
           <tr>
             <td></td>
-            {columns.map((name, i) => <th scope="col" class={i === 1 ? "is-rhythm" : undefined}>{name}</th>)}
+            {columns.map((name, i) => (
+              <th scope="col" class={i === 1 ? "is-rhythm" : undefined}>
+                {name}
+              </th>
+            ))}
           </tr>
         </thead>
         <tbody>
-          {
-            rows.map(({ topic, cells, score }) => (
-              <tr>
-                <th scope="row">{topic}</th>
-                {cells.map((cell, i) => (
-                  <td class={i === 1 ? "is-rhythm" : undefined}>
-                    {cell}
-                    {score && (
-                      <span class="score" role="img" aria-label={`${score[i]} out of 5`}>
-                        {[1, 2, 3, 4, 5].map((n) => <i class={n <= score[i] ? "on" : undefined} />)}
-                      </span>
-                    )}
-                  </td>
-                ))}
-              </tr>
-            ))
-          }
+          {rows.map(({ topic, cells, score }) => (
+            <tr>
+              <th scope="row">{topic}</th>
+              {cells.map((cell, i) => (
+                <td class={i === 1 ? "is-rhythm" : undefined}>
+                  {cell}
+                  {score && (
+                    <span class="score" role="img" aria-label={`${score[i]} out of 5`}>
+                      {[1, 2, 3, 4, 5].map((n) => (
+                        <i class={n <= score[i] ? "on" : undefined} />
+                      ))}
+                    </span>
+                  )}
+                </td>
+              ))}
+            </tr>
+          ))}
         </tbody>
       </table>
     </div>

@@ -17,7 +17,10 @@ const last = inward.length - 1;
 ---
 
 <div class="pipeline" data-pipeline>
-  <div class="envelope" aria-hidden="true"><span class="envelope-icon">✉</span><span class="envelope-tag"></span></div>
+  <div class="envelope" aria-hidden="true">
+    <span class="envelope-icon">✉</span>
+    <span class="envelope-tag"></span>
+  </div>
   <ol class="pipeline-row" aria-label="Going in">
     {inward.map(({ name, note, tag }, i) => (
       <li class={i === last ? "stage is-core" : i === 0 ? "stage is-end" : "stage"} data-tag={tag}>

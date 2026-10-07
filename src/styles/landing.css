@@ -96,7 +96,14 @@
   justify-content: center;
   min-height: calc(100dvh - var(--header-h));
   padding: clamp(3.5rem, 7vw, 6.5rem) var(--gutter);
-  background: linear-gradient(to right, transparent, color-mix(in oklab, var(--foreground) 22%, transparent) 20%, color-mix(in oklab, var(--foreground) 22%, transparent) 80%, transparent) top / 100% 1px no-repeat;
+  background: linear-gradient(
+      to right,
+      transparent,
+      color-mix(in oklab, var(--foreground) 22%, transparent) 20%,
+      color-mix(in oklab, var(--foreground) 22%, transparent) 80%,
+      transparent
+    )
+    top / 100% 1px no-repeat;
 }
 
 .landing-inner {
