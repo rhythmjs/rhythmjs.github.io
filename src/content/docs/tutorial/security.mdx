@@ -6,68 +6,100 @@ description: "Headers, CORS, CSRF, rate limits, and authenticated routes."
 
 ## The edge stack
 
-Security middleware goes at the front of the module, in a deliberate order: headers on everything, CORS before any work, CSRF and rate limiting before handlers. All of it comes from [@rhythmjs/security](/security/):
+Security middleware goes at the front of the app, in a deliberate order: headers on everything, CORS before any work, CSRF and rate limiting before the routers. All of it comes from [@rhythmjs/security](/security/). App-level HTTP middleware reads `ctx.request`, so the app declares the HTTP context as its input — the one place an explicit generic is needed:
 
 ```ts
+import type { RhythmHttpContext } from "@rhythmjs/router/context";
 import { secureHeaders } from "@rhythmjs/security/secure-headers";
 import { cors } from "@rhythmjs/security/cors";
 import { csrf } from "@rhythmjs/security/csrf";
 import { rateLimit } from "@rhythmjs/security/rate-limit";
 
-export const appModule = new Rhythm<RhythmHttpContext>({ name: "app", type: "module" })
-  .use(filter())
-  .use(secureHeaders())                             // nosniff, COOP/CORP, HSTS, referrer policy
+export const appModule = new Rhythm<{}, RhythmHttpContext>({ name: "app" })
+  /* ...startup registrations... */
+  .use(secureHeaders())                               // nosniff, COOP/CORP, HSTS, referrer policy
   .use(cors({ origin: ["https://app.example.com"] })) // exact-match allowlist, never "*" with credentials
-  .use(csrf())                                      // origin-checks unsafe form posts
+  .use(csrf())                                        // origin-checks unsafe form posts
   .use(rateLimit({ limit: 100, windowMs: 60_000 }))
-  /* ...the rest of the app... */
+  .use(mount(notesController));
+```
+
+`secureHeaders` covers every response, including ones other middleware produced, and `cors` lives on the app rather than a router so a preflight `OPTIONS` request is answered even for a path that only has a `GET` route.
+
+`rateLimit` identifies clients by `request.ip`, which Bun does not set, so assign it where you hold Bun's server — in `main.ts`:
+
+```ts
+const handler = toFetchHandler(appModule);
+
+const server = Bun.serve({
+  port,
+  fetch(request, server) {
+    Object.assign(request, { ip: server.requestIP(request)?.address });
+    return handler(request, server);
+  },
+});
 ```
 
 <Callout title="Behind a reverse proxy">
 
-Set `rateLimit({ trustProxy: true })` (or the hop count you operate). Without it every client shares the proxy's address bucket; with it the limiter keys on the `X-Forwarded-For` entry your own proxy appended — client-forged entries never count.
+Set `rateLimit({ trustProxy: true })` (or the hop count you operate). Without it every client shares the proxy's address bucket; with it the limiter keys on the `X-Forwarded-For` entry your own proxy appended — client-forged entries never count. Use `keyOf` to choose another bucket key entirely.
 
 </Callout>
 
 ## Who is calling
 
-Authentication is strategy-agnostic plumbing: `attachUser(fn)` resolves whatever credentials you use into `ctx.user` (or `null`), and helpers read the standard headers for you:
+Authentication is strategy-agnostic plumbing: `attachUser(fn)` resolves whatever credentials you use into `ctx.user` (or `null`), and helpers read the standard headers for you. It is a `derive()` step, so it goes on the router whose routes need the user:
 
 ```ts
-import { attachUser, getBearerToken, requireAuthentication } from "@rhythmjs/security/authentication";
-
-interface User {
+// src/auth/auth.service.ts
+export interface User {
   id: string;
   roles: string[];
 }
 
+export const authService = {
+  async verify(token: string): Promise<User | null> {
+    return token === process.env.API_TOKEN ? { id: "1", roles: ["admin"] } : null; // swap in your real check
+  },
+};
+```
+
+```ts
+import { attachUser, getBearerToken } from "@rhythmjs/security/authentication";
+import { authService, type User } from "../auth/auth.service";
+
 const authenticate = attachUser<User>(async (ctx) => {
-  const token = getBearerToken(ctx.request);       // Authorization: Bearer <token>
-  if (token === null) return null;
-  return ctx.authService.verify(token);            // your service; null on bad tokens
+  const token = getBearerToken(ctx.request); // Authorization: Bearer <token>
+  return token === null ? null : authService.verify(token); // null on bad tokens
 });
 ```
 
 ## Who may do what
 
-Authorization composes per route: attach the user once, then require it — or require roles/permissions — exactly where it matters. Unauthenticated requests get `401`, authenticated-but-forbidden get `403`:
+Authorization composes on the router: attach the user once, then require it — and require roles or permissions on the routes that need them. Unauthenticated requests get `401`, authenticated-but-forbidden get `403`. Middleware on a router runs only for that router's routes, so nothing here touches `/health` or the docs:
 
 ```ts
+import { requireAuthentication } from "@rhythmjs/security/authentication";
 import { requireRoles } from "@rhythmjs/security/authorization";
 
-export const notesController = new RhythmRouter<NotesContext>({ prefix: "/api/notes" })
-  .use(authenticate)
-  .get("/", (ctx) => {                              // public: ctx.user may be null
-    ctx.json(ctx.notesService.list());
+export const notesController = new RhythmRouter<NotesContext>({ name: "notes" })
+  .use(filter())
+  .use(intercept(notesResponseSchema))
+  .use(authenticate)                      // ctx.user: User | null
+  .use(requireAuthentication<User>())     // 401 unless signed in; ctx.user: User from here on
+  .get("/api/notes", async (ctx) => {
+    ctx.json(await ctx.notesService.list());
   })
-  .post("/", requireAuthentication(), validate("body", createNoteSchema), (ctx) => {
-    ctx.json(ctx.notesService.create(ctx.valid.body), 201);
+  .post("/api/notes", validate("body", createNoteSchema), async (ctx) => {
+    ctx.json(await ctx.notesService.create(ctx.valid.body), 201);
   })
-  .delete("/:id", requireAuthentication(), requireRoles(["admin"]), (ctx) => {
-    if (!ctx.notesService.remove(ctx.params.id)) throw new HttpError(404, "Note not found");
+  .delete("/api/notes/:id", requireRoles(["admin"]), async (ctx) => {
+    if (!(await ctx.notesService.remove(ctx.params.id))) throw new HttpError(404, "Note not found");
     ctx.response.status = 204;
   });
 ```
+
+`requireAuthentication()` is a derive-style step, so it sits on the router rather than as a second extension in a route's handler list (a route accepts one extension handler, and `validate` takes that slot). To keep part of the API public, put the public routes on another router.
 
 ## Sessions and cookies
 
@@ -76,10 +108,11 @@ For cookie-based apps, `@rhythmjs/http/session` puts a typed session on the cont
 ```ts
 import { session } from "@rhythmjs/http/session";
 
-router
+export const sessionController = new RhythmRouter({ name: "session" })
+  .use(filter())
   .use(session({ secure: true, maxAge: 60 * 60 * 24 }))
   .post("/login", validate("body", loginSchema), async (ctx) => {
-    const user = await ctx.authService.login(ctx.valid.body);
+    const user = await authService.login(ctx.valid.body); // your own check
     if (!user) throw new HttpError(401, "Invalid credentials");
     ctx.session.set("userId", user.id);
     ctx.json({ ok: true });

@@ -1,40 +1,113 @@
 ---
 title: "HTTP router"
-lead: "Route requests with named parameters and composable prefixes, served natively on Bun."
+lead: "Route requests with named parameters and per-router middleware, served natively on Bun."
 ---
 
 ## Serve your first route
 
-The router uses Web-standard requests and a mutable response object; the final `Response` is created when the app is served. A router is a controller, not an app of its own: it compiles down to a single middleware via `middleware()`, and a `Rhythm` host app owns the lifecycle. There is no server wrapper - `toFetchHandler(app)` turns the app into a plain `(request: Request) => Promise<Response>` handler, and `Bun.serve` in your own `main.ts` is the server.
+The router uses Web-standard requests and a mutable response object; the final `Response` is created when the app is served. A router is a pipeline, not an app of its own: it has request-time `use()` middleware and routes, but no startup phase, and a `Rhythm` host app mounts it with `mount(router)`. There is no server wrapper: `toFetchHandler(app)` turns the app into a plain `(request, server?) => Promise<Response>` handler, and `Bun.serve` in your own `main.ts` is the server.
 
 ```ts
-import { Rhythm } from "@rhythmjs/rhythm";
+import { Rhythm, mount } from "@rhythmjs/rhythm";
 import { RhythmRouter } from "@rhythmjs/router";
 import { toFetchHandler } from "@rhythmjs/router/fetch";
-import type { RhythmHttpContext } from "@rhythmjs/router/context";
 
 const router = new RhythmRouter().get("/users/:id", (ctx) => {
   ctx.json({ id: ctx.params.id });
 });
 
-const app = new Rhythm<RhythmHttpContext>().use(router.middleware());
+const app = new Rhythm().use(mount(router));
 
 const server = Bun.serve({ port: 3000, fetch: toFetchHandler(app) });
 console.log(`listening on ${server.url}`);
 ```
 
-Everything else composes into that same `fetch` by hand, with no magic between you and Bun: `errorToResponse(error)` (also from `./fetch`) maps thrown errors to status-aware responses in your own `try/catch`; static files are [Bun's built-in routes](/router/static/): a `Response` for a known file, `"/static/*": { dir }` for a folder (never `"/*"`); WebSockets from [@rhythmjs/ws](/ws/serving/) via `ws.upgrade(request, server) ?? handler(request)`; and middlewares that key off the client address (`@rhythmjs/security` rate limiting) read `request.ip` when you expose it:
+`mount` widens the host's input to cover what the router needs (the request, the response, the response helpers), so the host needs no type arguments. Pass `fetch: toFetchHandler(app)` directly rather than wrapping it: Bun then hands its server to the handler, and every route sees it as `ctx.server` (for `ctx.server?.requestIP(ctx.request)`, `publish`, `upgrade`). Called without a server, `ctx.server` is `undefined`.
+
+Everything else composes into the same `Bun.serve` call by hand, with no magic between you and Bun: static files are [Bun's built-in routes](/router/static/); WebSockets are [@rhythmjs/ws](/ws/serving/), mounted next to the router and served by one `websocket` handler; and scheduled work is [@rhythmjs/cron](/cron/lifecycle/), started with the app.
+
+## Match paths
+
+Register routes with `get`, `post`, `put`, `patch`, and `delete`. Each takes a full path and one or more handlers; multiple handlers compose left to right like middleware. There is no `prefix` option: write the whole path on each route. A path that does not start with `/` throws a `TypeError` when the route is registered.
+
+Patterns follow [rou3](https://github.com/h3js/rou3), the router behind h3:
+
+<DefList>
+<Def sig=":name" id="param">Exactly one segment, captured as `ctx.params.name`. `:name?` is optional, and `:id(\d+)` is constrained by a regex. Values are URI-decoded; a malformed escape does not match.</Def>
+<Def sig="*" id="star">An unnamed wildcard captured as `ctx.params["0"]`. It is not limited to one segment; it is greedy: `/files/*` matches `/files/a` and `/files/a/b` (`"a/b"`), and `/a/*/c` matches `/a/x/y/c`. It may also match nothing: `/files/*` matches `/files`, with no `"0"` param.</Def>
+<Def sig="**" id="double-star">The rest of the path, captured as `ctx.params._`, or under a name with `**:name`. `/files/**:path` gives `params.path === "a/b/c.txt"` for `/files/a/b/c.txt`.</Def>
+</DefList>
+
+A static segment always wins over a `:param` segment, regardless of registration order. Trailing slashes are ignored, matching is method-specific, and there are no dedicated HEAD or OPTIONS registration methods. Params are typed from the path: `/users/:id` gives `params.id: string`, `:id?` gives `string | undefined`, and reading a name that is not in the path is a compile error.
+
+## Compose routers
+
+A router is a pipeline, so it mounts into a host the same way as everything else, and a host can mount as many as it likes.
 
 ```ts
-const server = Bun.serve({
-  port: 3000,
-  async fetch(request, srv) {
-    Object.defineProperty(request, "ip", {
-      configurable: true,
-      get: () => srv.requestIP(request)?.address,
-    });
+const users = new RhythmRouter({ name: "users" })
+  .get("/api/users", (ctx) => ctx.json([]))
+  .get("/api/users/:id", (ctx) => ctx.json({ id: ctx.params.id }));
+
+const posts = new RhythmRouter({ name: "posts" }).get("/api/posts", (ctx) => ctx.json([]));
+
+const app = new Rhythm().use(mount(users)).use(mount(posts));
+```
+
+`router.use(middleware)` wraps every route of that router, wherever it was added, and runs only when one of the router's own routes matches the method and path. A guard on `users` therefore never answers a request that belongs to `posts`, and a request that matches nothing never reaches it. If the middleware does not call `next()`, the route handlers do not run.
+
+```ts
+const admin = new RhythmRouter({ name: "admin" })
+  .use(async (ctx, next) => {
+    if (!ctx.request.headers.has("x-admin")) return ctx.error(403);
+    await next();
+  })
+  .get("/admin/stats", (ctx) => ctx.json({ users: 42 }));
+```
+
+To mount a router only for some requests, pass a condition: `mount(admin, pathIs("/admin/**"))`, with `pathIs` from `@rhythmjs/router/path`. A router can also be mounted from a catch-all route of another router (`outer.get("/api/**", mount(inner))`).
+
+## Derive route context
+
+`derive(fn)` can be the router's `use()` argument, which widens the context for all its routes, or the first handler of one route, which widens it for that route only. A route takes at most one such derive-style handler, and it must come first; the handlers after it see the added fields typed.
+
+```ts
+import { derive } from "@rhythmjs/rhythm";
+
+const me = new RhythmRouter()
+  .use(derive(() => ({ requestId: crypto.randomUUID() })))
+  .get(
+    "/me",
+    derive(async (ctx) => ({ body: await ctx.request.json() })),
+    (ctx) => ctx.json({ id: ctx.requestId, body: ctx.body }),
+  );
+```
+
+The route context is strict: it has only what was added, so `ctx.nope` is a compile error. Startup values come from the host. Declare what a router expects from it in its type, `new RhythmRouter<{ db: Db }>()`, and the host supplies it with `decorate`. A host that does not would need it as input, and `toFetchHandler` rejects such an app at compile time.
+
+## Provide a fallback
+
+An unmatched request leaves the context untouched and the host carries on with its next middleware. If nothing wrote a response, `toFetchHandler` answers `404 Not Found` as plain text. For a custom 404, add a final middleware to the host. After a plugin runs, `mount` always calls `next()`, so check whether a response was written.
+
+```ts
+const app = new Rhythm()
+  .use(mount(users))
+  .use((ctx) => {
+    if (ctx.response.body === null) ctx.json({ success: false, status: 404, message: "Not Found" }, 404);
+  });
+```
+
+## Handle errors
+
+A route that throws makes the fetch handler reject. Errors thrown inside a mounted router are wrapped as `mounted router "users" failed` with the original as `cause`, so put `filter()` from `@rhythmjs/middleware` on the router, not the host. In your own `fetch`, `errorToResponse(error)` maps a thrown error to a status-aware response:
+
+```ts
+const handler = toFetchHandler(app);
+
+Bun.serve({
+  async fetch(request, server) {
     try {
-      return await handler(request);
+      return await handler(request, server);
     } catch (error) {
       return errorToResponse(error);
     }
@@ -42,39 +115,22 @@ const server = Bun.serve({
 });
 ```
 
-## Match paths
+It uses the error's own `status` or `statusCode` when that is an integer from 400 to 599, looking through the `cause` chain, and otherwise logs and answers a generic `500`.
 
-Register routes with `get`, `post`, `put`, `patch`, and `delete`. Each accepts a path and one or more handlers; multiple handlers compose left to right like middleware, and a leading derive middleware can type the context the later handlers see. Named `:param` segments populate `ctx.params`.
+## Wrap a fetch handler
 
-A compressed radix tree (rou3) gives static segments priority over parameter segments, regardless of registration order. Match behavior is method-specific; there are no dedicated HEAD or OPTIONS registration methods.
-
-## Compose prefixes
-
-`use()` takes only functions, so a nested router mounts as `use(child.middleware())`. The compiled form is opaque (the mounting router's prefix is *not* applied to it), so give the child its full prefix. Mounting compiles the child at that moment; routes added to the child afterwards don't appear in the parent.
+Libraries that expose a `(request) => Response` handler (Better Auth, tRPC, a webhook SDK) mount with `fromFetch`. Combine it with `pathIs` so the handler only sees its own paths.
 
 ```ts
-const users = new RhythmRouter({ prefix: "/api/users" })
-  .get("/:id", (ctx) => {
-    ctx.json({ id: ctx.params.id });
-  });
+import { fromFetch } from "@rhythmjs/router/fetch";
+import { pathIs } from "@rhythmjs/router/path";
 
-const api = new RhythmRouter().use(users.middleware()); // serves /api/users/:id
+const app = new Rhythm()
+  .use(mount(fromFetch((request) => auth.handler(request)), pathIs("/api/auth/**")))
+  .use(mount(router));
 ```
 
-## Provide a fallback
-
-An unmatched request calls the next middleware. Add an explicit 404 fallback; the default response is status 200 with an empty body. A matched handler that calls `next()` also continues downstream. Registration order is execution order: a `use()` middleware wraps only the routes registered after it, and a matched route that doesn't call `next()` returns without reaching anything registered later.
-
-```ts
-import { Rhythm } from "@rhythmjs/rhythm";
-import type { RhythmHttpContext } from "@rhythmjs/router/context";
-
-const app = new Rhythm<RhythmHttpContext>()
-  .use(api.middleware())
-  .use((ctx) => {
-    ctx.error(404);
-  });
-```
+The returned `Response` becomes the response: status, headers, body stream, and every `Set-Cookie`.
 
 ## Write a response
 
@@ -101,6 +157,6 @@ router
 - `ctx.json(data, status?)`: serializes `data` and sets `application/json; charset=utf-8`.
 - `ctx.text(body, status?)` / `ctx.html(body, status?)`: bodies with `text/plain; charset=utf-8` and `text/html; charset=utf-8`.
 - `ctx.error(status, message?)`: sets the status and a plain-text message, defaulting the message from the status code (`ctx.error(404)` → `"Not Found"`).
-- `ctx.redirect(url, status = 302)`: sets the `location` header and clears the body.
+- `ctx.redirect(url, status = 302)`: sets the `location` header and clears the body. The status must be 301, 302, 303, 307 or 308, and the URL is used as given, so never pass a user-supplied target without checking it.
 
-See [Serving on Bun](/router/static/) for the server itself: static assets, serve middleware, WebSockets, and client addresses.
+See [Serving files](/router/static/) for static assets.

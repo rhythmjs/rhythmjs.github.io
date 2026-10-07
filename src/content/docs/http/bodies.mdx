@@ -1,12 +1,12 @@
 ---
 title: "Bodies & uploads"
 lead: "Cap request bodies with a header-first check, and parse multipart uploads with limits that abort mid-stream instead of buffering."
-description: "Request body limits and streaming multipart uploads with per-file and per-form caps."
+description: "Request body limits and multipart uploads with per-file and per-form caps that abort mid-stream."
 ---
 
 ## Cap the request body [#cap-the-body]
 
-`bodyLimit(maxBytes)` rejects oversized payloads with `413 Payload Too Large` (a JSON error body with `content-type: application/json; charset=utf-8`) before your handler runs. When the client sends a valid `Content-Length`, the check is free; without one (a chunked body), the stream is counted and cancelled the moment it crosses the limit, so at most `maxBytes` plus one chunk is ever held in memory. Bodies that pass are re-exposed on `ctx.request` already buffered, so the handler reads them as usual.
+`bodyLimit(maxBytes)` rejects oversized payloads with `413 Payload Too Large` (a JSON body of `{ success: false, status: 413, message }`, `content-type: application/json; charset=utf-8`) before your handler runs. When the client sends a valid `Content-Length`, the check is free; without one (a chunked body), the stream is counted and cancelled the moment it crosses the limit, so at most `maxBytes` plus one chunk is ever held in memory. Bodies that pass are re-exposed on `ctx.request` already buffered, so the handler reads them as usual. Pair it with Bun’s own `maxRequestBodySize` in `Bun.serve` as a hard server-wide cap; this middleware gives you per-router limits.
 
 ```ts
 import { bodyLimit } from "@rhythmjs/http/body-limit";
@@ -19,12 +19,12 @@ router.use(bodyLimit(1024 * 1024)).post("/import", async (ctx) => {
 
 ## Parse multipart uploads [#parse-multipart]
 
-`multipart(options?)` parses `multipart/form-data` requests and puts a `MultipartForm` on the context as `ctx.form` (`MultipartContext`). Requests that are not multipart answer `415`; an empty or malformed body answers `400`; every limit violation answers `413`. These errors are JSON bodies with `content-type: application/json; charset=utf-8`.
+`multipart(options?)` parses `multipart/form-data` requests and puts a `MultipartForm` on the context as `ctx.form` (`MultipartContext`). Requests that are not multipart answer `415`; an empty or malformed body answers `400`; every limit violation answers `413`. These errors are JSON bodies (`{ success: false, status, message }`) with `content-type: application/json; charset=utf-8`. The middleware goes first on the route, so the handlers after it see `ctx.form` typed; `MultipartContext` is the exported type for that context. The body is parsed once, so do not also read `ctx.request.formData()`.
 
 ```ts
-import { multipart, type MultipartContext } from "@rhythmjs/http/multipart";
+import { multipart } from "@rhythmjs/http/multipart";
 
-router.post<MultipartContext>(
+router.post(
   "/avatar",
   multipart({ maxBytes: 5 * 1024 * 1024, maxFileSize: 2 * 1024 * 1024, maxFiles: 1 }),
   async (ctx) => {
@@ -38,7 +38,7 @@ router.post<MultipartContext>(
 
 ## Limits that stream [#upload-limits]
 
-`maxBytes` is enforced twice: a fast `Content-Length` precheck, and a counting `ReadableStream` wrapped around the body so parsing *aborts mid-stream* the moment the limit is crossed, an attacker cannot make you buffer a lying request. `maxFileSize` (per file), `maxFiles`, and `maxFields` are checked after parsing.
+`maxBytes` (default 10 MiB; `Infinity` lifts it) is enforced twice: a fast `Content-Length` precheck, and a counting `ReadableStream` wrapped around the body so parsing *aborts mid-stream* the moment the limit is crossed, so an attacker cannot make you buffer a lying request. `maxFileSize` (per file), `maxFiles`, and `maxFields` are checked after parsing, which makes `maxBytes` the setting that bounds memory. Fields and files are held in memory, so keep it as low as your uploads allow; streaming to disk is out of scope for this module.
 
 ## Reading the form
 

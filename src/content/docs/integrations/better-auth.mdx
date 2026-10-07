@@ -16,50 +16,54 @@ bun add better-auth @rhythmjs/better-auth
 
 ## Mount the handler [#module]
 
-Register `betterAuthModule.forRoot({ auth })`. It mounts `auth.handler` at `path` (default: the instance's `basePath`, else `/api/auth`) and sets `auth` on its own startup context. Nothing reaches the parent until you export it in the `register` callback, so export `auth` for the middleware below.
+Two pieces work together. `betterAuthModule.forRoot({ auth })` is startup-only: it holds `auth` on its startup context, and you `include` it to put `auth` on your app. `authHandler({ auth })` is the middleware that answers Better Auth's routes: it forwards requests under `${path}/**` (default: the instance's `basePath`, else `/api/auth`) to `auth.handler`, and everything else continues down the chain.
 
 ```ts
 // src/app.module.ts
-import { betterAuthModule } from "@rhythmjs/better-auth";
-import { Rhythm } from "@rhythmjs/rhythm";
-import type { RhythmHttpContext } from "@rhythmjs/router/adapters/context";
+import { authHandler, betterAuthModule } from "@rhythmjs/better-auth";
+import { Rhythm, include, mount } from "@rhythmjs/rhythm";
+import type { RhythmHttpContext } from "@rhythmjs/router/context";
+import { appController } from "./app.controller";
 import { auth } from "./lib/auth";
 
-export const appModule = new Rhythm<RhythmHttpContext>({ name: "app", type: "module" }).register(
-  betterAuthModule.forRoot({ auth, path: "/api/auth" }),
-  (m) => ({ auth: m.auth }),
-);
+export const appModule = new Rhythm<{}, RhythmHttpContext>({ name: "app" })
+  .register(include(betterAuthModule.forRoot({ auth }), ({ auth }) => ({ auth })))
+  .use(authHandler({ auth, path: "/api/auth" }))
+  .use(mount(appController));
 ```
 
-Under the hood the module uses [`mount`](/http/mount/). Without the module, `authHandler({ auth })` is the bare mounting middleware; put `auth` on the context yourself in that case (for example `appModule.context.auth = auth`).
+Nothing reaches the app until `include` picks it, so pick `auth` for the session middleware below. Serve the app with `Bun.serve({ fetch: toFetchHandler(appModule) })`.
 
 ## CORS [#cors]
 
-For a frontend on another origin, use the `cors` exported by `@rhythmjs/better-auth` (it is `cors` from `@rhythmjs/security/cors`, unchanged). Put it before the module, so preflights are answered and Better Auth's own responses carry the headers. Cookie sessions need `credentials: true`, and the origin must also be in Better Auth's `trustedOrigins`: Better Auth checks origins separately from CORS.
+For a frontend on another origin, use the `cors` exported by `@rhythmjs/better-auth` (it is `cors` from `@rhythmjs/security/cors`, unchanged). Put it before `authHandler`, so preflights are answered and Better Auth's own responses carry the headers. Cookie sessions need `credentials: true`, and the origin must also be in Better Auth's `trustedOrigins`: Better Auth checks origins separately from CORS.
 
 ```ts
-import { betterAuthModule, cors } from "@rhythmjs/better-auth";
+import { authHandler, betterAuthModule, cors } from "@rhythmjs/better-auth";
 
-export const appModule = new Rhythm<RhythmHttpContext>({ name: "app", type: "module" })
+export const appModule = new Rhythm<{}, RhythmHttpContext>({ name: "app" })
+  .register(include(betterAuthModule.forRoot({ auth }), ({ auth }) => ({ auth })))
   .use(cors({ origin: "http://localhost:3001", credentials: true, allowHeaders: ["Content-Type", "Authorization"] }))
-  .register(betterAuthModule.forRoot({ auth, path: "/api/auth" }), (m) => ({ auth: m.auth }));
+  .use(authHandler({ auth }))
+  .use(mount(appController));
 ```
 
 ## Session middleware [#session]
 
-Both read `ctx.auth`, so they go after the `register` above.
+Both read `ctx.auth`, so they go after the `include` above, and after `authHandler` so sign-in and sign-up stay reachable without a session.
 
 - `withSession()` puts `session` and `user` on the context, both `null` when anonymous.
 - `requireSession()` answers 401 when there is no session, and its type tells the handler that `ctx.session` and `ctx.user` are set.
 
 ```ts
-import { requireSession, withSession } from "@rhythmjs/better-auth";
+import { authHandler, betterAuthModule, cors, withSession } from "@rhythmjs/better-auth";
 
-export const appModule = new Rhythm<RhythmHttpContext>({ name: "app", type: "module" })
+export const appModule = new Rhythm<{}, RhythmHttpContext>({ name: "app" })
+  .register(include(betterAuthModule.forRoot({ auth }), ({ auth }) => ({ auth })))
   .use(cors({ origin: "http://localhost:3001", credentials: true }))
-  .register(betterAuthModule.forRoot({ auth, path: "/api/auth" }), (m) => ({ auth: m.auth }))
+  .use(authHandler({ auth }))
   .use(withSession())
-  .use(appController.middleware());
+  .use(mount(appController));
 ```
 
 Guard a route with `requireSession()`. Its context type needs `AuthContext` and `SessionContext`, both exported by the package. Put the guard on the route: a router-level guard narrows the router's context, and that router would then not type-check when mounted.
@@ -68,7 +72,7 @@ Guard a route with `requireSession()`. Its context type needs `AuthContext` and 
 // src/app.controller.ts
 import { requireSession, type AuthContext, type SessionContext } from "@rhythmjs/better-auth";
 import { RhythmRouter } from "@rhythmjs/router";
-import type { RhythmHttpContext } from "@rhythmjs/router/adapters/context";
+import type { RhythmHttpContext } from "@rhythmjs/router/context";
 
 export type AppContext = RhythmHttpContext & AuthContext & SessionContext;
 
@@ -79,9 +83,26 @@ export const appController = new RhythmRouter<AppContext>().get("/me", requireSe
 
 `session` and `user` have Better Auth's base types. For plugin or custom fields, call `ctx.auth.api.getSession({ headers: ctx.request.headers })` yourself: it is typed from your instance. For roles, check `ctx.user.role` in a guard of your own.
 
+## Build auth from app resources [#async]
+
+When `auth` needs things the app provides (a database, a mailer), use `betterAuthModule.forRootAsync({ useFactory })` instead of the pair above. It is a single middleware added with `.use()`: it derives `auth` onto the request context and mounts `auth.handler` like `authHandler`. `useFactory` receives the request context (including your startup fields), may be async, and runs once on the first request; if it throws, the failure surfaces on that request and the factory is retried on the next.
+
+```ts
+const app = new Rhythm<{}, RhythmHttpContext>()
+  .register(decorate(() => ({ database: openDatabase() })))
+  .use(
+    betterAuthModule.forRootAsync({
+      useFactory: ({ database }: RhythmHttpContext & { database: Database }) => createAuth(database),
+    }),
+  )
+  .use(withSession())
+  .use(mount(appController));
+```
+
 ## Things to check
 
-- Better Auth rate-limits its own endpoints; Rhythm middleware does not see requests that the module answers.
+- Better Auth rate-limits its own endpoints; Rhythm middleware placed after `authHandler` does not see requests that it answers.
+- You own the `auth` instance and its database: run migrations and close the database on shutdown (register the close as the cleanup of the `register` call, so `app.stop()` runs it).
 - Set `BETTER_AUTH_SECRET` and `BETTER_AUTH_URL` outside local runs.
 
 The full app, with tests, is [examples/better-auth](https://github.com/rhythmjs/examples/tree/main/examples/better-auth), built from the [template](https://github.com/rhythmjs/template).

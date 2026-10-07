@@ -9,7 +9,7 @@ description: "OpenAPI 3.1 metadata that rides on Rhythm middlewares: validating 
 `@rhythmjs/openapi` exports every module on its own subpath: `/body`, `/response`, `/module`, and so on; there is no root barrel export. Schemas are Standard Schema v1; conversion to JSON Schema goes through the Standard JSON Schema interface (`~standard.jsonSchema`), which zod 4.2+ implements natively. Raw JSON Schema objects pass through untouched, so zod is an optional peer. Turning the described routers into a served document is the [Generate & serve](/openapi/document/) page.
 
 ```bash
-bun add @rhythmjs/openapi @rhythmjs/http @rhythmjs/rhythm @rhythmjs/router
+bun add @rhythmjs/openapi @rhythmjs/rhythm @rhythmjs/router zod
 ```
 
 ## Metadata rides on middleware
@@ -17,7 +17,9 @@ bun add @rhythmjs/openapi @rhythmjs/http @rhythmjs/rhythm @rhythmjs/router
 Every `api*` helper returns an ordinary Rhythm middleware carrying an *operation fragment*, a slice of an OpenAPI operation, under the well-known symbol `Symbol.for("rhythmjs.openapi")`. Two kinds exist: doc-only fragments (`apiOperation`, `apiTags`, `apiResponse`, the security helpers) whose middleware just calls `next()`, and validating fragments (`apiBody`, `apiQuery`, `apiParam`, `apiHeader`, `apiCookie`) that also check the request at runtime. Because the documentation rides on the middlewares themselves, the router is the single source of truth: what is documented is what runs.
 
 ```ts
-import { apiBody, type Validated } from "@rhythmjs/openapi/body";
+import { RhythmRouter } from "@rhythmjs/router";
+import { documented } from "@rhythmjs/openapi/generate";
+import { apiBody } from "@rhythmjs/openapi/body";
 import { apiOperation } from "@rhythmjs/openapi/operation";
 import { apiResponse } from "@rhythmjs/openapi/response";
 import { apiTags } from "@rhythmjs/openapi/tags";
@@ -27,10 +29,10 @@ import { z } from "zod";
 const User = z.object({ id: z.string(), name: z.string() });
 const CreateUser = z.object({ name: z.string().min(1) });
 
-const users = new RhythmRouter({ prefix: "/users" })
+const users = documented(new RhythmRouter())
   .use(apiTags("users")) // router-level: inherited by later routes
-  .post<Validated<"body", typeof CreateUser>>(
-    "/",
+  .post(
+    "/users",
     apiBody(CreateUser),
     apiOperation({ summary: "Create user", operationId: "createUser" }),
     apiBearerAuth(),
@@ -41,9 +43,13 @@ const users = new RhythmRouter({ prefix: "/users" })
   );
 ```
 
+## Wrap each router with documented() [#documented]
+
+`RhythmRouter` keeps its route table private, so `documented(router)` (from `@rhythmjs/openapi/generate`) records the `use()` and route calls on the router itself and returns it. Wrap right after constructing the router, before any `use()` or route call: a router that is not wrapped, or is wrapped late, is silently left out of the document. The router still mounts and serves as usual. Routes use full paths, so there is no router prefix to account for.
+
 ## Validate and type the request [#validate-and-type]
 
-The five request validators extract their part of the request, run the schema, and on success store the output at `ctx.valid[target]` before calling `next()`; chained validators merge into one `ctx.valid`. The `Validated<Target, Schema>` type plugs into a route handler's extra-context parameter so `ctx.valid.body` is fully typed. On failure the chain short-circuits with status 400 and a `ValidationFailure` body (`content-type: application/json; charset=utf-8`): `{ "success": false, "target": "body", "issues": [...] }`, each issue carrying a message and an optional path.
+The five request validators extract their part of the request, run the schema, and on success store the output at `ctx.valid[target]` before calling `next()`; chained validators merge into one `ctx.valid`. The validators are extension middlewares, so `ctx.valid.body` is typed from the schema's output with no explicit generics. On failure the chain short-circuits with status 400 and a `ValidationFailure` body (`content-type: application/json; charset=utf-8`): `{ "success": false, "target": "body", "issues": [...] }`, each issue carrying a message and an optional path.
 
 Extraction follows the declared content type. `apiBody` clones the request and parses JSON (malformed JSON is itself a 400), form-data (repeated fields become arrays, files stay `File`s), urlencoded, or text. `apiQuery` reads search params with repeated keys as arrays; `apiParam` reads the router's matched params; `apiHeader` hands the schema every header, keyed by the lowercase names the `Headers` class stores; `apiCookie` parses and percent-decodes the `Cookie` header. Parameter helpers accept per-field `overrides` (description, style, examples, required) that surface in the document.
 
@@ -55,4 +61,4 @@ Security composes declaratively: `apiSecurity(name, scopes?)` and the shorthands
 
 ## Inheritance and merging
 
-Fragments attached with `router.use()` are inherited by every route *registered after them*, in order; a route's own fragments merge over the inherited ones. Merging is field-wise: operation fields overwrite, tags and security requirements append with deduplication, parameters keyed by `location:name` so a later fragment can override one parameter, the last `requestBody` wins, and responses merge by status code. A fragment with `exclude` anywhere in the chain removes the operation. Routes with no fragments at all still appear with a default `200` response unless generation runs with `includeUndocumented: false`.
+Fragments attached with `router.use()` are inherited by every route *registered after them*, in order; a route's own fragments merge over the inherited ones. Merging is field-wise: operation fields overwrite, tags and security requirements append with deduplication, parameters keyed by `location:name` so a later fragment can override one parameter, the last `requestBody` wins, and responses merge by status code. A fragment with `exclude` anywhere in the chain removes the operation. Routes with no `api*` middleware at all are left out of the document by default, so internal routes are not published by accident; pass `includeUndocumented: true` to list them with a default `200` response.

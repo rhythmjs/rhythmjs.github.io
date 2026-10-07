@@ -1,0 +1,58 @@
+---
+title: "Scheduled jobs"
+lead: "Named cron jobs on Bun's native scheduler, as a Rhythm pipeline: middleware around every run, started and stopped with the app."
+description: "Install @rhythmjs/cron, declare named jobs on RhythmCron, and start them with the app using startCron."
+---
+
+## Install the package
+
+`@rhythmjs/cron` runs scheduled work for Rhythm on Bun. It is a thin pipeline over Bun's own `Bun.cron`: jobs are named, handlers are ordinary `(ctx, next)` middleware, and the package adds no scheduler of its own. Like the router and WebSockets, `RhythmCron` is a `Pipeline`, so everything you know about middleware and context applies. The [Schedules & handlers](/cron/jobs/) page covers declaring jobs; [Lifecycle & errors](/cron/lifecycle/) covers starting, stopping, and failures.
+
+```bash
+bun add @rhythmjs/cron @rhythmjs/rhythm
+```
+
+## A minimal app [#minimal-app]
+
+`new RhythmCron<{ db: Db }>()` declares the startup context the handlers receive. `.cron(name, schedule, ...handlers)` registers a job, and `startCron(cron)` registers the whole set with the app, so jobs start with the app's startup context and stop on `app.stop()`.
+
+```ts
+import { Rhythm, decorate } from "@rhythmjs/rhythm";
+import { RhythmCron, startCron } from "@rhythmjs/cron";
+
+const cron = new RhythmCron<{ db: Db }>({ tz: "UTC" })
+  .cron("cleanup", "0 3 * * *", async (ctx) => {
+    await ctx.db.deleteExpiredSessions();
+  })
+  .cron("digest", "@hourly", (ctx) => {
+    console.log(`${ctx.job.name} fired at ${ctx.job.firedAt.toISOString()}`);
+  });
+
+const app = new Rhythm()
+  .register(decorate(() => ({ db })))
+  .register(startCron(cron));
+
+await app.callback()();
+// ... on shutdown:
+await app.stop();
+```
+
+## How it sits with Rhythm [#with-rhythm]
+
+`startCron(cron)` is a register callback. It starts the jobs with the app's startup context (`db` above, so the handlers' `ctx` carries it) and registers a cleanup that stops them when `app.stop()` runs. Order matters only in that `decorate` must come first, so the context exists when `startCron` runs.
+
+Because the host app is the same Rhythm app that serves HTTP, one process can do both: pass `toFetchHandler(app)` to `Bun.serve` and register `startCron(cron)` on the same app. Nothing is mounted; cron work does not flow through requests.
+
+<Callout title="In-process only">
+
+Jobs run inside your process on Bun's timers. They are not durable, runs missed while the process is down are not replayed, and every replica fires every job. See [durability and replicas](/cron/lifecycle/#durability).
+
+</Callout>
+
+## What to read next [#next]
+
+<DefList>
+<Def sig="Schedules & handlers" id="jobs-page">[Expressions, nicknames, time zones, handlers, extension middleware, and registration-time validation.](/cron/jobs/)</Def>
+<Def sig="Lifecycle & errors" id="lifecycle-page">[start, stop, run, next, Disposable, onError, and testing without waiting.](/cron/lifecycle/)</Def>
+<Def sig="API reference" id="api-page">[Every export and signature.](/cron/api/)</Def>
+</DefList>

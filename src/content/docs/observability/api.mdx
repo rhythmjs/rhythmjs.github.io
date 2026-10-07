@@ -13,20 +13,20 @@ function log(sink?: LogSink): Middleware<RhythmHttpContext>;
 Returns middleware that measures each request and calls the sink once per request. Without an argument, the default sink prints `METHOD /path status Nms` to the console. When downstream throws, the sink receives an entry with `status: 500` and the `error`, then the error is rethrown so an outer exception filter still sees it.
 
 <DefList>
-<Def sig="LogEntry" id="logentry">The structured entry passed to the sink: `method: string`, `path: string`, `status: number`, `duration: number` (rounded milliseconds), and `error?: unknown`, set only when downstream threw.</Def>
+<Def sig="LogEntry" id="logentry">The structured entry passed to the sink: `method: string`, `path: string` (pathname, no query string), `status: number`, `duration: number` (rounded milliseconds), and `error?: unknown`, set only when downstream threw.</Def>
 <Def sig="LogSink" id="logsink">`(entry: LogEntry) => void | Promise<void>`. Sync or async; an async sink is awaited before the middleware returns.</Def>
 </DefList>
 
 ## @rhythmjs/observability/request-id [#request-id]
 
 ```ts
-function requestId(header?: string): Middleware<RhythmHttpContext>;
+function requestId(header?: string): ExtensionMiddleware<RhythmHttpContext, RequestIdContext>;
 ```
 
-Returns middleware that reads the incoming header named by `header` (default `"x-request-id"`) and reuses its value, or generates a new id with `crypto.randomUUID()`. The id is set on the response under the same header name and passed downstream as `ctx.requestId`.
+Returns derive-style middleware that reads the incoming header named by `header` (default `"x-request-id"`) and reuses its value when it matches `^[A-Za-z0-9._-]{1,128}$`, or generates a new id with `crypto.randomUUID()`. The id is set on the response under the same header name and passed downstream as `ctx.requestId`.
 
 <DefList>
-<Def sig="RequestIdContext" id="requestidcontext">`{ requestId: string }`. The context extension made available to downstream middleware; use it as the type argument of `use` so handlers see `ctx.requestId`.</Def>
+<Def sig="RequestIdContext" id="requestidcontext">`{ requestId: string }`. The context extension `requestId()` derives for everything after it; a router that reads `ctx.requestId` declares it as its input, `new RhythmRouter<RequestIdContext>()`.</Def>
 </DefList>
 
 ## @rhythmjs/observability/timing [#timing]
@@ -35,20 +35,21 @@ Returns middleware that reads the incoming header named by `header` (default `"x
 function timing(name?: string): Middleware<RhythmHttpContext>;
 ```
 
-Returns middleware that appends a `Server-Timing` header after `next()` resolves, in the form `name;dur=N` with the downstream duration in milliseconds to one decimal place, measured with Bun's native `Bun.nanoseconds()`. The metric name defaults to `"app"`. The header is appended, not replaced, so multiple `timing()` layers each contribute their own metric.
+Returns middleware that appends a `Server-Timing` header after `next()` resolves, in the form `name;dur=N` with the downstream duration in milliseconds to one decimal place, measured with Bun's native `Bun.nanoseconds()`. The metric name defaults to `"app"`. The header is appended, not replaced, so multiple `timing()` layers each contribute their own metric. If downstream throws, no header is added.
 
 ## @rhythmjs/observability/health [#health]
 
 ```ts
 function createHealthService(options?: HealthModuleOptions): HealthService
-const healthModule: { forRoot(options?): Rhythm } // context: { healthService }
-function healthRoutes(service: HealthService, options?: { path?: string }): RhythmRouter
+const healthModule: { forRoot(options?: HealthModuleOptions): Rhythm } // startup context: { healthService }; use with include()
+function healthRoutes(service: HealthService, options?: HealthRoutesOptions): RhythmRouter
 function gracefulShutdown(options?: GracefulShutdownOptions): () => Promise<void>
 ```
 
 <DefList>
+<Def sig="healthModule.forRoot(options?)" id="healthmodule">A Rhythm module (named `"health"`) whose startup context holds a `healthService` created from the same options as `createHealthService`. Pull it into an app with `include(healthModule.forRoot(options), (health) => ({ healthService: health.healthService }))`.</Def>
 <Def sig="HealthIndicator" id="healthindicator">`{ name, check(): HealthResult, critical?, timeout? }`. `critical` defaults to true; a down critical indicator makes the whole report down; non-critical failures are reported but do not. Each check races its own `timeout` (falling back to the module-level `timeout`, default 5000ms) and a throw or timeout counts as down with the error in `details`.</Def>
-<Def sig="HealthService" id="healthservice">`live()` - `{ status: "up", uptime, timestamp }`, no indicators involved. `ready()` returns a `HealthReport` (`status`, `shuttingDown`, per-indicator `checks` with durations), cached for `cacheTtl` (default 1000ms). `shutdown()` flips `isShuttingDown` and makes `ready()` report down immediately.</Def>
-<Def sig={"healthRoutes(service, { path? })"} id="healthroutes">A router (default prefix `/health`) serving `GET /live` (always 200) and `GET /ready` (200 up, 503 down).</Def>
-<Def sig="GracefulShutdownOptions" id="gracefulshutdownoptions">`healthService` (flipped first), `close` hook (runs after the drain; release your own resources here), `signals` (default `SIGTERM`/`SIGINT`), `drainMs` (default 0), `timeoutMs` (hard cap, default 10 000), and `exit`. Returns the shutdown function so you can also invoke it directly.</Def>
+<Def sig="HealthService" id="healthservice">`live()` returns `{ status: "up", uptime, timestamp }`, no indicators involved. `ready()` returns a `HealthReport` (`status`, `shuttingDown`, per-indicator `checks` with durations), cached for `cacheTtl` (default 1000ms); concurrent calls share one in-flight run. `isShuttingDown` and `shutdown()` flip the service to shutting down, after which `ready()` reports down immediately.</Def>
+<Def sig={"healthRoutes(service, { path?, details? })"} id="healthroutes">A router (named `"health"`) with the full-path routes `GET ${path}/live` (always 200) and `GET ${path}/ready` (200 up, 503 down); `path` defaults to `/health`. Add it with `mount(...)`; there is no prefix. `/ready` leaves out indicator `details` unless `details: true`.</Def>
+<Def sig="GracefulShutdownOptions" id="gracefulshutdownoptions">`healthService` (flipped first), `close` hook (runs after the drain; stop the server and call `app.stop()` here), `signals` (default `SIGTERM`/`SIGINT`), `drainMs` (default 0), `timeoutMs` (hard cap, default 10 000), and `exit` (default true; pass `false` with `signals: []` in tests). Returns the shutdown function so you can also invoke it directly; it runs at most once.</Def>
 </DefList>

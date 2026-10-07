@@ -1,41 +1,56 @@
 ---
 title: "MongoDB, no ORM"
-lead: "The official driver straight onto the startup context: the Db is public, the MongoClient is closed by the handle, and zod at the edges replaces the schema the database doesn't have."
-description: "Wire the native MongoDB driver into Rhythm: the client closed on shutdown, ObjectId documents mapped to DTOs, and zod contracts instead of a schema."
+lead: "The official driver straight onto the startup context: the Db is handed to the service, the MongoClient is closed on stop, and zod at the edges replaces the schema the database doesn't have."
+description: "Wire the native MongoDB driver into Rhythm: the client closed when the app stops, ObjectId documents mapped to DTOs, and zod contracts instead of a schema."
 ---
 
 ## Install
 
 ```bash
-bun add mongodb zod @rhythmjs/middleware
+bun add mongodb zod @rhythmjs/rhythm @rhythmjs/router @rhythmjs/middleware
 ```
 
-## The database handle [#database-handle]
+## The database module [#database-handle]
 
-The app only needs the `Db`, so that is what goes on the context. The `MongoClient` stays inside the handle, where its `close()` is the shutdown hook. Being schemaless, there is no migration step: the startup factory is also where the collection's index is ensured.
+A small module connects at startup and puts the `client` and its `Db` on the context; the cleanup closes the client when the app stops. Being schemaless, there is no migration step: the startup callback is also where the collection's index is ensured.
 
 ```ts
 // src/database.ts
-import { MongoClient, type Db } from "mongodb";
+import { Rhythm, decorate } from "@rhythmjs/rhythm";
+import { MongoClient } from "mongodb";
 
 const mongoUrl = process.env.MONGODB_URL ?? "mongodb://localhost:27017";
 const dbName = process.env.MONGODB_DB ?? "notes_mongodb";
 
-export interface Database {
-  db: Db;
-  close(): Promise<void>;
-}
-
-export async function createDatabase(): Promise<Database> {
-  const client = new MongoClient(mongoUrl);
-  await client.connect();
-  const db = client.db(dbName);
-  await db.collection("notes").createIndex({ createdAt: -1 });
-  return { db, close: () => client.close() };
-}
+export const databaseModule = new Rhythm({ name: "database" }).register(
+  decorate(async () => {
+    const client = new MongoClient(mongoUrl);
+    await client.connect();
+    const db = client.db(dbName);
+    await db.collection("notes").createIndex({ createdAt: -1 });
+    return { client, db };
+  }),
+  ({ client }) => client.close(),
+);
 ```
 
-`main.ts` awaits `createDatabase()`, assigns `appModule.context.db = database.db`, and calls `database.close()` on shutdown. The app module is `Rhythm<RhythmHttpContext, { db: Db }>`.
+The notes module includes it, picks `db`, and decorates the service; the app module includes the notes module and mounts the router:
+
+```ts
+// src/notes/notes.module.ts
+export const notesModule = new Rhythm({ name: "notes" })
+  .register(include(databaseModule, ({ db }) => ({ db })))
+  .register(decorate(({ db }) => ({ notesService: createNotesService(db) })));
+```
+
+```ts
+// src/app.module.ts
+export const appModule = new Rhythm({ name: "app" })
+  .register(include(notesModule, ({ notesService }) => ({ notesService })))
+  .use(mount(notesController));
+```
+
+`main.ts` serves with `Bun.serve({ port, fetch: toFetchHandler(appModule) })` and calls `appModule.stop()` on shutdown, which closes the client.
 
 ## Documents in, DTOs out [#documents-and-dtos]
 
@@ -89,7 +104,7 @@ export function createNotesService(db: Db) {
 
 ## zod is the schema
 
-With no database schema, the zod contracts in `src/notes/notes.schema.ts` do the guarding: `validate("body", createNoteSchema)` keeps malformed documents out of the collection, and `intercept(notesResponseSchema)` keeps stray document fields from leaking into responses. The module wiring is the shared pattern from the [overview](/data/) page, with the notes module deriving the service from `db`.
+With no database schema, the zod contracts in `src/notes/notes.schema.ts` do the guarding: `validate("body", createNoteSchema)` keeps malformed documents out of the collection, and `intercept(notesResponseSchema)` keeps stray document fields from leaking into responses. The module wiring is the shared pattern from the [overview](/data/) page, with `filter()` on the router.
 
 ```ts
 // src/notes/notes.schema.ts

@@ -9,21 +9,24 @@ description: "CORS with preflight handling and origin-checked CSRF protection fo
 `@rhythmjs/security/cors` sets the `Access-Control-*` headers on every response and answers preflights before the router runs. The `origin` option accepts the wildcard `"*"` (the default), one origin string, an array of origins, or an `(origin) => string | null` function for dynamic rules. A non-wildcard origin is echoed back only when the request's `Origin` matches, and `Vary: Origin` is appended so shared caches keep per-origin responses apart.
 
 ```ts
-import { Rhythm } from "@rhythmjs/rhythm";
+import { Rhythm, mount } from "@rhythmjs/rhythm";
 import { RhythmRouter } from "@rhythmjs/router";
 import type { RhythmHttpContext } from "@rhythmjs/router/context";
+import { toFetchHandler } from "@rhythmjs/router/fetch";
 import { cors } from "@rhythmjs/security/cors";
 
 const router = new RhythmRouter().get("/api/data", (ctx) => {
   ctx.json({ ok: true });
 });
 
-new Rhythm<RhythmHttpContext>()
+const app = new Rhythm<{}, RhythmHttpContext>()
   .use(cors({ origin: ["https://app.example.com"], credentials: true, maxAge: 600 }))
-  .use(router.middleware());
+  .use(mount(router));
+
+Bun.serve({ fetch: toFetchHandler(app) });
 ```
 
-Mount `cors()` on the app, before the router. A middleware added with `router.use()` runs only when one of the router's later routes matches the request's method and path, so a preflight `OPTIONS` request for a path that only has a `GET` route would skip it.
+Put `cors()` on the app, before `mount(router)`. A middleware added with `router.use()` runs only when one of the router's routes matches the request's method and path, so a preflight `OPTIONS` request for a path that only has a `GET` route would skip it. App-level HTTP middleware placed before the first `mount` needs the HTTP context declared as the app's input, hence `new Rhythm<{}, RhythmHttpContext>()`.
 
 ## Preflight requests
 
@@ -31,13 +34,13 @@ An `OPTIONS` request short-circuits with `204 No Content` before any handler run
 
 ## Credentials and exposed headers [#credentials-and-exposure]
 
-`credentials: true` sets `Access-Control-Allow-Credentials` so cookies and `Authorization` headers cross origins; pair it with explicit origins, never the wildcard. `exposeHeaders` lists response headers scripts may read beyond the CORS-safelisted set (for example `ETag` or the draft `RateLimit-*` family from the [rate limiter](/security/hardening/)).
+`credentials: true` sets `Access-Control-Allow-Credentials` so cookies and `Authorization` headers cross origins; pair it with explicit origins, never the wildcard (browsers reject that combination). `exposeHeaders` lists response headers scripts may read beyond the CORS-safelisted set (for example `ETag` or the draft `RateLimit-*` family from the [rate limiter](/security/hardening/)).
 
 ## The CSRF model [#csrf-model]
 
 `@rhythmjs/security/csrf` blocks cross-site form submissions by checking the `Origin` header instead of managing tokens. A request is rejected only when all three hold: the method is unsafe (anything but `GET` or `HEAD`), the content type is form-shaped (`application/x-www-form-urlencoded`, `multipart/form-data`, or `text/plain` - what a plain HTML form can send), and the `Origin` is missing or not allowed. The rejection is a `403` with a JSON body (`application/json; charset=utf-8`) of `{ success: false, status: 403, message: "Forbidden" }`.
 
-JSON and other non-form content types pass through untouched, because a cross-site page cannot send them without a CORS preflight; that path is [CORS's](#cors-basics) job, not CSRF's.
+JSON and other non-form content types pass through untouched, because a cross-site page cannot send them without a CORS preflight; that path is [CORS's](#cors-basics) job, not CSRF's. `csrf()` belongs on the router (or on individual routes) that serves your forms.
 
 ## Allowed origins [#csrf-origins]
 
@@ -53,6 +56,8 @@ new RhythmRouter()
   });
 ```
 
+Behind a TLS-terminating proxy the request URL's origin may be `http://...` while browsers send an `https://` `Origin`; set `origin` explicitly in that case.
+
 ## Using both together [#using-both]
 
-The two protect different edges: CORS governs what browser scripts may read across origins, CSRF governs what cross-site pages may write. Mount `cors()` first so preflights are answered before `csrf()` ever sees them (preflights are `OPTIONS`, which CSRF ignores anyway), then `csrf()`, then your routes.
+The two protect different edges: CORS governs what browser scripts may read across origins, CSRF governs what cross-site pages may write. Put `cors()` on the app so preflights are answered before the router runs, and `csrf()` on the router in front of your routes (preflights are `OPTIONS`, which CSRF ignores anyway).

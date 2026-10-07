@@ -6,7 +6,7 @@ description: "Generate the OpenAPI 3.1 document from described routers (schema r
 
 ## Generate the document
 
-`generate(router, config, options?)` walks `router.entries` in registration order (middleware entries contribute inherited fragments, route entries become operations) and emits an OpenAPI object (`openapi: "3.1.2"` unless overridden). Router paths convert to OpenAPI templates: `/users/:id` becomes `/users/{id}` and a bare `*` segment becomes `{wildcard}`. Undocumented routes are included with a default `200` unless `includeUndocumented: false`.
+`generate(routers, config, options?)` takes one `documented()` router or an array and walks its entries in registration order (middleware entries contribute inherited fragments, route entries become operations) and emits an OpenAPI object (`openapi: "3.1.2"` unless overridden). Router paths convert to OpenAPI templates: `/users/:id` becomes `/users/{id}` and a bare `*` segment becomes `{wildcard}`. Routes without any `api*` middleware are dropped unless `includeUndocumented: true`, which lists them with a default `200`. You rarely call it yourself: `openapiModule` does it for the app. Call it directly to write the spec to disk or in a test.
 
 ```ts
 import { generate } from "@rhythmjs/openapi/generate";
@@ -39,42 +39,47 @@ const config = defineDocument({
 
 ## Serve the document
 
-`openapiModule.forRoot({ document, path?, openapi?, includeUndocumented? })` is a kernel module, in the spirit of NestJS's `SwaggerModule`. Register it once and mount your routers as usual: it reads the `sources` of the app it is registered in, including nested modules, for routers, so nothing router-shaped is passed to it. It answers `GET /openapi.json` (an exact path match, mounted with `@rhythmjs/http/mount`; everything else falls through) with the generated document, and `path` moves it. The document is generated lazily on the first request and cached as a promise; a failed generation is evicted so the next request retries instead of caching the error. The module also puts `openapiService` on its context; export it with `register(module, ({ openapiService }) => ({ openapiService }))` to call `openapiService.document()` elsewhere. Paths follow the router: a `"/"` route under a prefix is the bare prefix, so `new RhythmRouter({ prefix: "/users" }).post("/")` is documented as `/users`, with no trailing slash.
+`openapiModule.forRoot({ document, path?, openapi?, includeUndocumented? })` returns a plain `RhythmRouter` (named `openapi`) that you add to the app with `.use(mount(...))`. It documents the app it is mounted in: it scans that app, including nested modules and routers, for `documented()` routers, so nothing router-shaped is passed to it. It answers `GET /openapi.json` (an exact path match; everything else falls through) with the generated document, and `path` moves it. The document is generated lazily on the first request and cached as a promise; a failed generation is evicted so the next request retries instead of caching the error. The module also carries `openapiService`, so `openapiService.document()` resolves to the document in code. Mount order does not change what is documented. It has no dependency on `@rhythmjs/http`.
 
-A document covers the app its module is registered in, including everything registered inside that app. Register one `openapiModule` at the root for a single document of the whole API, or one inside each group module for a separate document per group, each with its own `path`; the router `use()` middleware of one group never leaks into another. A UI registered at the top of the app lists all the documents through its `sources` option, so the UI does not need to be repeated per group. The module learns its app from its `parent`, which `register()` and `use(module.middleware())` both set. A module never added to an app fails on the first request instead of serving an empty document.
+A document covers the app its module is mounted in. Mount one `openapiModule` at the root for a single document of the whole API, or one inside each group app for a separate document per group, each with its own `path`; the router `use()` middleware of one group never leaks into another. A UI mounted at the top of the app lists all the documents through its `sources` option, so the UI does not need to be repeated per group. A module used outside `mount()` fails on the first request instead of serving an empty document.
 
 ```ts
-const apiModule = new Rhythm<RhythmHttpContext>({ name: "api", type: "module" })
-  .register(openapiModule.forRoot({ document: apiDocument, path: "/api/v1/openapi.json" }))
-  .use(apiController.middleware());
+const apiApp = new Rhythm()
+  .use(mount(openapiModule.forRoot({ document: apiDocument, path: "/api/v1/openapi.json" })))
+  .use(mount(apiRouter));
 
-const platformModule = new Rhythm<RhythmHttpContext>({ name: "platform", type: "module" })
-  .register(openapiModule.forRoot({ document: platformDocument, path: "/api/platform/openapi.json" }))
-  .use(platformController.middleware());
+const platformApp = new Rhythm()
+  .use(mount(openapiModule.forRoot({ document: platformDocument, path: "/api/platform/openapi.json" })))
+  .use(mount(platformRouter));
 
-const app = new Rhythm<RhythmHttpContext>()
-  .register(apiModule)
-  .register(platformModule)
-  .register(
-    scalarModule.forRoot({
-      sources: [
-        { url: "/api/v1/openapi.json", title: "Public API" },
-        { url: "/api/platform/openapi.json", title: "Platform API" },
-      ],
-    }),
+const app = new Rhythm()
+  .use(mount(apiApp))
+  .use(mount(platformApp))
+  .use(
+    mount(
+      scalarModule.forRoot({
+        sources: [
+          { url: "/api/v1/openapi.json", title: "Public API" },
+          { url: "/api/platform/openapi.json", title: "Platform API" },
+        ],
+      }),
+    ),
   );
 ```
 
-The module serves the document and nothing else. It is the input for any consumer: the [Scalar](/integrations/scalar/) and [Swagger UI](/integrations/swagger-ui/) integrations render it, and so can a code generator, a gateway, or a `curl`.
+The module serves the document and nothing else. It is the input for any consumer: the [Scalar](/integrations/scalar/) and [Swagger UI](/integrations/swagger-ui/) integrations render it, and so can a code generator, a gateway, or a `curl`. The endpoint has no authentication and publishes your route map, so mount it behind your own auth, or only outside production, if the API is not public.
 
 ```ts
-import { defineDocument } from "@rhythmjs/openapi/document";
+import { Rhythm, mount } from "@rhythmjs/rhythm";
+import { toFetchHandler } from "@rhythmjs/router/fetch";
 import { openapiModule } from "@rhythmjs/openapi/module";
 import { scalarModule } from "@rhythmjs/scalar";
 
-const app = new Rhythm<RhythmHttpContext>()
-  .register(openapiModule.forRoot({ document: config }))
-  .register(scalarModule.forRoot({ pageTitle: "Users API", theme: "purple" }))
-  .use(users.middleware());
+const app = new Rhythm()
+  .use(mount(openapiModule.forRoot({ document: config })))
+  .use(mount(scalarModule.forRoot({ pageTitle: "Users API", theme: "purple" })))
+  .use(mount(users));
+
+Bun.serve({ fetch: toFetchHandler(app) });
 // GET /openapi.json => the document; GET /docs => Scalar UI loading it
 ```

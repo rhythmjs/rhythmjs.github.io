@@ -1,64 +1,79 @@
 ---
 title: "Configuration"
 lead: "Typed, validated settings that stop a misconfigured app from booting at all."
-description: "Typed, validated settings on the kernel with namespaced factories."
+description: "Typed, validated settings on the app with namespaced factories."
 ---
 
 ## Settings as a module
 
-Configuration is just another module. `configModule.forRoot(...factories)` runs each factory, deep-merges the results, and exposes a typed `configService`. It is async — loaders run once, when you `await` it — so the app is only built from valid settings. Register it first so everything after it can read them:
+Configuration is just another module. `configModule.forRoot(...factories)` runs each factory, deep-merges the results, and resolves to a module that puts a typed `configService` on the startup context. It is async — loaders run once, when you `await` it — so the app is only built from valid settings. `include` it first so everything after it can read the settings:
 
 ```ts
-import { configModule } from "@rhythmjs/config";
+// src/config/app.config.ts
+import { defineConfig } from "@rhythmjs/config";
+import { z } from "zod";
 
-const loadApp = () => ({
-  port: Number(process.env.PORT ?? 3000),
-});
-
-export const appModule = new Rhythm<RhythmHttpContext>({ name: "app", type: "module" })
-  .register(await configModule.forRoot(loadApp), ({ configService }) => ({ configService }))
-  .use((ctx) => {
-    ctx.configService.get("port"); // number — the path and value are typed
-  });
+export const appConfig = defineConfig(
+  z.object({ port: z.coerce.number().default(3000) }),
+  () => ({ port: process.env.PORT }),
+);
 ```
+
+```ts
+// src/app.module.ts
+import { configModule } from "@rhythmjs/config";
+import { include } from "@rhythmjs/rhythm";
+
+export const appModule = new Rhythm({ name: "app" })
+  .register(include(await configModule.forRoot(appConfig), ({ configService }) => ({ configService })))
+  .register(decorate(() => ({ appService })))
+  .use(mount(appController))
+  .use(mount(notesController));
+```
+
+A router that declares `AppConfigContext` (from `src/config/index.ts` below) as its context type can now call `ctx.configService.get("port")` — the path and the value are typed, and `mount()` refuses an app that does not supply it. Bun loads `.env` files natively, and factories read `process.env` themselves; there is no dotenv layer.
 
 ## Namespaces with registerAs
 
 `registerAs(token, schema, factory)` names a config namespace and validates it with any Standard Schema validator. Validation failures from *all* factories aggregate into one startup error, rejected from `await configModule.forRoot(...)` — the app refuses to boot on malformed config rather than failing later at 3 a.m.:
 
 ```ts
+// src/config/database.config.ts
 import { registerAs } from "@rhythmjs/config";
 import { z } from "zod";
 
 export const databaseConfig = registerAs(
   "database",
   z.object({
-    url: z.url(),
+    url: z.url("DATABASE_URL must be a valid URL"),
     poolSize: z.coerce.number().int().min(1).default(10),
   }),
   () => ({
-    url: process.env.DATABASE_URL,
+    url: process.env.DATABASE_URL ?? "",
     poolSize: process.env.DATABASE_POOL_SIZE,
   }),
 );
+```
 
-export const authConfig = registerAs(
-  "auth",
-  z.object({ tokenTtl: z.coerce.number().default(3600) }),
-  () => ({ tokenTtl: process.env.AUTH_TOKEN_TTL }),
-);
+Collect the factories in one place and register them all:
+
+```ts
+// src/config/index.ts
+import type { ConfigContext } from "@rhythmjs/config";
+import { appConfig } from "./app.config";
+import { databaseConfig } from "./database.config";
+
+export const configs = [appConfig, databaseConfig] as const;
+export type AppConfigContext = ConfigContext<typeof configs>; // what configService offers
 ```
 
 ```ts
-appModule.register(
-  await configModule.forRoot(loadApp, databaseConfig, authConfig),
-  ({ configService }) => ({ configService }),
-);
+.register(include(await configModule.forRoot(...configs), ({ configService }) => ({ configService })))
 
 // later, anywhere on the context:
 ctx.configService.get("database.url");            // string (validated URL)
 ctx.configService.get("database.poolSize");       // number, defaulted
-ctx.configService.getOrThrow("auth.tokenTtl");    // throws if missing
+ctx.configService.getOrThrow("port");             // throws if missing
 ```
 
 ## Config at startup
@@ -67,15 +82,16 @@ Startup is ordinary top-level code, so wiring that needs validated settings just
 
 ```ts
 // src/main.ts
-const databaseSettings = await databaseConfig();
-// { url: "...", poolSize: 10 } — validated or thrown
+const { port } = await appConfig();
+// { port: 3000 } — validated or thrown
 
-const database = await createDatabase(databaseSettings.url);
-appModule.context.db = database.db;
+const server = Bun.serve({ port, fetch: toFetchHandler(appModule) });
 ```
+
+The next step uses the same call to open the database with the validated `database.url`.
 
 <Callout title="Secrets in error messages">
 
-Some schema libraries embed the received value in issue messages. Keep secret-bearing fields' error messages custom (`z.string().min(1, "DATABASE_URL is required")`) so a failed boot never prints the secret into logs.
+Some schema libraries embed the received value in issue messages. Keep secret-bearing fields' error messages custom (`z.url("DATABASE_URL must be a valid URL")`) so a failed boot never prints the secret into logs.
 
 </Callout>

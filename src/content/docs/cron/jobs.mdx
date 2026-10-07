@@ -1,0 +1,91 @@
+---
+title: "Schedules and handlers"
+lead: "A job is a name, a schedule, and handlers. Expressions and time zones are validated when you register, not when the job should have fired."
+description: "Declare cron jobs: expressions and nicknames, per-job and default time zones, handler context, extension middleware, and registration-time validation."
+---
+
+## Declare a job [#declare-a-job]
+
+`cron(name, schedule, ...handlers)` registers one job and returns the instance, so declarations chain. Handlers are `(ctx, next)` middleware; they compose in order like any Rhythm chain, and the first one may be an extension middleware (see below).
+
+```ts
+import { RhythmCron } from "@rhythmjs/cron";
+
+const cron = new RhythmCron<{ db: Db }>()
+  .cron("cleanup", "0 3 * * *", async (ctx) => {
+    await ctx.db.deleteExpiredSessions();
+  })
+  .cron("report", "0 9 * * MON-FRI", buildReport);
+```
+
+## Schedules [#schedules]
+
+A schedule is a standard five-field expression (`minute hour day-of-month month day-of-week`) or one of Bun's nicknames. Day and month names such as `MON-FRI` work.
+
+<DefList>
+<Def sig='"*/5 * * * *"' id="expression">Every five minutes.</Def>
+<Def sig='"0 9 * * MON-FRI"' id="weekdays">Nine o'clock on weekdays.</Def>
+<Def sig='"@hourly"' id="nickname">A nickname: `@hourly`, `@daily`, `@weekly`, `@monthly`, `@yearly`.</Def>
+<Def sig="{ schedule, tz }" id="object-form">The object form, to set a time zone for just this job.</Def>
+</DefList>
+
+## Time zones [#time-zones]
+
+Without a `tz`, a job runs in the process's local time zone. Set a default for the whole instance with the `tz` option, or override per job with the object form. Zones are IANA names, and daylight saving is handled by Bun.
+
+```ts
+const cron = new RhythmCron({ tz: "UTC" })
+  .cron("cleanup", "0 3 * * *", cleanup) // 03:00 UTC
+  .cron("report", { schedule: "30 9 * * MON-FRI", tz: "America/New_York" }, report); // overrides the default
+```
+
+## The handler context [#context]
+
+Every handler receives the app's startup context (the `I` of `RhythmCron<I>`) merged with `ctx.job`:
+
+<DefList>
+<Def sig="ctx.job.name" id="job-name">The name the job was registered under.</Def>
+<Def sig="ctx.job.schedule" id="job-schedule">The expression, as registered.</Def>
+<Def sig="ctx.job.tz" id="job-tz">The effective time zone, or `undefined` for local time.</Def>
+<Def sig="ctx.job.firedAt" id="job-fired-at">A `Date` for when this run began.</Def>
+</DefList>
+
+## Middleware around every run [#middleware]
+
+`cron.use(middleware)` wraps every job on the instance: timing, tracing, locking, or a shared error policy. Middleware runs before each job's own handlers and can do work after them with `await next()`.
+
+```ts
+const cron = new RhythmCron<{ db: Db }>()
+  .use(async (ctx, next) => {
+    const started = performance.now();
+    await next();
+    console.log(`[${ctx.job.name}] finished in ${Math.round(performance.now() - started)}ms`);
+  })
+  .cron("cleanup", "0 3 * * *", cleanup);
+```
+
+## Extension middleware [#extension-middleware]
+
+As on a router route, the first handler of a job may be an extension (derive-style) middleware: it returns an object that is merged into the context, and the handlers after it see the added fields typed. `use()` accepts the same kind, widening the context for every job.
+
+```ts
+cron.cron(
+  "digest",
+  "@daily",
+  async (ctx) => ({ users: await ctx.db.activeUsers() }),
+  async (ctx) => {
+    await sendDigest(ctx.users);
+  },
+);
+```
+
+## Validation at registration [#validation]
+
+Mistakes surface when the job is declared, so a bad schedule fails the boot rather than silently never running:
+
+<DefList>
+<Def sig="invalid expression" id="invalid-expression">An expression Bun cannot parse throws.</Def>
+<Def sig="unknown time zone" id="invalid-tz">A `tz` that is not a valid IANA zone throws.</Def>
+<Def sig="never fires" id="never-fires">A well-formed schedule with no future occurrence (for example `0 0 31 2 *`, February 31st) throws a `TypeError`: `cron job "name": "..." never fires`.</Def>
+<Def sig="duplicate name" id="duplicate-name">Registering the same name twice throws a `TypeError`.</Def>
+</DefList>

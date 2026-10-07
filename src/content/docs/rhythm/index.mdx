@@ -5,41 +5,49 @@ lead: "Compose behavior around a typed input and a shared context."
 
 ## Create an instance
 
-`Rhythm<TInput, TStartup>` declares the input required by each run and, optionally, the shape of the startup values the app holds in `context`. Optional `name` and `type` labels make errors from registered modules easier to identify.
+`Rhythm<S, I, D>` tracks three kinds of context. `S` is the startup context, added with `register`. `I` is the input the caller supplies on every call. `D` is what request-time `derive` steps add. You rarely write them out: `S` and `D` grow as you chain, and `I` is inferred from what you mount. An optional `name` (and `type`, which defaults to `"module"`) labels errors from mounted and included modules.
 
 ```ts
-import { Rhythm } from "@rhythmjs/rhythm";
+import { Rhythm, decorate, derive } from "@rhythmjs/rhythm";
 
-const app = new Rhythm<{ jobId: string }, { service: string }>({ name: "jobs" }).use((ctx) =>
-  console.log(ctx.service, ctx.jobId),
-);
-
-app.context.service = "worker";
+const app = new Rhythm({ name: "jobs" })
+  .register(decorate(() => ({ service: "worker" })))
+  .use(derive(() => ({ requestId: crypto.randomUUID() })))
+  .use((ctx) => console.log(ctx.service, ctx.requestId));
 ```
+
+Reading a field that was never added is a compile error, and a field is only visible to the steps after the one that added it. To add a field, use `decorate` or `derive`; plain assignment to an unknown field is rejected on purpose.
 
 ## Run and reuse
 
-`run(input)` creates a shallow context from `{ ...app.context, ...input }`, dispatches it through the chain, and returns the final context. Startup values are on the context from the start, and an input field with the same name wins. See [Startup context](/rhythm/context/).
+`callback()` returns the reusable async handler. It builds a shallow context from the startup values plus the input, runs it through the chain, and resolves with the final context. The input is required when `I` has required fields and optional otherwise. See [Startup context](/rhythm/context/).
 
-`callback()` exposes the reusable async handler. Finish configuring the pipeline before obtaining a handler.
+Finish configuring the pipeline before obtaining a handler: it is built from the middleware registered so far.
 
 ```ts
 const handle = app.callback();
-await handle({ jobId: "job-1" });
-const result = await app.run({ jobId: "job-2" });
-console.log(result.service); // worker
+const ctx = await handle();
+console.log(ctx.service); // worker
+
+const greet = new Rhythm<{}, { name: string }>().use((ctx) => console.log(ctx.name)).callback();
+await greet({ name: "Ada" });
 ```
+
+When you are done, `await app.stop()` runs the cleanups registered with `register`. `Rhythm` is also `AsyncDisposable`, so `await using app = new Rhythm()...` stops it for you.
 
 ## Understand state
 
-Every run gets a new top-level context object, but startup values are shared references. `DeepReadonly` is a TypeScript constraint, not a runtime freeze. Avoid mutable shared request state in `context`.
+Every call gets a new top-level context object, so a `derive` or a plain assignment never leaks into the next call. Startup values are shared references, though: mutating an object you added with `decorate` is visible to every call. Avoid mutable shared request state in the startup context.
 
 ## Choose a composition boundary
 
-Use `register(child, exportValue)` when a module needs a separate top-level context. Use `use(child.middleware())` for flat composition and fallthrough into the parent.
+Two functions compose pipelines, and the difference is *when* they run:
 
-<Callout title="Flat mounting shares the context">
+- `mount(plugin)` runs another pipeline (a `Rhythm`, a router, a cron, a cli) on every call. Use it for request-time work.
+- `include(module, pick)` runs a `Rhythm` module once at startup and copies selected fields into the parent's startup context. Use it for long-lived dependencies.
 
-A flat-mounted child works on the parent's context object, so its startup values are merged into it and stay visible to the parent's later middleware. Use `register()` when the child's values must stay inside it.
+<Callout title="Mount keeps derived fields inside">
+
+A mounted `Rhythm` module gets a copy of the context, so what it derives stays sealed inside it. Routers and clis work on the request context itself, so what they write (the response, the exit code) is visible to the host. Either way, the plugin's derived fields never appear in the host's type. See [Encapsulated modules](/rhythm/modules/).
 
 </Callout>

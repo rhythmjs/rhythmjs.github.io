@@ -1,48 +1,53 @@
 ---
 title: "Router API reference"
-lead: "Route methods, response helpers, and Bun serving exports for @rhythmjs/router."
+lead: "Route methods, response helpers, and fetch exports for @rhythmjs/router."
 ---
 
 ## RhythmRouter
 
 <DefList>
-<Def sig={"new RhythmRouter({ prefix? })"} id="rhythmrouter">Create an HTTP controller. A router does not extend Rhythm; it compiles routes and middleware down to a single middleware. The prefix joins onto every route path registered on this instance.</Def>
-<Def sig="get / post / put / patch / delete(path, ...handlers)" id="get">Add one or more handlers for a method and path; multiple handlers compose left to right, and a leading derive middleware types the context for the handlers after it. Matched parameters are in `ctx.params`.</Def>
-<Def sig="use(fn, condition?)" id="use">Add a middleware. It takes only functions; mount a nested router as `use(child.middleware())`; the mount is opaque, so the child carries its own full prefix. Registration order is execution order: a middleware wraps only the routes registered after it. With a second callback, it also needs `condition(ctx)` to return true (sync or async); the callback only narrows, so a middleware placed after every route still never runs. A conditional `derive()` does not extend the context type. There is no startup `context` or `register()`; startup values live on the host Rhythm app.</Def>
-<Def sig="middleware()" id="middleware">Compile this router to a plain middleware: the one form that mounts anywhere, into a Rhythm app or into another router. The middleware is tagged with the router as its source, so a parent module lists it in its `sources`.</Def>
-<Def sig="entries" id="entries">A read-only snapshot of registered middlewares and routes, in order.</Def>
-<Def sig="joinPath(prefix, path)" id="joinpath">The exported prefix-joining helper the router uses internally.</Def>
+<Def sig={"new RhythmRouter<I, D>(options?)"} id="rhythmrouter">Create an HTTP router. It is a `Pipeline`, like `Rhythm`, with request-time middleware and routes but no startup phase. `I` is the context the router needs from its host (checked when mounted) and `D` is what its own `derive()` calls add; both are usually inferred. Options are `name`, which labels failures (`mounted router "name" failed`), and `type` (default `"router"`). There is no `prefix` option.</Def>
+<Def sig="get / post / put / patch / delete(path, ...handlers)" id="get">Add one or more handlers for a method and a full path; multiple handlers compose left to right. The first handler may be a `derive()` that widens the context for the handlers after it; a route takes at most one. Matched parameters are in `ctx.params`, typed from the path. A path that does not start with `/` throws a `TypeError`.</Def>
+<Def sig="use(middleware)" id="use">Add router-level middleware. It wraps every route of this router, wherever it was added, and runs only when one of the router's routes matches the method and path. In `use()` middleware `ctx.params` is an untyped `Record<string, string>`, since several routes may match. A `derive()` widens the context type for all routes.</Def>
+<Def sig="callback()" id="callback">The router as a `(ctx) => Promise<ctx>` function, used by `mount()` and `toFetchHandler()`.</Def>
+<Def sig="sources / parent / options" id="pipeline">Inherited from `Pipeline`.</Def>
 </DefList>
+
+A router mounts into a host with `mount(router)` from `@rhythmjs/rhythm`, optionally with a condition such as `pathIs("/api/**")`. After the router runs, the host's later middleware still runs. A router that matches nothing leaves the context untouched.
+
+## Response helpers
 
 <DefList>
 <Def sig="ctx.json(data, status?)" id="ctx-json">Serialize data as the body with an `application/json; charset=utf-8` content type; status is optional.</Def>
 <Def sig="ctx.text(body, status?) / ctx.html(body, status?)" id="ctx-text">Set a body with `text/plain; charset=utf-8` or `text/html; charset=utf-8`.</Def>
 <Def sig="ctx.error(status, message?)" id="ctx-error">Set the status and a `text/plain; charset=utf-8` message, defaulting the message from the status code.</Def>
-<Def sig="ctx.redirect(url, status?)" id="ctx-redirect">Set the location header with a 302 default and no body.</Def>
+<Def sig="ctx.redirect(url, status?)" id="ctx-redirect">Set the location header with a 302 default and no body. The status must be 301, 302, 303, 307 or 308, otherwise it throws a `RangeError`.</Def>
+<Def sig="ctx.server" id="ctx-server">Bun's server, or `undefined` when the handler was called without one. Set when `toFetchHandler(app)` is passed straight to `Bun.serve` as `fetch`.</Def>
 </DefList>
 
-The helpers are sugar over `ctx.response`, built into the context by `createHttpContext`. Context exports (`RhythmHttpContext`, `RhythmResponse`, `RhythmResponseBody`, `createHttpContext`, and `toResponse`) live at `@rhythmjs/router/context`; `@rhythmjs/router/adapters/context` remains as a compatibility alias for the same module.
+The helpers are sugar over `ctx.response`, built into the context by `createHttpContext`. Context exports (`RhythmHttpContext`, `RhythmResponse`, `RhythmResponseBody`, `createHttpContext`, and `toResponse`) live at `@rhythmjs/router/context`.
 
-## Serving exports
+## Fetch exports
+
+From `@rhythmjs/router/fetch`.
 
 <DefList>
-<Def sig="toFetchHandler(app)" id="tofetchhandler">From `@rhythmjs/router/fetch`: takes a Rhythm app and returns `(request: Request) => Promise<Response>`, the raw primitive for composing and testing without a listener.</Def>
-<Def sig="errorToResponse(error)" id="errortoresponse">From `@rhythmjs/router/fetch`: maps a thrown error to a Response: the error's own `status`/`statusCode` when set, else a logged, masked `500`. Call it in your own `try/catch` around the fetch handler.</Def>
-<Def sig="RhythmRouterOptions / RhythmRouterContext" id="rhythmrouteroptions">Root type exports describing constructor options and matched path parameters.</Def>
+<Def sig="toFetchHandler(app)" id="tofetchhandler">Takes a Rhythm app (or a router) and returns `(request: Request, server?) => Promise<Response>`, the raw primitive for composing and testing without a listener. Pass it as `fetch` to `Bun.serve` so `ctx.server` is set. A response nothing touched becomes `404 Not Found`. Errors reject. It rejects at compile time an app that requires any input other than the HTTP context.</Def>
+<Def sig="errorToResponse(error)" id="errortoresponse">Maps a thrown error to a Response: the error's own `status`/`statusCode` when it is an integer from 400 to 599 (looking through the `cause` chain; the message is the body unless the error sets `expose: false`), else a logged, masked `500`. Call it in your own `try/catch` around the fetch handler.</Def>
+<Def sig="fromFetch(handler)" id="fromfetch">Wrap a `(request) => Response` handler (Better Auth, tRPC, a webhook SDK) as a mountable. The returned `Response` becomes the response: status, headers, body stream, and every `Set-Cookie`.</Def>
 </DefList>
 
-## Matching helpers
+## Path conditions
 
-From `@rhythmjs/router/match`. Both return a predicate for `use(fn, condition)`. Paths are full pathnames, so include any router prefix.
+From `@rhythmjs/router/path`.
 
 <DefList>
-<Def sig="matches(pattern | patterns | options)" id="matches">True when the request's method and pathname match. Patterns are rou3 patterns (`/api/users`, `/api/users/:id`, `/api/**`). Options are `include`, `exclude` (wins over include) and `methods`; with no `include`, every path matches.</Def>
-<Def sig="routed(module)" id="routed">True only for requests one of the module's own routers can serve. The route table is built from `module.sources`, including nested routers, on the first request.</Def>
+<Def sig="pathIs(pattern)" id="pathis">A condition for `mount(plugin, condition)` that is true when the request path matches `pattern`, using the same rou3 patterns as routes. The HTTP method is not part of the match. A pattern without a leading `/` throws a `TypeError`.</Def>
 </DefList>
 
 ```ts
-app.use(cors(), matches("/api/**"));
-app.use(audit(), routed(usersModule));
+app.use(mount(fromFetch((request) => auth.handler(request)), pathIs("/api/auth/**")));
+app.use(mount(adminRouter, pathIs("/admin/**")));
 ```
 
-Subpath exports: `@rhythmjs/router`, `./context`, `./fetch` and `./match`, plus the `./adapters/context` compatibility alias. The package is coupled to Bun on purpose; there are no runtime adapters.
+Subpath exports: `@rhythmjs/router`, `./context`, `./fetch` and `./path`. The package is coupled to Bun on purpose; there are no runtime adapters. `RhythmRouter` wraps `rou3`, whose pattern rules are described in [HTTP router](/router/).

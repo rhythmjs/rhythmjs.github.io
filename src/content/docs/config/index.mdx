@@ -54,11 +54,12 @@ const remoteConfig = registerAs("remote", async () => fetchSettings());
 Every validation failure surfaces as a `ConfigError`. Its `issues` array holds `{ message, path? }` entries serialized from the schema library's Standard Schema issues (symbol path segments are dropped, object segments reduced to their keys), and its message lists every issue with its dot path, one line per problem. `createConfigService(value)` is also exported directly for building a service from an already-validated object, without the module.
 
 ```ts
+import { include } from "@rhythmjs/rhythm";
 import { ConfigError, configModule } from "@rhythmjs/config";
 
 try {
   const config = await configModule.forRoot(appConfig, databaseConfig); // loads and validates at startup
-  app.register(config, ({ configService }) => ({ configService }));
+  app.register(include(config, ({ configService }) => ({ configService })));
 } catch (error) {
   if (error instanceof ConfigError) {
     for (const issue of error.issues) report(issue.path?.join("."), issue.message);

@@ -1,67 +1,71 @@
 ---
 title: "Modules"
 lead: "Split features into encapsulated modules and compose them into a tree."
-description: "Encapsulated features, registered imports, and the forRoot pattern."
+description: "Encapsulated features, include and mount, and the forRoot pattern."
 ---
 
 ## Feature modules
 
-As features multiply, each one becomes its own module: a `Rhythm` instance with `{ type: "module", name }` that owns its startup values and controllers. The notes feature now ships as one unit:
+As features multiply, each one becomes its own module: a `Rhythm` instance with a `name` that owns its startup values. A module is the same kind of object as the app, just smaller. The notes feature now ships its service as one unit:
 
 ```ts
 // src/notes/notes.module.ts
-export const notesModule = new Rhythm<RhythmHttpContext, { notesService: NotesService }>({
-  name: "notes",
-  type: "module",
-});
+import { Rhythm, decorate } from "@rhythmjs/rhythm";
+import { createNotesService } from "./notes.service";
 
-notesModule.context.notesService = createNotesService();
-
-notesModule.use(notesController.middleware());
+export const notesModule = new Rhythm({ name: "notes" }).register(
+  decorate(() => ({ notesService: createNotesService() })),
+);
 ```
 
-## Register and export
+## Include and export
 
-`register(module, exportValue?)` mounts another module inside this one. The child runs on a copy of the parent's context with its own `context` merged on top, so it inherits everything the parent holds, its middleware runs in place, and what it adds stays *encapsulated*: nothing leaks to the parent unless `exportValue` picks it out. Registration also type-checks that the parent satisfies the child's input. Explicit boundaries, not folder conventions:
+`include(module, pick?)` runs a module once, at startup, and pulls the fields `pick` returns into the parent's startup context. Everything the module builds stays *encapsulated*: nothing leaks to the parent unless `pick` selects it. Registering also type-checks that the parent satisfies the child's input, and the module's own cleanups are registered with the parent, so `app.stop()` closes the whole tree. Explicit boundaries, not folder conventions:
 
 ```ts
-export const appModule = new Rhythm<RhythmHttpContext>({ name: "app", type: "module" })
-  .register(notesModule, ({ notesService }) => ({ notesService })) // export the service
-  .register(auditModule)                                          // keep everything private
-  .use((ctx) => {
-    // ctx.notesService is available and typed here; auditModule&#x27;s internals are not
-  });
+// src/app.module.ts
+export const appModule = new Rhythm({ name: "app" })
+  .register(decorate(() => ({ appService })))
+  .register(include(notesModule, ({ notesService }) => ({ notesService }))) // export the service
+  .register(include(auditModule))                                          // keep everything private
+  .use(mount(appController))
+  .use(mount(notesController)); // ctx.notesService is typed here; auditModule's internals are not
 ```
 
-Because services are built eagerly, a module that cannot construct its service throws while the app is being assembled — at startup, with the original error — never on the first request.
+Because modules run eagerly, one that cannot construct its service throws while the app is being assembled — at startup, wrapped as `included module "notes" failed` with the original error as `cause` — never on the first request.
+
+## Include or mount
+
+Two functions compose pipelines, and the difference is *when* they run:
+
+- `include(module, pick?)` is **startup time**. The module runs once with the app's startup context and contributes startup values. Use it for providers: services, config, pools.
+- `mount(plugin)` is **request time**. The plugin runs on every request and whatever it derives stays sealed inside it. Use it for routers, and for modules that ship routes (the next step builds one).
 
 ## The forRoot pattern
 
-Reusable modules follow one naming convention: a `somethingModule.forRoot(options)` factory returning a configured `Rhythm` module. Every @rhythmjs package that exposes a service ships one, and your own shared modules should too:
+Reusable modules follow one naming convention: a `somethingModule.forRoot(options)` factory returning a configured `Rhythm` module. Every @rhythmjs package that exposes a service ships one, and your own shared modules should too. Here the module takes its dependencies as options instead of building them out of thin air:
 
 ```ts
 export const cacheModule = {
   forRoot(options: { ttl?: number } = {}) {
-    const module = new Rhythm<{}, { cacheService: CacheService }>({ type: "module", name: "cache" });
-    module.context.cacheService = createCacheService(options);
-    return module;
+    return new Rhythm({ name: "cache" }).register(decorate(() => ({ cacheService: createCacheService(options) })));
   },
 };
 
-appModule.register(cacheModule.forRoot({ ttl: 300 }), (v) => v);
+appModule.register(include(cacheModule.forRoot({ ttl: 300 }), ({ cacheService }) => ({ cacheService })));
 ```
 
 ## The app as a tree
 
-The finished shape is a tree of modules with the app module at the root — startup values flow down to children, exports flow back up only where you choose, and every request runs the flattened onion top to bottom:
+The finished shape is a tree of modules with the app at the root — startup values flow in where you `include` them, exports flow only where you pick, and every request runs the flattened onion top to bottom:
 
 ```text
 appModule
 ├─ configModule.forRoot(...)     // step 7
-├─ notesModule                   // service + controller
+├─ notesModule                   // service (step 8: forRoot(db))
 ├─ mailerModule.forRoot(...)     // your own — next step
-├─ eventsModule.forRoot(...)     // step 11
-└─ 404 tail
+├─ openapiModule / scalarModule  // step 12
+└─ notesController, health, ...  // mounted routers
 ```
 
-Read [Encapsulated modules](/rhythm/modules/) for the full semantics — what is hidden, what `exportValue` sees, and how module errors propagate. The next step turns this pattern around: instead of consuming ready-made modules, you author your own.
+Read [Encapsulated modules](/rhythm/modules/) for the full semantics — what is hidden, what `pick` sees, and how module errors propagate. The next step turns this pattern around: instead of consuming ready-made modules, you author your own.

@@ -6,21 +6,21 @@ description: "Per-request language negotiation over any i18next instance."
 
 ## Language negotiation with i18next [#i18n]
 
-`i18n({ i18next, ... })` puts a per-request translator on the context: `ctx.t`, `ctx.language`, and the scoped instance as `ctx.i18n` (`I18nContext`). The instance contract is structural (`I18nInstanceLike`: only `t` is required) and every optional member is feature-detected, so i18next major versions cannot break compilation. Per-request isolation prefers `cloneInstance()`, then `getFixedT(language)`, then a shared `changeLanguage()`; an uninitialized instance is `init()`-ed once, lazily.
+`i18n({ i18next, ... })` puts a per-request translator on the context: `ctx.t`, `ctx.language`, and the scoped instance as `ctx.i18n` (typed by `I18nContext`, which follows the instance you pass). The instance contract is structural (`I18nInstanceLike`: only `t` is required) and every optional member is feature-detected, so i18next major versions cannot break compilation. Per-request isolation prefers `cloneInstance()`, then `getFixedT(language)`, then a shared `changeLanguage()`; an uninitialized instance is `init()`-ed once, lazily.
 
 ```ts
 import i18next from "i18next";
-import { i18n, type I18nContext } from "@rhythmjs/http/i18n";
+import { i18n } from "@rhythmjs/http/i18n";
 
 await i18next.init({ fallbackLng: "en", supportedLngs: ["en", "de"], resources });
 
-router.use<I18nContext>(i18n({ i18next, cacheCookie: true })).get("/", (ctx) => {
+router.use(i18n({ i18next, cacheCookie: true })).get("/", (ctx) => {
   ctx.text(ctx.t("welcome")); // content-language set from ctx.language
 });
 ```
 
 ## Detection order and matching [#detection-order]
 
-Candidates are tried per source in `detection.order` - default `querystring` (`?lng=`), `cookie` (`i18next`), then the `Accept-Language` header parsed with q-values; a `path` source reads a configurable segment index. The first source that yields candidates wins. Matching against the supported list (from options, or read off the instance) is case-insensitive and falls from exact tag to base language in both directions (`de-AT` ↔ `de`), then to the fallback language.
+Candidates are tried per source in `detection.order` - default `querystring` (`?lng=`), `cookie` (`i18next`), then the `Accept-Language` header parsed with q-values; a `path` source reads a configurable segment index (`/de/...`-style prefixes, `lookupPath`, default `0`). The first source that yields a valid candidate wins. Candidates must look like a language tag; anything else is ignored before it reaches i18next or the `Content-Language` header. Matching against the supported list (from options, or read off the instance) is case-insensitive and falls from exact tag to base language in both directions (`de-AT` ↔ `de`), then to the fallback language.
 
 With `cacheCookie: true` the resolved language is written back to the lookup cookie (one-year `Max-Age`) whenever it changed, and unless disabled the response gains a `content-language` header. `parseAcceptLanguage(header)` and `detectLanguage(request, options?)` are exported standalone.

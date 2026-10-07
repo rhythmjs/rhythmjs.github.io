@@ -16,47 +16,54 @@ const app = new Rhythm()
   })
   .use(() => console.log("inside"));
 
-await app.run({});
+await app.callback()();
 // before → inside → after
 ```
 
 ## Extend the context
 
-Pass fields to `next(extra)` to merge them into the context. Supply the `use<TExtra>` generic to expose those additions to subsequent middleware; the extra type is not inferred from the body of your callback.
+`next()` takes no arguments. To add fields to the request context, wrap a function in `derive()`: it runs your function (sync or async), merges the returned object into the context, and calls `next()` for you. The added fields are typed on every later step, inferred from what you return.
 
 ```ts
-const app = new Rhythm<{ userId: string }>()
-  .use<{ user: { id: string; name: string } }>(async (ctx, next) => {
-    await next({ user: { id: ctx.userId, name: "Ada" } });
-  })
+const app = new Rhythm<{}, { userId: string }>()
+  .use(derive((ctx) => ({ user: { id: ctx.userId, name: "Ada" } })))
   .use((ctx) => console.log(ctx.user.name));
 
-await app.run({ userId: "u1" });
+await app.callback()({ userId: "u1" });
 ```
+
+Derived fields are request-scoped: each call starts from a fresh copy of the startup context. For values that live for the whole process, use `register(decorate(...))` instead (see [Startup context](/rhythm/context/)).
 
 ## Run conditionally [#conditional]
 
-`use(fn, condition)` takes a second callback that receives only the context. When `condition(ctx)` returns `true`, `fn` runs as usual; when it returns `false`, the request skips `fn` and goes straight to `next()`. The second callback receives the context as it stands at that point in the chain, including startup values and anything an earlier `derive()` added, and may be async.
+A plain middleware decides for itself whether to continue: skip the work and call `next()`.
 
 ```ts
-const app = new Rhythm<{ path: string }>()
-  .use(cors(), (ctx) => ctx.path.startsWith("/api"))
-  .use(async (ctx, next) => {
-    await next();
-  });
+const app = new Rhythm<{}, { path: string }>().use(async (ctx, next) => {
+  if (ctx.path.startsWith("/api")) console.log("api request");
+  await next();
+});
 ```
 
-A skipped middleware does not end the chain and does not change the onion order: outer middleware still wrap everything downstream. A second callback that throws rejects the run, like any other middleware failure. Core knows nothing about paths; for HTTP, `matches()` and `routed()` from `@rhythmjs/router/match` build predicates from the request (see the [router API](/router/api/)).
+To run a whole pipeline only for some requests, give `mount` a condition: `mount(plugin, (ctx) => boolean)`. When it returns `false`, the plugin is skipped and the call goes straight to `next()`. For HTTP, `pathIs(pattern)` from `@rhythmjs/router/path` builds the condition from the request path (see the [router API](/router/api/)).
 
-<Callout title="A conditional derive adds nothing to the type">
+```ts
+import { mount } from "@rhythmjs/rhythm";
+import { fromFetch } from "@rhythmjs/router/fetch";
+import { pathIs } from "@rhythmjs/router/path";
 
-`use(derive(...), condition)` can skip the derive, so its fields may be missing downstream. The overload with a second callback therefore returns the context type unchanged, and the extra fields are not typed on later middleware.
+const app = new Rhythm().use(mount(fromFetch((request) => auth.handler(request)), pathIs("/api/auth/**")));
+```
+
+<Callout title="A conditional mount adds nothing to the type">
+
+A skipped plugin cannot have added anything, so `mount(plugin, condition)` never extends the context type. The same is true of mounting in general: a mounted plugin's own derived fields never leak into the host.
 
 </Callout>
 
 ## Handle errors
 
-Register an error-handling wrapper before the handlers it should protect. Wrap `await next()` in a try/catch to handle downstream failures. Use `finally` for per-run cleanup. Calling `next()` more than once in the same middleware dispatch rejects with an error.
+Register an error-handling wrapper before the handlers it should protect. Wrap `await next()` in a try/catch to handle downstream failures. Use `finally` for per-call cleanup. Calling `next()` more than once in the same middleware dispatch rejects with an error.
 
 ```ts
 const guarded = new Rhythm().use(async (_ctx, next) => {
@@ -69,13 +76,15 @@ const guarded = new Rhythm().use(async (_ctx, next) => {
 });
 ```
 
-## Readonly by default
+Errors thrown inside a mounted plugin are wrapped (`mounted router "users" failed`) with the original available as `cause`. A wrapper placed around `mount()` sees the wrapped error; one placed inside the router sees the original.
 
-Context properties are deeply readonly at the type level, including arrays, maps, and sets. Function values remain callable. Objects branded with `readonly [RhythmMutable] = true` opt out; the router and CLI response classes use this mechanism.
+## Strict context
+
+The context only has what was added. Reading `ctx.user` before a `derive` adds it is a compile error, and so is reading a field nothing ever added. Startup fields are visible to request middleware, but request fields are never visible to `register`.
 
 ## Use the dispatcher directly
 
-`compose(middleware)` creates the standalone onion dispatcher. It knows nothing about the startup context.
+`compose(middleware)` creates the standalone onion dispatcher that every pipeline is built on. It knows nothing about the startup context.
 
 ```ts
 import { compose } from "@rhythmjs/rhythm";

@@ -6,10 +6,21 @@ description: "Validate request bodies, query strings, and route params against a
 
 ## Install the package
 
-`@rhythmjs/middleware` is a middleware collection for Rhythm routers and handlers: request validation (`/validate`), response transformation (`/intercept`), and exception handling (`/filter`). Each module lives on its own subpath export; there is no root barrel export.
+`@rhythmjs/middleware` is a middleware collection for Rhythm routers: request validation (`/validate`), response transformation (`/intercept`), and exception handling (`/filter`). Each module lives on its own subpath export; there is no root barrel export.
 
 ```bash
 bun add @rhythmjs/middleware @rhythmjs/rhythm @rhythmjs/router
+```
+
+You build routes and middleware on a `RhythmRouter`, mount the router into a `Rhythm` app with `mount(router)`, and serve the app with `Bun.serve({ fetch: toFetchHandler(app) })`. The samples on these pages show the router; the app around it is always the same:
+
+```ts
+import { Rhythm, mount } from "@rhythmjs/rhythm";
+import { toFetchHandler } from "@rhythmjs/router/fetch";
+
+const app = new Rhythm().use(mount(router));
+
+Bun.serve({ fetch: toFetchHandler(app) });
 ```
 
 ## One request part, one schema [#one-part-one-schema]
@@ -27,32 +38,32 @@ import { z } from "zod";
 
 const createUser = z.object({ name: z.string().min(1), age: z.coerce.number().int() });
 
-const router = new RhythmRouter().post<Validated<"body", typeof createUser>>(
-  "/users",
-  validate("body", createUser),
-  (ctx) => {
-    // ctx.valid.body is typed as { name: string; age: number }
-    ctx.json(ctx.valid.body);
-  },
-);
+const router = new RhythmRouter().post("/users", validate("body", createUser), (ctx) => {
+  // ctx.valid.body is inferred as { name: string; age: number }
+  ctx.json(ctx.valid.body);
+});
 ```
 
 ## The typed context [#typed-context]
 
 On success the schema’s *output* (after coercions and transforms) is merged into the context as `ctx.valid[target]`. The merge is a spread over the previous `ctx.valid`, so chained validators compose: validate the body and the query on one route and both results are present, each under its own key.
 
-The `Validated<Target, Schema>` helper type plugs into a route handler’s `TExtra` parameter (or a router’s `use<T>`) to give `ctx.valid` its precise shape. Intersect it to chain:
+`validate` is typed as a derive-style extension, so the context type widens for the handlers after it with no annotation. A route accepts only one such extension handler, and it must come first. To combine validators on one route, `compose` them and declare the combined type with the exported `Validated<Target, Schema>` and `ValidationContext` types, because `compose` drops extension types:
 
 ```ts
-router.get<Validated<"query", typeof paging> & Validated<"param", typeof userParams>>(
-  "/users/:id/posts",
-  validate("param", userParams),
-  validate("query", paging),
-  (ctx) => {
-    ctx.valid.param.id; // string, validated
-    ctx.valid.query.page; // number, coerced
-  },
-);
+import { compose } from "@rhythmjs/rhythm/compose";
+import type { ExtensionMiddleware } from "@rhythmjs/rhythm/types";
+import { validate, type Validated, type ValidationContext } from "@rhythmjs/middleware/validate";
+
+const both = compose([validate("param", userParams), validate("query", paging)]) as ExtensionMiddleware<
+  ValidationContext,
+  Validated<"param", typeof userParams> & Validated<"query", typeof paging>
+>;
+
+router.get("/users/:id/posts", both, (ctx) => {
+  ctx.valid.param.id; // validated route param
+  ctx.valid.query.page; // coerced number
+});
 ```
 
 ## The failure shape [#failure-shape]

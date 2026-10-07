@@ -6,18 +6,20 @@ description: "Document CLI flags with optionHelp, share them across commands by 
 
 ## Document an option [#option]
 
-`optionHelp` describes a flag. The cli's parser is schema-less, so it is documentation only: it does not validate, coerce or default anything at runtime.
+`optionHelp` describes a flag. The cli's parser is schema-less, so it is documentation only: it does not validate, coerce or default anything at runtime. Pair it with `withParsedArgv()` from `@rhythmjs/cli/argv` to read the flag.
 
 ```ts
+import { documented } from "@rhythmjs/climax/help/documented";
+import { commandHelp } from "@rhythmjs/climax/help/command";
 import { optionHelp } from "@rhythmjs/climax/help/option";
 
-const cli = new RhythmCli().command(
+const cli = documented(new RhythmCli()).cmd(
   "deploy :environment",
   commandHelp({ summary: "Deploy the app" }),
   optionHelp({ name: "force", alias: "f", description: "Skip checks", default: false }),
   optionHelp({ name: "target", type: "string", required: true, description: "Deploy target" }),
   (ctx) => {
-    ctx.response.print(`Deploying to ${ctx.args.environment}`);
+    ctx.log(`Deploying to ${ctx.params.environment}`);
   },
 );
 ```
@@ -35,39 +37,42 @@ Options:
 Put `optionHelp` through `.use()` and it applies to every command registered after it, the same way any middleware wraps only what follows. Use it for flags that more than one command reads.
 
 ```ts
-const cli = new RhythmCli()
-  .command("version", (ctx) => ctx.response.print("1.0.0")) // no --json listed
+const cli = documented(new RhythmCli())
+  .cmd("version", (ctx) => ctx.log("1.0.0")) // no --json listed
   .use(optionHelp({ name: "json", description: "Print JSON" }))
-  .command("deploy :environment", deploy) // --json listed
-  .command("status", status); // --json listed
+  .cmd("deploy :environment", deploy) // --json listed
+  .cmd("status", status); // --json listed
 ```
 
 Passed as a command handler, as in the previous section, it applies to that command only.
 
 ## Nested clis [#nested]
 
-A cli mounted with `use(child.middleware())` is walked too, and it inherits the options registered before the mount. Options a child registers stay in the child and never leak into the parent or its siblings.
+A cli mounted with `.use(mount(child))` is walked too, provided the child is also wrapped with `documented()`, and it inherits the options registered before the mount. Options a child registers stay in the child and never leak into the parent or its siblings.
 
-Mounting is opaque, so the parent's prefix is not added to the child's commands (see [CLI commands](/cli/#nest-command-groups)): the child carries its full prefix, and that is what help prints.
+Commands use full paths, so a child's commands carry their whole command string (`user add :name`), and that is what help prints.
 
 ```ts
-const user = new RhythmCli({ prefix: "user" }).command(
-  "add :name",
+const user = documented(new RhythmCli()).cmd(
+  "user add :name",
   commandHelp({ summary: "Add a user" }),
   addUser,
 );
 
-const cli = new RhythmCli()
+const cli = documented(new RhythmCli())
   .use(optionHelp({ name: "json", description: "Print JSON" }))
-  .use(user.middleware());
+  .use(mount(user));
 ```
 
 `app --help` lists `user add <name>`, and `app user --help` lists the subcommands under `user`. Both show `--json`, because it was registered before the mount.
 
 ## Custom output [#custom]
 
-The module provides `ctx.helpService` to later handlers. `commands()` returns the structured list, one entry per command with `segments`, `usage`, `summary`, `description`, `examples`, `deprecated` and `options`, and `render(topic)` returns the lines for a topic. Use the first to feed another renderer, such as Markdown for your docs.
+The module carries a `helpService`. Keep the module in a variable, add it with `.use(help)`, and call it from there. `commands()` returns the structured list, one entry per command with `segments`, `usage`, `summary`, `description`, `examples`, `deprecated` and `options`, and `render(topic)` returns the lines for a topic. Use the first to feed another renderer, such as Markdown for your docs.
 
 ```ts
-const docs = ctx.helpService.commands();
+const help = helpModule.forRoot({ name: "app" });
+const app = new Rhythm().use(help).use(mount(cli));
+
+const docs = help.helpService.commands();
 ```

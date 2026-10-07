@@ -1,39 +1,54 @@
 ---
 title: "Running on Bun"
-lead: "toCliHandler and createPrompt on Bun natives: Bun.stdin.stream() for piped input, the console line iterator for prompts."
+lead: "toCliHandler runs a cli or a host app and returns the exit code; prompts read through Bun's console line iterator."
 ---
 
-## Run a cli app
+## Run a cli
 
-`toCliHandler(app)` from `@rhythmjs/cli/run` takes the Rhythm host app and returns `(argv: string[]) => Promise<number>`. It parses flags, seeds the cli context, runs the pipeline once, flushes `response.stdout` then `response.stderr` to the console, and resolves with the exit code. Nothing calls `process.exit()` for you; set `process.exitCode` and close what you opened.
+`toCliHandler(app, io?)` from `@rhythmjs/cli/run` takes a `RhythmCli`, or a `Rhythm` host app that mounts one, and returns `(argv: string[]) => Promise<number>`. It builds the cli context from the arguments, runs the pipeline once, and resolves with the exit code. Output goes to `process.stdout` and `process.stderr` unless you pass your own `{ stdout, stderr }` writers. Nothing calls `process.exit()` for you; set `process.exitCode` and close what you opened.
 
 ```ts
 #!/usr/bin/env bun
 import { toCliHandler } from "@rhythmjs/cli/run";
-import { app } from "./app";
+import { cli } from "./cli";
 
-process.exitCode = await toCliHandler(app)(process.argv.slice(2));
+process.exitCode = await toCliHandler(cli)(Bun.argv.slice(2));
 ```
 
-## Pipe stdin
+An unmatched command reports `error: unknown command 'x'` (or `no command given`) with exit code 2. A thrown error is reported as an error line with exit code 1.
 
-When input is piped or redirected, `ctx.stdin` is a `ReadableStream<Uint8Array>` from `Bun.stdin.stream()`, Bun's native stdin with no Node stream conversion. On a TTY it is `null`, so handlers can branch on interactivity.
+## Run a host app
+
+When the cli needs startup values, mount it into a `Rhythm` app and run the app. Stop the app when the command finishes so its cleanups run.
 
 ```ts
-cli.command("import", async (ctx) => {
-  if (ctx.stdin === null) {
-    ctx.response.exit(1).printError("pipe a file: cat data.json | myapp import");
-    return;
-  }
-  const body = await new Response(ctx.stdin).json();
-  ctx.response.print(`imported ${Object.keys(body).length} records`);
-});
+import { Rhythm, decorate, mount } from "@rhythmjs/rhythm";
+
+const app = new Rhythm({ name: "tool" })
+  .register(
+    decorate(async () => ({ db: await createDb() })),
+    (ctx) => ctx.db.close(),
+  )
+  .use(mount(cli));
+
+try {
+  process.exitCode = await toCliHandler(app)(Bun.argv.slice(2));
+} finally {
+  await app.stop();
+}
+```
+
+## Capture output
+
+Pass writers to collect output instead of printing it. This is also what `@rhythmjs/testing/cli` does for you.
+
+```ts
+let stdout = "";
+const io = { stdout: { write: (text: string) => void (stdout += text) }, stderr: process.stderr };
+
+const code = await toCliHandler(cli, io)(["deploy", "staging"]);
 ```
 
 ## Prompt I/O
 
-`createPrompt()` wires the prompt surface to Bun directly: questions write to `process.stdout`, and answers are read from Bun's async-iterable `console` (one `await` per line, no readline interface). `close()` releases the line iterator; call it when the command finishes. See [interactive prompts](/cli/prompts/) for the startup-context pattern.
-
-## Compatibility aliases
-
-The package is coupled to Bun on purpose; there are no Node or Deno builds. Two subpaths from the earlier multi-runtime layout remain as aliases so old imports keep resolving: `@rhythmjs/cli/adapters/bun` → `./run` and `@rhythmjs/cli/adapters/context` → `./context`. New code should import `./run` and `./context`.
+`withPrompt()` wires the prompt surface to Bun directly: questions write to `process.stdout`, and answers are read from Bun's async-iterable `console` (one `await` per line, no readline interface). The input is closed when the command finishes. See [interactive prompts](/cli/prompts/).

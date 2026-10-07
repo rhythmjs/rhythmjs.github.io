@@ -1,49 +1,65 @@
 ---
 title: "WebSockets, socketless"
-lead: "Run the whole upgrade for real against a mock server, hand the attached ws.data to a recording peer, and fire lifecycle events through the real dispatch."
-description: "Test RhythmWs without sockets: upgradeWs runs middleware, upgrade, and headers against a mock server; mockWs records everything handlers do; fire* dispatches real events."
+lead: "Run the whole upgrade for real against a mock server, get a recording peer built on the attached ws.data, and fire lifecycle events through the real handler."
+description: "Test RhythmWs without sockets: upgradeWs runs the origin check, middleware, upgrade and headers; the peer records what handlers do; fire* dispatches real events."
 ---
 
 ## Upgrade without sockets
 
-`upgradeWs<Data>(ws, request)` from `@rhythmjs/testing/ws` drives a [`RhythmWs`](/ws/) upgrade against a mock server: middleware, the route's `upgrade`, and `headers` all run for real; only `server.upgrade()` is captured instead of taking a socket. A plain path gets the `upgrade: websocket` header implied; pass a full `Request` to control headers yourself.
+`upgradeWs(ws, request)` from `@rhythmjs/testing/ws` drives a [`RhythmWs`](/ws/) upgrade the way production does: it mounts the instance in a fresh `Rhythm` app and calls it through `toFetchHandler` with a mock Bun server. The origin check, middleware, the route's `upgrade`, and `headers` all run for real; only `server.upgrade()` is captured instead of taking a socket. A plain path gets the `upgrade: websocket` header implied (the request goes to `http://localhost`); pass a full `Request` to control headers, cookies, or the `Origin` yourself.
 
 ```ts
 import { upgradeWs } from "@rhythmjs/testing/ws";
 
-const result = await upgradeWs<Chat>(chat, "/rooms/7?token=good");
+const result = await upgradeWs(ws, "/ws/rooms/7?token=good");
 // {
-// matched: true, false => RhythmWs returned null (no route / not an upgrade)
-// upgraded: true, server.upgrade() was called and no rejection Response
-// response: null, the rejecting Response otherwise
-// data: { room: "7", topic: "room:7" }, the ws.data that was attached
-// headers: null, captured 101 headers when the route sets them
+//   upgraded: true,                 server.upgrade() was called
+//   response: null,                 the answer when rejected or unmatched, otherwise null
+//   data: { room: "7", ... },       the ws.data that was attached
+//   headers: null,                  the 101 headers when the route sets them
+//   peer: MockWs,                   a recording peer built on data; null when not upgraded
 // }
+```
+
+The generic parameter types `data` and `peer`: `upgradeWs<Chat>(ws, "/ws/chat")`. Because the full pipeline runs, an unauthenticated handshake is simply a rejected result, and a path no route serves comes back unupgraded with the app's `404`:
+
+```ts
+import { expect, test } from "bun:test";
+
+test("a handshake without a token is refused", async () => {
+  const result = await upgradeWs(guardedWs, "/ws/guarded");
+  expect(result.upgraded).toBe(false);
+  expect(result.response?.status).toBe(401);
+  expect(result.peer).toBeNull();
+});
 ```
 
 ## The recording peer
 
-`mockWs(data)` builds a recording stand-in for Bun's `ServerWebSocket<Data>` around the exact `data` an upgrade attached. It records everything handlers do: `sent` and `published` (both return byte counts like Bun), `topics` with `isSubscribed()`, `closed` with code and reason, `terminated`, and a `readyState` that moves from open to closed. `remoteAddress` is `127.0.0.1`.
+`peer` is a `MockWs<Data>`, a recording stand-in for Bun's `ServerWebSocket<Data>` built around the exact `data` the upgrade attached. It records everything handlers do: `sent` and `published` (`send` and `publish` return byte counts like Bun), `topics` with `isSubscribed()`, `closed` with code and reason, `terminated`, and a `readyState` that moves from open to closed. `remoteAddress` is `127.0.0.1`. You can also build one by hand with `mockWs(data)` for a handler unit test that skips the upgrade.
 
 ## Firing lifecycle events [#firing-events]
 
-`fireOpen`, `fireMessage`, `fireClose`, and `fireDrain` dispatch through the instance's real `websocket` behavior - the same data-identity routing production uses, so a wrong route wired to a connection fails the test. `fireMessage` accepts a string, bytes (delivered as a `Buffer`, Bun's binary shape), or any object, which is JSON-serialized. `fireClose` defaults to code `1000` with an empty reason.
+`fireOpen(peer)`, `fireMessage(peer, data)`, `fireClose(peer, code?, reason?)`, and `fireDrain(peer)` dispatch through the real `websocket` handler from `@rhythmjs/ws`, the same data-identity routing production uses, so a peer whose `data` did not come from an upgrade has no handlers to run. `fireMessage` accepts a string, bytes (delivered as a `Buffer`, Bun's binary shape), or any object, which is JSON-serialized, so a join command is just an object. `fireClose` defaults to code `1000` with an empty reason.
 
 ```ts
-import { upgradeWs, mockWs, fireOpen, fireMessage, fireClose } from "@rhythmjs/testing/ws";
+import { upgradeWs, fireOpen, fireMessage, fireClose } from "@rhythmjs/testing/ws";
 
-const { data } = await upgradeWs<Chat>(chat, authed("/chat/dev"));
-const peer = mockWs(data!);
+test("join by message, then chat", async () => {
+  const { peer } = await upgradeWs(chatWs, "/ws");
 
-await fireOpen(chat, peer);
-await fireMessage(chat, peer, "hi");
-expect(peer.isSubscribed("room:dev")).toBe(true);
-expect(peer.sent).toEqual(["joined dev", "echo: hi"]);
+  await fireOpen(peer!);
+  await fireMessage(peer!, { type: "join", room: "dev" });
+  expect(peer!.isSubscribed("room:dev")).toBe(true);
 
-await fireClose(chat, peer, 1001, "bye");
-expect(peer.published).toEqual([{ topic: "room:dev", data: "left" }]);
+  await fireMessage(peer!, { type: "say", text: "hi" });
+  expect(peer!.published.at(-1)).toEqual({ topic: "room:dev", data: `${peer!.data.handle}: hi` });
+
+  await fireClose(peer!, 1001, "bye");
+  expect(peer!.published.at(-1)?.data).toContain("left");
+});
 ```
 
 ## What to assert where [#what-to-assert]
 
-Rejections are `upgradeWs` assertions (`response?.status`, `matched`); connection behavior is peer assertions (`sent`, `published`, subscriptions); negotiated handshakes are `headers` assertions. The full serving contract, the sync-`null` fall-through and the shared behavior, is documented on the [Serving & pub/sub](/ws/serving/) page and is exactly what the mock server exercises.
+Rejections are `upgradeWs` assertions (`upgraded`, `response?.status`); connection behavior is peer assertions (`sent`, `published`, subscriptions, `closed`); negotiated handshakes are `headers` assertions. Publishing from an HTTP route with `ctx.server.publish` is a router concern: test it with the [router client](/testing/router/). The upgrade contract itself, middleware order and the `ctx.server` requirement, is documented in [Quick start](/ws/) and [Serving & tuning](/ws/serving/).

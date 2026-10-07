@@ -6,30 +6,45 @@ lead: "The public API and types exported by @rhythmjs/rhythm."
 ## Rhythm
 
 <DefList>
-<Def sig={"new Rhythm<TInput, TStartup>(options?)"} id="rhythm">Create a pipeline. TStartup declares the shape of context. Options include name and type.</Def>
-<Def sig={"use<TExtra>(middleware)"} id="use">Append a middleware step. Returns the same instance with an extended context type.</Def>
-<Def sig="use(middleware, condition)" id="use-condition">Append a middleware that only runs when `condition(ctx)` returns true (sync or async); otherwise the request falls through to `next()`. The context type is not extended, even for a `derive()`, because it may be skipped.</Def>
-<Def sig="context" id="context">Plain object of startup values, typed TStartup. Assign before serving; each run starts from `{ ...context, ...input }`. Registered modules inherit their parent's values and may add their own, which never reach the parent.</Def>
-<Def sig="register(child, exportValue?)" id="register">Register a child Rhythm module and optional context exports. The parent's input and startup shape must satisfy the child's input type. The child runs in place: if it ends the chain without calling next(), the parent stops there. Accepts Rhythm instances only; controllers mount via use() instead.</Def>
-<Def sig="parent" id="parent">The module this one was registered into with register(), or added to with use(child.middleware()). Undefined for a root.</Def>
-<Def sig="sources" id="sources">Read-only list of what the module and everything under it was built from, in order: the sources of tagged middleware (routers, clis, any extension) with registered modules expanded in place. Read it lazily, once the app is assembled.</Def>
-<Def sig={"run(input): Promise<TContext>"} id="run">Dispatch one input, returning the final context.</Def>
-<Def sig={"callback(): (input) => Promise<TContext>"} id="callback">Get a cached reusable handler for the current middleware stack.</Def>
-<Def sig={"middleware(): Middleware<TContext>"} id="middleware">Get flat middleware that shares its caller’s context and supports fallthrough. It is tagged with this module as its source.</Def>
+<Def sig={"new Rhythm<S, I, D>(options?)"} id="rhythm">Create a pipeline. `S` is the startup context, `I` the input the caller supplies on each call, `D` the fields added by `derive`. All three are normally inferred as you chain; only `I` is sometimes written by hand. Options are `name` and `type` (default `"module"`), used to label errors.</Def>
+<Def sig="register(callback, cleanup?)" id="register">Startup step. Calls `callback(ctx, app)` right away with the shared startup context. A returned promise is awaited before the first call. `cleanup(ctx, app)` runs on `stop()`. Passing `decorate()` or `include()` extends the startup type.</Def>
+<Def sig="use(middleware)" id="use">Request step. Takes `(ctx, next) => unknown`. Passing `derive()` extends the request type; passing `mount()` widens the input type.</Def>
+<Def sig="callback()" id="callback">Get the reusable `(input?) => Promise<ctx>` handler for the middleware registered so far. The input is required when `I` has required fields. Every call gets a fresh shallow copy of the startup context merged with the input.</Def>
+<Def sig="stop()" id="stop">Run the registered cleanups in reverse order. If several throw, all still run and `stop()` rejects with an `AggregateError`. `Rhythm` is also `AsyncDisposable`.</Def>
+<Def sig="sources" id="sources">Read-only list of the plugins (routers, clis, anything tagged) the pipeline was built from, in order, with `Rhythm` modules expanded in place. Read it lazily, once the app is assembled.</Def>
+<Def sig="parent" id="parent">The pipeline this one was adopted by through `mount()` or `include()`. Undefined for a root.</Def>
+<Def sig="options" id="options">The `name` and `type` the pipeline was created with.</Def>
 </DefList>
 
-## Core exports
+## Composables
 
 <DefList>
-<Def sig="compose(middleware[])" id="compose">Return a dispatcher accepting a context and optional final next handler.</Def>
-<Def sig="gate(fn, condition)" id="gate">From @rhythmjs/rhythm/compose. Wrap a middleware so it only runs when `condition(ctx)` returns true; what `use(fn, condition)` uses internally.</Def>
-<Def sig="withSource(fn, source)" id="withsource">From @rhythmjs/rhythm/source. Tag a middleware with the object it was built from and return it. use() records the tag in the module's sources.</Def>
-<Def sig="sourceOf(fn)" id="sourceof">From @rhythmjs/rhythm/source. Read the tag back, or undefined for an untagged function.</Def>
-<Def sig={"Condition<TContext>"} id="condition">A (ctx) function returning boolean or Promise\<boolean\>; the second argument of use(). The middleware runs only when it returns true.</Def>
-<Def sig={"Middleware<TContext>"} id="middleware-2">A (ctx, next) function returning void or Promise\<void\>.</Def>
-<Def sig={"NextFn<TContext>"} id="nextfn">Continue with optional extra context fields; resolves to readonly context.</Def>
-<Def sig={"DeepReadonly<T>"} id="deepreadonly">Recursively readonly types, except callable and RhythmMutable-branded values.</Def>
-<Def sig={"OmitHashKeys<T>"} id="omithashkeys">Remove keys beginning with # from an object type.</Def>
-<Def sig="RhythmMutable" id="rhythmmutable">A unique symbol used to opt objects out of DeepReadonly.</Def>
-<Def sig="RhythmOptions" id="rhythmoptions">Optional name and type labels, plus additional unknown option fields.</Def>
+<Def sig="decorate(fn)" id="decorate">Goes in `register`. Merges the object `fn(ctx)` returns (sync or async) into the startup context and types it for everything after.</Def>
+<Def sig="derive(fn)" id="derive">Goes in `use`, or as the first handler of a route. Merges the object `fn(ctx)` returns (sync or async) into the request context, then calls `next()`.</Def>
+<Def sig="mount(plugin, condition?)" id="mount">Goes in `use`. Runs another pipeline (a `Rhythm`, router, ws, cron or cli) against the current context, then always calls `next()`. The host's input type is widened to cover what the plugin needs. With `condition(ctx)`, the plugin runs only when it returns true. Failures are wrapped with the plugin's name and type; the original is the `cause`.</Def>
+<Def sig="include(module, pick?)" id="include">Goes in `register`. Runs a `Rhythm` module once with the parent's startup context as input, registers its `stop()` as a parent cleanup, and copies `pick(child)` into the parent's startup context. Failures are wrapped as `included module "name" failed`.</Def>
 </DefList>
+
+## Pipeline and helpers
+
+<DefList>
+<Def sig="Pipeline" id="pipeline">The abstract base shared by `Rhythm`, `RhythmRouter`, `RhythmWs`, `RhythmCron` and `RhythmCli`: `use()`, `callback()`, `sources`, `parent` and `options`. Extend it to build your own plugin.</Def>
+<Def sig="compose(middleware[])" id="compose">Return a dispatcher accepting a context and an optional final next handler. The onion every pipeline is built on.</Def>
+<Def sig="withSource(fn, source)" id="withsource">Tag a middleware or register callback with the object it was built from and return it. `use()` and `register()` record the tag in `sources`.</Def>
+<Def sig="sourceOf(fn)" id="sourceof">Read the tag back, or undefined for an untagged function.</Def>
+</DefList>
+
+## Types
+
+From `@rhythmjs/rhythm/types`, re-exported by the root.
+
+<DefList>
+<Def sig="Next" id="next">`() => Promise<void>`. Continue to the next step; it takes no arguments.</Def>
+<Def sig={"Middleware<T>"} id="middleware-2">A `(ctx, next)` function returning anything or a promise.</Def>
+<Def sig={"ExtensionMiddleware<T, U>"} id="extensionmiddleware">A middleware that adds the fields `U` to the context, as returned by `derive()`.</Def>
+<Def sig={"ExtensionRegister<T, U>"} id="extensionregister">A register callback that adds the fields `U` to the startup context, as returned by `decorate()` and `include()`.</Def>
+<Def sig="Mountable<I>" id="mountable">Anything with a `callback()` that `mount()` and the serving helpers accept; `I` is the input it needs.</Def>
+<Def sig="PipelineOptions" id="pipelineoptions">Optional `name` and `type` labels.</Def>
+</DefList>
+
+Each function also has its own entry point (`@rhythmjs/rhythm/derive`, `/decorate`, `/mount`, `/include`, `/compose`, `/pipeline`, `/source`, `/types`); the root export re-exports them all.

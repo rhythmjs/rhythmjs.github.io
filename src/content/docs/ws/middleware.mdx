@@ -1,0 +1,102 @@
+---
+title: "Middleware and auth"
+lead: "Upgrades run through ordinary Rhythm middleware: reuse sessions, authentication and rate limits, and let the origin check stop cross-site hijacking."
+description: "Guard WebSocket handshakes with use(): sessions, authentication, rate limiting, middleware order, and the same-origin check."
+---
+
+## use() over the handshake [#use]
+
+`use(middleware)` is the router's convention: `(ctx, next)` over the HTTP context. Middleware runs only when an upgrade request matches one of the instance's routes, in registration order, before the route's `upgrade` hook. Call `next()` to continue, or write a response to refuse the handshake:
+
+```ts
+const ws = new RhythmWs()
+  .use(async (ctx, next) => {
+    if (new URL(ctx.request.url).searchParams.get("token") === "good") await next();
+    else ctx.error(401);
+  })
+  .ws("/ws/guarded", { open: (peer) => void peer.send("in") });
+```
+
+A middleware that neither calls `next()` nor writes a response never reaches the upgrade, so the socket is not opened and the request falls through to the rest of the app (a plain `404` if nothing else answers). Forgetting `next()` can fail to authorize, never silently authorize.
+
+`derive(...)` and the other extension middleware widen the context for everything after them: later `use()` calls and every route's `upgrade` and `headers` see the derived fields, fully typed.
+
+## Reuse what you have [#reuse]
+
+The middleware runs over the handshake request, which carries cookies and headers like any other `GET`, so the pieces you use on routers work on upgrades unchanged.
+
+<DefList>
+<Def sig="@rhythmjs/http" id="http">`session()` and `cookies()` from `@rhythmjs/http/session` and `/cookies` are extension middleware; `.use(session())` and `ctx.session` is available in `upgrade` and `headers`.</Def>
+<Def sig="@rhythmjs/security" id="security">`attachUser` / `requireAuthentication` from `/authentication` and `requireRoles` from `/authorization` work as on a router. `rateLimit` works too (see below).</Def>
+<Def sig="@rhythmjs/better-auth" id="better-auth">`withSession()` and `requireSession()` apply with `.use(...)`, on an app that provides `ctx.auth` the way the [Better Auth integration](/integrations/better-auth/) sets up.</Def>
+</DefList>
+
+```ts
+import { session } from "@rhythmjs/http/session";
+import { RhythmWs } from "@rhythmjs/ws";
+
+const ws = new RhythmWs().use(session()).ws("/ws/inbox", {
+  upgrade(ctx) {
+    const userId = ctx.session.get<string>("userId");
+    if (!userId) return ctx.error(401);
+    return { userId };
+  },
+  open(peer) {
+    peer.subscribe(`user:${peer.data.userId}`);
+  },
+});
+```
+
+With bearer-style authentication, remember that browsers cannot set an `Authorization` header on `new WebSocket(...)`: cookies (so sessions) are the natural fit, or pass a short-lived ticket in the query string and verify it in a middleware.
+
+Do authentication at the handshake, in middleware or `upgrade`, not in `message`. Once the socket is open the handshake is over, and `ws.data` is the identity the connection carries for its lifetime.
+
+## Rate limiting upgrades [#rate-limit]
+
+Limit handshakes with `rateLimit` from `@rhythmjs/security/rate-limit`, placed before anything expensive. It answers `429` through the same context as a router would, and the request never reaches `upgrade`:
+
+```ts
+import { rateLimit } from "@rhythmjs/security/rate-limit";
+
+const ws = new RhythmWs()
+  .use(rateLimit({ limit: 20, windowMs: 60_000, trustProxy: true }))
+  .ws("/ws/inbox", handlers);
+```
+
+<Callout title="Identify the client">
+
+The limiter needs a client key. Behind a reverse proxy set `trustProxy`; otherwise pass `keyOf`, which receives only the `Request`; close over your `Bun.serve` result to use `server.requestIP(request)`. The [hardening guide](/security/hardening/) covers both. Limits apply per handshake, not per message: bound message volume with `maxPayloadLength` and backpressure in [Serving & tuning](/ws/serving/).
+
+</Callout>
+
+## Order [#order]
+
+Middleware runs in the order you call `use()`, after the origin check and before the route:
+
+1. Cheap guards first: rate limit, then authentication.
+2. Anything `upgrade` reads second: derive the session or user before the route that needs it.
+3. The route last: it only runs when every guard called `next()`.
+
+Different protection levels compose as separate instances mounted into one app. Each `RhythmWs` runs only its own middleware, for its own routes:
+
+```ts
+const publicWs = new RhythmWs().ws("/ws/status", statusHandlers);
+const memberWs = new RhythmWs().use(session()).use(requireLogin).ws("/ws/inbox", inboxHandlers);
+
+const app = new Rhythm().use(mount(http)).use(mount(publicWs)).use(mount(memberWs));
+```
+
+## The origin check [#origin-check]
+
+Browsers attach cookies to WebSocket handshakes and are exempt from CORS, so a page on another site can open a socket as your logged-in user: cross-site WebSocket hijacking. `RhythmWs` checks the `Origin` header before any middleware runs, controlled by the `origin` option:
+
+```ts
+new RhythmWs(); // "same-origin" (default)
+new RhythmWs({ origin: ["https://app.example"] }); // exact-match allowlist
+new RhythmWs({ origin: (origin, request) => origin.endsWith(".example") }); // predicate, sync or async
+new RhythmWs({ origin: false }); // no check
+```
+
+- `"same-origin"`: a request with an `Origin` header must have the same host as the request's own `Host` header, or it answers `403`. A malformed `Origin` is refused too.
+- A request with no `Origin` header (a non-browser client) always passes: the check defends cookie-carrying browsers, not authentication. Authenticate in middleware regardless.
+- Pass an allowlist or predicate when your frontend lives on another origin, and `false` only when you authenticate every handshake some other way.

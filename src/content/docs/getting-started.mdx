@@ -5,17 +5,18 @@ lead: "Create a project with one command, run it, and grow it into your applicat
 
 ## A first look
 
-Startup values are assigned once. Middleware runs for each input. The resulting context carries your input and dependencies through the pipeline.
+Startup values are added once with `register`. Middleware runs for each call. The resulting context carries your startup values, the caller's input, and anything derived along the way.
 
 ```ts
-import { Rhythm } from "@rhythmjs/rhythm";
+import { Rhythm, decorate } from "@rhythmjs/rhythm";
 
-const app = new Rhythm<{ name: string }, { greeting: string }>().use((ctx) => {
-  console.log(ctx.greeting + ", " + ctx.name);
-});
-app.context.greeting = "Hello";
+const app = new Rhythm<{}, { name: string }>()
+  .register(decorate(() => ({ greeting: "Hello" })))
+  .use((ctx) => {
+    console.log(`${ctx.greeting}, ${ctx.name}`);
+  });
 
-await app.run({ name: "world" }); // Hello, world
+await app.callback()({ name: "world" }); // Hello, world
 ```
 
 ## Create a project
@@ -55,24 +56,27 @@ src/
 
 ## The pattern
 
-The service holds business logic and knows nothing about HTTP. The module declares it in the kernel's startup context and assigns it to `context`, which places it on the request context of everything mounted in that module. The controller declares that dependency in its context type, so handlers use `ctx.appService` with full type safety: the type-level equivalent of constructor injection.
+The service holds business logic and knows nothing about HTTP. The module adds it to the startup context with `decorate`, which places it on the request context of everything mounted in that module. The controller declares that dependency in its context type, so handlers use `ctx.appService` with full type safety: the type-level equivalent of constructor injection.
 
 ```ts
-export const appModule = new Rhythm<RhythmHttpContext, { appService: typeof appService }>({
-  name: "app",
-  type: "module",
-});
+export const appModule = new Rhythm({ name: "app" })
+  .register(decorate(() => ({ appService })))
+  .use(mount(appController));
+```
 
-appModule.context.appService = appService;
+The controller states what it needs from its host:
 
-appModule.use(appController.middleware()).use((ctx) => {
-  ctx.json({ success: false, status: 404, message: "Not Found" }, 404);
+```ts
+export const appController = new RhythmRouter<AppContext>().get("/", (ctx) => {
+  ctx.text(ctx.appService.getHello());
 });
 ```
 
+A request nothing answers gets a plain `404 Not Found` from `toFetchHandler`, so the module needs no 404 handler of its own.
+
 ## Test it
 
-The controller spec avoids booting the whole application: `runHttpMiddleware` runs the controller's middleware directly with a service placed on the context. Substituting a stub service proves the controller delegates instead of hardcoding responses.
+The controller spec avoids booting the whole application: `runHttpMiddleware` runs `mount(appController)` directly with a service placed on the context. Substituting a stub service proves the controller delegates instead of hardcoding responses.
 
 ```bash
 bun test # bun test runner
@@ -82,7 +86,7 @@ bun run check # prettier --check + oxlint + tsc
 
 ## Grow the app
 
-Add a feature by repeating the pattern: a `users.service.ts`, a `users.controller.ts` router with a `prefix`, assign the service in the module's `context`, and mount the controller before the 404 handler. Validation, sessions, logging, CORS, and friends come from the [Middleware](/middleware/), [HTTP](/http/), [Security](/security/), and [Observability](/observability/) packages.
+Add a feature by repeating the pattern: a `users.service.ts`, a `users.controller.ts` router with full paths (`/users/:id`; routers have no prefix), add the service with another `decorate` in the module, and add `.use(mount(usersController))`. Validation, sessions, logging, CORS, and friends come from the [Middleware](/middleware/), [HTTP](/http/), [Security](/security/), and [Observability](/observability/) packages. Scheduled work comes from [`@rhythmjs/cron`](https://github.com/rhythmjs/cron), mounted or started the same way.
 
 ## Under the hood
 
@@ -92,34 +96,34 @@ There is no scaffolding magic in the template: it is just the kernel and the rou
 bun add @rhythmjs/rhythm @rhythmjs/router
 ```
 
-The kernel alone composes middleware over any input. Startup values are assigned once; middleware runs per input; the typed context carries both.
+The kernel alone composes middleware over any input. `register` runs once at startup; `use` runs per call; the typed context carries both.
 
 ```ts
-import { Rhythm } from "@rhythmjs/rhythm";
+import { Rhythm, decorate } from "@rhythmjs/rhythm";
 
-const app = new Rhythm<{ name: string }, { greeting: string }>().use((ctx) => {
-  console.log(`${ctx.greeting}, ${ctx.name}`);
-});
-app.context.greeting = "Hello";
+const app = new Rhythm<{}, { name: string }>()
+  .register(decorate(() => ({ greeting: "Hello" })))
+  .use((ctx) => {
+    console.log(`${ctx.greeting}, ${ctx.name}`);
+  });
 
-await app.run({ name: "world" }); // Hello, world
+await app.callback()({ name: "world" }); // Hello, world
 ```
 
 ## Serve HTTP
 
-The router registers routes with named parameters and mounts into a Rhythm host app via `middleware()`; a plain `Bun.serve` call, written by you in your own `main.ts`, starts the host app. Run it with `bun src/main.ts`.
+The router registers routes with named parameters and mounts into a Rhythm host app with `mount()`; a plain `Bun.serve` call, written by you in your own `main.ts`, starts the host app. The host's input type is inferred from what it mounts, so there is nothing to declare. Run it with `bun src/main.ts`.
 
 ```ts
-import { Rhythm } from "@rhythmjs/rhythm";
+import { Rhythm, mount } from "@rhythmjs/rhythm";
 import { RhythmRouter } from "@rhythmjs/router";
 import { toFetchHandler } from "@rhythmjs/router/fetch";
-import type { RhythmHttpContext } from "@rhythmjs/router/context";
 
 const router = new RhythmRouter().get("/users/:id", (ctx) => {
   ctx.json({ id: ctx.params.id });
 });
 
-const app = new Rhythm<RhythmHttpContext>().use(router.middleware());
+const app = new Rhythm().use(mount(router));
 
 const server = Bun.serve({ port: 3000, fetch: toFetchHandler(app) });
 console.log(`listening on ${server.url}`);
@@ -127,21 +131,17 @@ console.log(`listening on ${server.url}`);
 
 ## Add validation
 
-Ecosystem packages drop into the same chain. Here `validate` checks the body against a zod schema and exposes the typed output as `ctx.valid.body`; an invalid body answers 400 before the handler runs.
+Ecosystem packages drop into the same chain. Here `validate` checks the body against a zod schema and exposes the typed output as `ctx.valid.body`; an invalid body answers 400 before the handler runs. It is the first handler of the route, and its type flows into the handler after it.
 
 ```ts
-import { validate, type Validated } from "@rhythmjs/middleware/validate";
+import { validate } from "@rhythmjs/middleware/validate";
 import { z } from "zod";
 
-const CreateUser = z.object({ name: z.string().min(1) });
+const createUser = z.object({ name: z.string().min(1) });
 
-router.post<Validated<"body", typeof CreateUser>>(
-  "/users",
-  validate("body", CreateUser),
-  (ctx) => {
-    ctx.json(ctx.valid.body);
-  },
-);
+router.post("/users", validate("body", createUser), (ctx) => {
+  ctx.json(ctx.valid.body, 201);
+});
 ```
 
 ## Where to go next

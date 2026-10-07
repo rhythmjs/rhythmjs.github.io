@@ -6,7 +6,7 @@ description: "Test the Rhythm kernel in isolation: mockModule swaps real modules
 
 ## Install the package
 
-`@rhythmjs/testing` is the test toolkit for the whole ecosystem, one harness per layer, each on its own subpath export with no root barrel: `/rhythm` for the kernel (this page), [`/router`](/testing/router/) for HTTP, [`/cli`](/testing/cli/) for commands, and [`/ws`](/testing/ws/) for WebSockets. Everything runs in-process on `bun test`; nothing listens on a port.
+`@rhythmjs/testing` is the test toolkit for the whole ecosystem, one harness per layer, each on its own subpath export with no root barrel: `/rhythm` for the kernel (this page), [`/router`](/testing/router/) for HTTP, [`/cli`](/testing/cli/) for commands, and [`/ws`](/testing/ws/) for WebSockets (`upgradeWs`, `mockWs`, `fireOpen`). Everything runs in-process on `bun test`; nothing listens on a port.
 
 ```bash
 bun add -D @rhythmjs/testing
@@ -14,23 +14,37 @@ bun add -D @rhythmjs/testing
 
 ## Mock kernel modules
 
-`mockModule(values)` builds a Rhythm module whose startup `context` is exactly the object you pass: the drop-in replacement for a real module in `register()`. Its return type exposes `values`' shape as the module's context, so the `register()` pick callback stays fully typed. There is no dispose hook, since Rhythm no longer has a teardown; a fake that needs cleanup is cleaned up by the test that created it.
+`mockModule(values)` builds a Rhythm module whose startup context is exactly the object you pass: the drop-in replacement for a real module wherever the app would `include` it. Its return type exposes `values`' shape, so the `include` pick callback stays fully typed. There is no dispose hook; a fake that needs cleanup is cleaned up by the test that created it.
 
 ```ts
+import { Rhythm, include } from "@rhythmjs/rhythm";
 import { mockModule } from "@rhythmjs/testing/rhythm";
 
 const sent: string[] = [];
 const app = new Rhythm().register(
-  mockModule({ mailer: { send: async (to: string) => void sent.push(to) } }),
-  ({ mailer }) => ({ mailer }),
+  include(mockModule({ mailer: { send: async (to: string) => void sent.push(to) } }), ({ mailer }) => ({ mailer })),
 );
 ```
 
-Swap it for the real module at the one `register()` call site; handlers and every downstream middleware are untouched. To replace a value on an app you already built, use the `context` option of [`createTestClient`](/testing/router/#startup-context) instead.
+Swap it for the real module at the one `register(include(...))` call site; handlers and every downstream middleware are untouched.
+
+## Override startup values [#override]
+
+To replace values on an app you already built, wrap it with `withMockContext(app, values)`. It assigns `values` onto every call's input, and `Rhythm` merges input over its startup context, so the mock wins over the real value. It accepts any mountable (an app, a router, a cli, a ws route). The result is typed as a plain mountable, so you may need a cast on the context it returns. [`createTestClient`](/testing/router/#startup-context) and [`createCliRunner`](/testing/cli/#startup-context) use it for their `context` option.
+
+```ts
+import { Rhythm, decorate } from "@rhythmjs/rhythm";
+import { withMockContext } from "@rhythmjs/testing/rhythm";
+
+const app = new Rhythm().register(decorate(() => ({ name: "real" })));
+
+const ctx = (await withMockContext(app, { name: "mock" }).callback()({})) as { name: string };
+expect(ctx.name).toBe("mock");
+```
 
 ## Run one middleware
 
-`runMiddleware(middleware, ctx)` drives a single middleware against a context you construct: no kernel, no composition. It resolves to `{ ctx, nextCalled }`: the same (mutated) context back, and whether the middleware called `next()`. The `next` passed in resolves to the context itself, matching the kernel's contract, so onion-style middleware that reads state after `await next()` behaves normally.
+`runMiddleware(middleware, ctx)` drives a single middleware against a context you construct: no kernel, no composition. It resolves to `{ ctx, nextCalled }`: the same (mutated) context back, and whether the middleware called `next()`. The `next` passed in is a stub that records the call and resolves immediately; nothing downstream runs.
 
 ```ts
 import { runMiddleware } from "@rhythmjs/testing/rhythm";

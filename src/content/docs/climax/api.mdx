@@ -8,6 +8,10 @@ Every piece is its own subpath export; there is no root barrel.
 ## Documentation middleware
 
 <DefList>
+<Def sig="documented(cli)" id="documented">From `@rhythmjs/climax/help/documented`. Records every `cmd()` and `use()` call on a `RhythmCli` as `entries` and returns the same cli (typed `C & CliSource`). Wrap every cli, including mounted children; an unwrapped cli is invisible to help.</Def>
+</DefList>
+
+<DefList>
 <Def sig="commandHelp(options)" id="commandhelp">From `@rhythmjs/climax/help/command`. A middleware that only carries documentation. Options: `summary`, `description`, `examples` (printed as `$ …` lines), `deprecated` (`true` or a message) and `hidden`. Place it before the command's handler. Several handlers' fields are merged left to right.</Def>
 <Def sig="optionHelp(options)" id="optionhelp">From `@rhythmjs/climax/help/option`. Documents one flag: `name`, `alias`, `description`, `type` (the value placeholder), `required` and `default`. As a command handler it applies to that command; through `cli.use()` it applies to the commands registered after it, including mounted clis.</Def>
 </DefList>
@@ -15,20 +19,20 @@ Every piece is its own subpath export; there is no root barrel.
 ## The help module
 
 <DefList>
-<Def sig="helpModule.forRoot(options?)" id="helpmodule">From `@rhythmjs/climax/help/module`. Returns a `Rhythm` module that answers help for the app it is registered in. Register it before the cli.</Def>
+<Def sig="helpModule.forRoot(options?)" id="helpmodule">From `@rhythmjs/climax/help/module`. Returns a middleware (carrying `helpService`) that answers help for the app it is used in. Add it with `.use()` before `mount(cli)`.</Def>
 <Def sig="name / description" id="name">The program name used in `Usage:` lines, and a line printed above the command index.</Def>
 <Def sig="command" id="command">The word that triggers help as a command. Defaults to `"help"`. Pass `false` to keep only `--help` and `-h`, for example when you have a `help` command of your own.</Def>
 <Def sig="includeUndocumented / includeHidden" id="include">`includeUndocumented` (default `true`) lists commands without any help metadata; `includeHidden` (default `false`) lists commands marked `hidden`.</Def>
-<Def sig="ctx.helpService" id="helpservice">Provided by the module. `commands()` returns the structured `CommandDoc[]`, cached after the first call. `render(topic?)` returns the output lines for a topic given as an array of words.</Def>
+<Def sig="helpService" id="helpservice">A property of the returned module, not of `ctx`. `commands()` returns the structured `CommandDoc[]`, cached after the first call. `render(topic?)` returns the output lines for a topic given as an array of words.</Def>
 </DefList>
 
 ## Generator and renderer
 
 <DefList>
-<Def sig="generate(clis, options?)" id="generate">From `@rhythmjs/climax/help/generate`. Walks one or more clis (anything with `entries`) in registration order, recurses into mounted clis, and returns `CommandDoc[]`. Takes `includeUndocumented` and `includeHidden`.</Def>
+<Def sig="generate(clis, options?)" id="generate">From `@rhythmjs/climax/help/generate`. Walks one or more documented clis (anything with `entries`) in registration order, recurses into mounted clis, and returns `CommandDoc[]`. Takes `includeUndocumented` and `includeHidden`.</Def>
 <Def sig="CommandDoc" id="commanddoc">`segments`, `usage` (for example `deploy <environment>`; optional tokens render as `[name]` and `**` as `[args...]`), the command fields, and `options`, which has inherited options first.</Def>
 <Def sig="render(docs, topic, options?)" id="render">From `@rhythmjs/climax/help/render`. Returns lines for a topic. `resolve(docs, topic)` tells whether it is an index, a command, a group or unknown. `renderIndex`, `renderGroup` and `renderCommand` are the individual pieces. Options: `name`, `description`.</Def>
 <Def sig="metadata" id="metadata">`@rhythmjs/climax/help/metadata` exports `fragmentOf`, `withFragment` and `docOnly`, for building your own documentation middleware on the same mechanism.</Def>
 </DefList>
 
-Subpath exports: `./help/command`, `./help/option`, `./help/module`, `./help/generate`, `./help/render` and `./help/metadata`. Walk-through in [command help](/climax/) and [options and nesting](/climax/options/).
+Subpath exports: `./help/command`, `./help/option`, `./help/documented`, `./help/module`, `./help/generate`, `./help/render` and `./help/metadata`. Walk-through in [command help](/climax/) and [options and nesting](/climax/options/).

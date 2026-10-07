@@ -6,88 +6,120 @@ description: "In-process clients, module mocks, and WebSocket harnesses."
 
 ## An in-process client
 
-`@rhythmjs/testing` tests the real pipeline without opening a socket: `createTestClient` dispatches `Request` objects straight into the app's fetch handler. Its `context` option assigns startup values onto the app's `context` — real or fake, they win over whatever is already there. Tests are plain `bun:test`, and they close what they open:
+`@rhythmjs/testing` tests the real pipeline without opening a socket: `createTestClient` dispatches `Request` objects straight into the fetch handler of an app *or a bare router*. Its `context` option is assigned onto every request's context — for a router it supplies the startup values the router declares as its input, for an app it replaces what is already there. Tests are plain `bun:test`:
 
 ```ts
-import { afterAll, describe, expect, test } from "bun:test";
+// src/notes/notes.controller.spec.ts
+import { describe, expect, test } from "bun:test";
 import { createTestClient } from "@rhythmjs/testing/router";
-import { appModule } from "../src/app.module";
-import { createDatabase } from "../src/database";
+import { notesController } from "./notes.controller";
+import type { NotesService } from "./notes.service";
 
-// the app declares { db }; main.ts assigns it in production, the test assigns its own
-const database = createDatabase(process.env.TEST_DATABASE_URL!);
-afterAll(() => database.close()); // the test created the pool, the test closes it
+process.env.API_TOKEN = "test-token"; // what authService.verify accepts
+const headers = { authorization: "Bearer test-token" };
 
-describe("notes api", () => {
-  test("creates and lists notes", async () => {
-    const client = createTestClient(appModule, { context: { db: database.db } });
+const notesService = {
+  list: async () => [{ id: "1", title: "stub", content: "", createdAt: new Date(), updatedAt: new Date() }],
+  get: async () => undefined,
+  create: async (input) => ({ id: "2", ...input, createdAt: new Date(), updatedAt: new Date() }),
+  update: async () => undefined,
+  remove: async () => false,
+} satisfies NotesService;
 
-    const created = await client.post("/api/notes", { json: { title: "first" } });
-    expect(created.status).toBe(201);
+describe("notes controller", () => {
+  const client = createTestClient(notesController, { context: { notesService } });
 
-    const list = await client.get("/api/notes");
-    expect(await list.json()).toHaveLength(1);
+  test("lists notes for a signed-in caller", async () => {
+    const res = await client.get("/api/notes", { headers });
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual([{ id: "1", title: "stub", content: "" }]); // dates stripped by intercept
+  });
+
+  test("rejects anonymous callers", async () => {
+    expect((await client.get("/api/notes")).status).toBe(401);
   });
 
   test("rejects invalid input", async () => {
-    const client = createTestClient(appModule, { context: { db: database.db } });
-    const res = await client.post("/api/notes", { json: { title: "" } });
+    const res = await client.post("/api/notes", { headers, json: { title: "" } });
+
     expect(res.status).toBe(400);
+  });
+
+  test("answers a missing note with the error filter", async () => {
+    expect((await client.get("/api/notes/nope", { headers })).status).toBe(404);
   });
 });
 ```
 
+The controller never opens a socket, a pool, or the edge stack: it is tested exactly as it is mounted, minus the app's startup. A `satisfies NotesService` stub keeps the fake honest — if the service grows a method, the test stops compiling.
+
 ## Swap modules with mocks
 
-Because dependencies are values on the startup context, faking one is building a smaller pipeline. `mockModule(values)` wraps any exports object as a module, so a controller tests against a stub service with no database anywhere:
+Because dependencies are values on the startup context, faking one is building a smaller app. `mockModule(values)` wraps any values as a real `Rhythm` module, so you `include` the stub exactly where the app would include the real thing:
 
 ```ts
+import { Rhythm, include, mount } from "@rhythmjs/rhythm";
 import { mockModule } from "@rhythmjs/testing/rhythm";
 
-const stubNotes = mockModule({
-  notesService: {
-    list: () => [{ id: "1", title: "stub", content: "" }],
-    get: () => undefined,
-    create: (input: { title: string }) => ({ id: "2", title: input.title, content: "" }),
-    update: () => undefined,
-    remove: () => false,
-  } satisfies NotesService,
-});
-
-const testApp = new Rhythm<RhythmHttpContext>({ name: "test" })
-  .use(filter())
-  .register(stubNotes, (v) => v)
-  .use(notesController.middleware());
+const testApp = new Rhythm({ name: "test" })
+  .register(include(mockModule({ notesService }), ({ notesService }) => ({ notesService })))
+  .use(mount(notesController));
 
 const client = createTestClient(testApp);
 ```
 
-## Test the WebSockets
-
-The WS harness drives upgrades and events without sockets: `upgradeWs` runs middleware, the route's `upgrade`, and headers for real; `mockWs` records everything a handler does; the `fire*` helpers dispatch through `.websocket` exactly like Bun would:
+To test the real app with one piece replaced, pass it to `createTestClient` with `context`: startup values you provide win over the ones the app built. The real app needs `DATABASE_URL` (a throwaway test database), and a test that creates the app stops it:
 
 ```ts
-import { fireMessage, fireOpen, mockWs, upgradeWs } from "@rhythmjs/testing/ws";
-import { notesWs } from "../src/notes/notes.ws";
+import { afterAll } from "bun:test";
+import { appModule } from "../app.module";
 
-test("the feed subscribes on open", async () => {
-  const result = await upgradeWs(notesWs, "/ws/notes?token=good");
-  expect(result.upgraded).toBe(true);
+afterAll(() => appModule.stop()); // the test created the pool, the test closes it
 
-  const peer = mockWs(result.data!);
-  await fireOpen(notesWs, peer);
-  expect(peer.isSubscribed("notes")).toBe(true);
-});
+test("the whole app answers", async () => {
+  const client = createTestClient(appModule, { context: { notesService } });
+  // rateLimit needs a client address; main.ts sets it from Bun's server, here we set it ourselves
+  const request = Object.assign(new Request("http://localhost/health/live"), { ip: "127.0.0.1" });
 
-test("a bad ticket is rejected", async () => {
-  const result = await upgradeWs(notesWs, "/ws/notes");
-  expect(result.upgraded).toBe(false);
-  expect(result.response?.status).toBe(401);
+  expect((await client.fetch(request)).status).toBe(200);
 });
 ```
 
+<Callout title="Rate limits in tests">
+
+`rateLimit` identifies clients by `request.ip`, which the test client does not set, and throws when it cannot identify the caller. Drive routers directly (as above), or send a `Request` with `ip` assigned through `client.fetch`, as in the test above.
+
+</Callout>
+
+## Test the WebSockets
+
+The WS harness drives upgrades and events without sockets: `upgradeWs` mounts the socket in a fresh app and runs middleware, the route's `upgrade`, and headers for real; the `fire*` helpers dispatch to the matched route's handlers exactly like Bun would, and the `peer` it returns records everything a handler does:
+
+```ts
+import { fireMessage, fireOpen, upgradeWs } from "@rhythmjs/testing/ws";
+import { chatWs } from "./chat/chat.ws";
+
+test("joining a room subscribes the peer", async () => {
+  const { upgraded, peer } = await upgradeWs(chatWs, "/ws");
+  expect(upgraded).toBe(true);
+
+  await fireOpen(peer!);
+  await fireMessage(peer!, { type: "join", room: "general" });
+  expect(peer!.isSubscribed("room:general")).toBe(true);
+});
+
+test("an unmatched path is not upgraded", async () => {
+  const result = await upgradeWs(chatWs, "/nope");
+  expect(result.upgraded).toBe(false);
+  expect(result.response?.status).toBe(404);
+});
+```
+
+`upgradeWs` takes a path or a full `Request`, so a handshake that authenticates with a session cookie or header is tested by sending that header. Scheduled jobs are tested the same direct way: `cron.run(name, input)` from the [scheduled jobs](/tutorial/background-jobs/) step runs a job through its middleware chain right now, with the fake services as `input`.
+
 ## Where you are now
 
-You have built the whole arc: a controller on a Bun-native router, services and modules with explicit boundaries, validated input and output, typed configuration, a real database you open and close yourself, a hardened edge, live WebSockets, background work, a generated API document, production observability — and proof that it works. Everything was middleware, startup context, and modules on one small kernel.
+You have built the whole arc: a controller on a Bun-native router, services and modules with explicit boundaries, validated input and output, typed configuration, a real database you open and close through the app, a hardened edge, live WebSockets, scheduled work, a generated API document, production observability — and proof that it works. Everything was middleware, startup context, and modules on one small kernel.
 
 From here, the [package docs](/rhythm/) are the depth pass for each layer, the [philosophy](/#philosophy) explains why the pieces are shaped this way, and the [example repositories](https://github.com/rhythmjs) hold complete runnable versions of these patterns.

@@ -3,35 +3,25 @@ title: "Interactive prompts"
 lead: "Ask for input over Bun's console line iterator and keep the prompt lifecycle under control."
 ---
 
-## Provide the prompt
+## Add the prompt
 
-`createPrompt()` from `@rhythmjs/cli/run` returns `{ prompt, close }`, reading answer lines through Bun's async-iterable `console`. Startup values live on the host `Rhythm` app, not on the cli: create the prompt before serving, assign it to the app's `context`, and call `close()` when the command finishes. The cli declares that its handlers expect the prompt through its context generic.
+`withPrompt()` from `@rhythmjs/cli/prompt` is a `use()` middleware that adds `ctx.prompt` to the commands after it and closes its input when the command finishes. By default it reads answer lines through Bun's async-iterable `console`, and only when you first ask.
 
 ```ts
-import { Rhythm } from "@rhythmjs/rhythm";
 import { RhythmCli } from "@rhythmjs/cli";
-import { createPrompt, toCliHandler } from "@rhythmjs/cli/run";
-import type { RhythmCliContext } from "@rhythmjs/cli/context";
-import type { RhythmPrompt } from "@rhythmjs/cli/prompt";
+import { withPrompt } from "@rhythmjs/cli/prompt";
+import { toCliHandler } from "@rhythmjs/cli/run";
 
-const cli = new RhythmCli<RhythmCliContext & { prompt: RhythmPrompt }>()
-  .command("init", async (ctx) => {
-    const name = await ctx.prompt.text("Project name?", { default: "my-app" });
-    const confirmed = await ctx.prompt.confirm("Continue?", { default: true });
-    if (confirmed) ctx.response.print(`Created ${name}`);
-  });
+const cli = new RhythmCli().use(withPrompt()).cmd("init", async (ctx) => {
+  const name = await ctx.prompt.text("Project name?", { default: "my-app" });
+  const confirmed = await ctx.prompt.confirm("Continue?", { default: true });
+  if (confirmed) ctx.log(`Created ${name}`);
+});
 
-const { prompt, close } = createPrompt();
-
-const app = new Rhythm<RhythmCliContext, { prompt: RhythmPrompt }>().use(cli.middleware());
-app.context.prompt = prompt;
-
-try {
-  process.exitCode = await toCliHandler(app)(process.argv.slice(2));
-} finally {
-  close();
-}
+process.exitCode = await toCliHandler(cli)(Bun.argv.slice(2));
 ```
+
+The prompt is request-time state, so it lives on the cli rather than on a host app's startup context. Mounted into a host, the cli keeps its own prompt.
 
 ## Choose an input type
 
@@ -44,4 +34,18 @@ Allowing custom values adds an “Other” choice and a follow-up text prompt. S
 
 ## Supply custom I/O [#supply-custom-i-o]
 
-For custom environments or tests, import `createPrompt` from `@rhythmjs/cli/prompt` instead. This lower-level function requires an I/O object with `ask(query)`, `write(text)`, and optional `close()`; it is exactly what the Bun runner wires to `console` and `process.stdout`.
+For custom environments or tests, pass a factory to `withPrompt(() => io)`. The I/O object has `ask(query)`, `write(text)`, and an optional `close()`. `createStdioPromptIO()` is the default one, wired to Bun's `console` and `process.stdout`.
+
+```ts
+const answers = ["my-app", "y"];
+const output: string[] = [];
+
+const cli = new RhythmCli().use(
+  withPrompt(() => ({
+    ask: async () => answers.shift() ?? "",
+    write: (text) => void output.push(text),
+  })),
+);
+```
+
+`createPrompt(io)` from the same module is the middleware-free form: it returns `{ prompt, close }`, and you call `close()` yourself.

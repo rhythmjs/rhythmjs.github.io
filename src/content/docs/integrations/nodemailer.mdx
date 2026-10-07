@@ -15,36 +15,44 @@ bun add -d @types/nodemailer
 
 ## The transport is created at startup [#transport]
 
-A transport holds connection settings, so it is built once at startup, handed to the app through its [startup context](/rhythm/context/), and closed on shutdown. Without `SMTP_HOST`, the JSON transport builds each message and returns it instead of sending, so the app runs and tests with no mail server. The factory returns the `mailer` the app uses together with a `close()` that closes the transport, so the transport itself never reaches the request context.
+A transport holds connection settings, so it is built once at startup by a small module, handed to the app through its startup context, and closed on shutdown by the `register` cleanup (it runs on `app.stop()`). Without `SMTP_HOST`, the JSON transport builds each message and returns it instead of sending, so the app runs and tests with no mail server. The module exports the `mailer` the app uses; the transport stays in the module's own context, and the app picks only what it needs.
 
 ```ts
 // src/mail/mail.ts
+import { Rhythm, decorate } from "@rhythmjs/rhythm";
 import nodemailer from "nodemailer";
 
-export function createMailer() {
-  const transport = process.env.SMTP_HOST
+function createTransport() {
+  return process.env.SMTP_HOST
     ? nodemailer.createTransport({
         host: process.env.SMTP_HOST,
         port: Number(process.env.SMTP_PORT ?? 1025),
         auth: process.env.SMTP_USER ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS } : undefined,
       })
     : nodemailer.createTransport({ jsonTransport: true });
+}
 
+function createMailer(transport: ReturnType<typeof createTransport>) {
   return {
-    mailer: {
-      sendWelcome: (to: string, name: string) =>
-        transport.sendMail({
-          from: "RhythmJS <hello@example.com>",
-          to,
-          subject: `Welcome, ${name}`,
-          text: `Hi ${name}, thanks for signing up.`,
-        }),
-    },
-    close: () => transport.close(),
+    sendWelcome: (to: string, name: string) =>
+      transport.sendMail({
+        from: "RhythmJS <hello@example.com>",
+        to,
+        subject: `Welcome, ${name}`,
+        text: `Hi ${name}, thanks for signing up.`,
+      }),
   };
 }
 
-export type Mailer = ReturnType<typeof createMailer>["mailer"];
+export type Mailer = ReturnType<typeof createMailer>;
+
+export const mailModule = new Rhythm({ name: "mail" }).register(
+  decorate(() => {
+    const transport = createTransport();
+    return { transport, mailer: createMailer(transport) };
+  }),
+  ({ transport }) => transport.close(),
+);
 ```
 
 ## The controller sends mail [#controller]
@@ -54,7 +62,7 @@ The template's controller gets `mailer` in its context type and a `POST /signup`
 ```ts
 // src/app.controller.ts
 import { RhythmRouter } from "@rhythmjs/router";
-import type { RhythmHttpContext } from "@rhythmjs/router/adapters/context";
+import type { RhythmHttpContext } from "@rhythmjs/router/context";
 import type { appService } from "./app.service";
 import type { Mailer } from "./mail/mail";
 
@@ -79,53 +87,43 @@ export const appController = new RhythmRouter<AppContext>()
   });
 ```
 
-## Assign it to the app [#module]
+## Include it in the app [#module]
 
-The app module declares `mailer` in its startup shape. `main.ts` creates the mailer, assigns it before serving, and closes it on `SIGINT`.
+The app module `include`s the mail module, picking `mailer`, and mounts the controller. `main.ts` stops the app on `SIGINT`, which closes the transport.
 
 ```ts
 // src/app.module.ts
-import { Rhythm } from "@rhythmjs/rhythm";
-import type { RhythmHttpContext } from "@rhythmjs/router/adapters/context";
+import { Rhythm, decorate, include, mount } from "@rhythmjs/rhythm";
 import { appController } from "./app.controller";
 import { appService } from "./app.service";
-import type { Mailer } from "./mail/mail";
+import { mailModule } from "./mail/mail";
 
-export const appModule = new Rhythm<RhythmHttpContext, { appService: typeof appService; mailer: Mailer }>({
-  name: "app",
-  type: "module",
-})
-  .use(appController.middleware())
-  .use((ctx) => {
-    ctx.json({ success: false, status: 404, message: "Not Found" }, 404);
-  });
-
-appModule.context.appService = appService;
+export const appModule = new Rhythm({ name: "app" })
+  .register(include(mailModule, ({ mailer }) => ({ mailer })))
+  .register(decorate(() => ({ appService })))
+  .use(mount(appController));
 ```
 
 ```ts
 // src/main.ts
 import { toFetchHandler } from "@rhythmjs/router/fetch";
 import { appModule } from "./app.module";
-import { createMailer } from "./mail/mail";
 
 const port = Number(process.env.PORT ?? 3009);
-const { mailer, close } = createMailer();
-appModule.context.mailer = mailer;
 
 const server = Bun.serve({ port, fetch: toFetchHandler(appModule) });
 console.log(`listening on ${server.url}`);
 
 process.on("SIGINT", async () => {
   await server.stop();
-  close();
+  await appModule.stop();
   process.exit(0);
 });
 ```
 
 ## Things to check
 
-- A slow SMTP server slows the response. Hand mail that is not part of the answer to a [queue](/queue/).
+- A slow SMTP server slows the response. If the mail is not part of the answer, start the send without awaiting it and log failures; note that nothing retries it.
 - Never build `from` or `to` from unchecked input.
 - For a real inbox locally, run [Mailpit](https://mailpit.axllent.org) and set `SMTP_HOST=localhost`.
 

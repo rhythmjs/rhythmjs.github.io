@@ -7,31 +7,32 @@ description: "Exports and options for the authentication, authorization, cors, c
 ## @rhythmjs/security/authentication [#authentication]
 
 ```ts
-function attachUser<TUser>(resolve: (ctx) => TUser | null | undefined | Promise<...>): DeriveMiddleware<RhythmHttpContext, UserContext<TUser>>
-function requireAuthentication<TUser>(options?: RequireAuthenticationOptions): DeriveMiddleware<..., { user: TUser }>
+function attachUser<TUser>(resolve: (ctx: RhythmHttpContext) => TUser | null | undefined | Promise<TUser | null | undefined>): ExtensionMiddleware<RhythmHttpContext, UserContext<TUser>>
+function requireAuthentication<TUser>(options?: RequireAuthenticationOptions): ExtensionMiddleware<RhythmHttpContext & UserContext<TUser>, { user: TUser }>
 function redirectIfAuthenticated(to: string): Middleware<RhythmHttpContext & UserContext>
-function isAuthenticated<TUser>(ctx: UserContext<TUser>): ctx is ... & { user: TUser }
+function isAuthenticated<TUser>(ctx: UserContext<TUser>): ctx is UserContext<TUser> & { user: TUser }
 function getBearerToken(request: Request): string | null
 function getBasicCredentials(request: Request): BasicCredentials | null
 ```
 
 <DefList>
 <Def sig="attachUser(resolve)" id="attachuser">Runs the resolver per request and sets `ctx.user` to its result or null. Throws a TypeError at setup when the resolver is not a function.</Def>
-<Def sig="requireAuthenticationOptions" id="requireauthenticationoptions">`redirectTo` (redirect instead of failing), `status` (default 401), `message`, and `challenge` (sets `WWW-Authenticate`).</Def>
+<Def sig="requireAuthentication(options?)" id="requireauthentication">Continues when `ctx.user` is neither null nor undefined, and narrows it to a non-null `TUser` for what follows. Otherwise it writes the rejection with `ctx.error` and stops the chain.</Def>
+<Def sig="RequireAuthenticationOptions" id="requireauthenticationoptions">`redirectTo` (redirect instead of failing), `status` (default 401), `message`, and `challenge` (sets `WWW-Authenticate`).</Def>
 <Def sig="getBasicCredentials(request)" id="getbasiccredentials">Decodes a `Basic` authorization header into `{ username, password }` (`BasicCredentials`), or null when absent or malformed.</Def>
 </DefList>
 
 ## @rhythmjs/security/authorization [#authorization]
 
 ```ts
-function authorize<TContext>(check: (ctx: TContext) => boolean | Promise<boolean>, options?: AuthorizeOptions): Middleware<TContext>
-function requireRoles<TUser>(required: readonly string[], options?: RequireRolesOptions<TUser>): Middleware<...>
-function requirePermissions<TUser>(required: readonly string[], options?: RequirePermissionsOptions<TUser>): Middleware<...>
+function authorize<TContext extends RhythmHttpContext>(check: (ctx: TContext) => boolean | Promise<boolean>, options?: AuthorizeOptions): Middleware<TContext>
+function requireRoles<TUser>(required: readonly string[], options?: RequireRolesOptions<TUser>): Middleware<RhythmHttpContext & UserContext<TUser>>
+function requirePermissions<TUser>(required: readonly string[], options?: RequirePermissionsOptions<TUser>): Middleware<RhythmHttpContext & UserContext<TUser>>
 ```
 
 <DefList>
-<Def sig="authorize(check, options?)" id="authorize">Answers `options.status` (default 403) with `options.message` when the predicate refuses; otherwise continues.</Def>
-<Def sig="requireRoles / requirePermissions" id="requireroles">Read `user.roles` / `user.permissions` unless a custom extractor is given; `match` is `"any"` (default) or `"all"`. A null user answers 401; an insufficient one 403.</Def>
+<Def sig="authorize(check, options?)" id="authorize">Answers `options.status` (default 403) with `options.message` when the predicate refuses; otherwise continues. It does not check for a user itself.</Def>
+<Def sig="requireRoles / requirePermissions" id="requireroles">Read `user.roles` / `user.permissions` unless a custom extractor (`roles` / `permissions` option) is given. `match` is `"any"` or `"all"`; the default is `"any"` for roles and `"all"` for permissions. A null user answers 401 (ignoring `status` / `message`); an insufficient one 403.</Def>
 </DefList>
 
 ## @rhythmjs/security/rate-limit [#rate-limit]
@@ -39,13 +40,13 @@ function requirePermissions<TUser>(required: readonly string[], options?: Requir
 ```ts
 function rateLimit(options?: RateLimitOptions): Middleware<RhythmHttpContext>
 function rateLimitWs(options?: RateLimitOptions): RateLimitWsMiddleware
-function memoryRateLimitStore(): RateLimitStore
+function memoryRateLimitStore(options?: MemoryRateLimitStoreOptions): RateLimitStore
 ```
 
 <DefList>
-<Def sig="RateLimitOptions" id="ratelimitoptions">`limit` (default 100), `windowMs` (default 60 000), `store` (`RateLimitStore`: `increment(key, windowMs)` returning `RateLimitInfo`, plus `reset`), `keyOf(request)`, `skip(request)`, `headers` (emit `RateLimit-*`; default true), `message`, and `trustProxy` (default `false`; `true` or a hop count enables `X-Forwarded-For` keying).</Def>
-<Def sig="Default key" id="default">With `trustProxy` set, the `X-Forwarded-For` entry that many hops from the right (the trusted proxy's append), truncated to 64 characters; else `request.ip` when your `Bun.serve` fetch exposes it (via `server.requestIP()`), else the literal key `"global"`. `X-Forwarded-For` is never consulted without `trustProxy`, since the client controls it.</Def>
-<Def sig="On refusal" id="on">Status 429 with `Retry-After` (seconds to reset) and the JSON body `{ "success": false, "status": 429, "message": ... }` (`application/json; charset=utf-8`). `rateLimitWs` is a ws-shaped middleware (`(ctx, next)`) that sets the same `429 Response` on `ctx.response` instead (its content type stays bare `application/json`), for `RhythmWs.use()`.</Def>
+<Def sig="RateLimitOptions" id="ratelimitoptions">`limit` (default 100), `windowMs` (default 60 000), `store` (`RateLimitStore`: `increment(key, windowMs)` returning `RateLimitInfo` (`{ count, resetAt }`), plus `reset(key)`; sync or async), `keyOf(request)`, `skip(request)`, `headers` (emit `RateLimit-*`; default true), `message`, and `trustProxy` (default `false`; `true` means one hop, a number is the hop count). `memoryRateLimitStore({ maxKeys })` caps the tracked keys (default 10 000, evicting the oldest-inserted).</Def>
+<Def sig="Default key" id="default">With `trustProxy` set, the `X-Forwarded-For` entry that many hops from the right (the trusted proxy's append), when it is a valid IPv4 or IPv6 address; otherwise `request.ip`, when it is a non-empty string; otherwise the middleware throws `rateLimit: cannot identify the client...` (there is no shared `"global"` fallback; use `keyOf: () => "global"` for a site-wide limit). Nothing in Rhythm sets `request.ip`: assign it in your `Bun.serve` fetch from `server.requestIP(request)`, set `trustProxy`, or pass `keyOf`. `X-Forwarded-For` is never consulted without `trustProxy`, since the client controls it.</Def>
+<Def sig="On refusal" id="on">Status 429 with `Retry-After` (seconds to reset) and the JSON body `{ "success": false, "status": 429, "message": ... }` (`application/json; charset=utf-8`). `rateLimitWs` is a standalone `(ctx, next)` middleware over `RateLimitWsContext` (`{ request, response: Response | undefined }`); on refusal it sets a `429 Response` on `ctx.response` (bare `application/json` content type; `RateLimit-*` headers only on that refusal). It is not wired to the current `RhythmWs`, where the regular `rateLimit` works in `use()`.</Def>
 </DefList>
 
 ## @rhythmjs/security/cors [#cors]

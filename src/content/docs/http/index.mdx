@@ -6,23 +6,42 @@ description: "Per-request state for Rhythm apps: Bun-native cookies, pluggable c
 
 ## Install the package
 
-`@rhythmjs/http` ships utility middleware for Rhythm routers and handlers: thirteen modules, each on its own subpath export, no root barrel. This group of pages walks them by theme; this one covers per-request state: `/cookies`, `/session`, and `/request-scope`.
+`@rhythmjs/http` ships utility middleware for Rhythm routers and apps: twelve modules, each on its own subpath export, no root barrel. This group of pages walks them by theme; this one covers per-request state: `/cookies`, `/session`, and `/request-scope`.
 
 ```bash
 bun add @rhythmjs/http @rhythmjs/rhythm @rhythmjs/router
 ```
 
+Everything is plain middleware over the `RhythmHttpContext` from `@rhythmjs/router/context`. Build routes on a `RhythmRouter`, mount the router into a `Rhythm` app, and serve the app with `Bun.serve`:
+
+```ts
+import { Rhythm, mount } from "@rhythmjs/rhythm";
+import { RhythmRouter } from "@rhythmjs/router";
+import { toFetchHandler } from "@rhythmjs/router/fetch";
+import { cookies } from "@rhythmjs/http/cookies";
+
+const api = new RhythmRouter({ name: "api" })
+  .use(cookies())
+  .get("/theme", (ctx) => ctx.text(ctx.cookies.get("theme") ?? "light"));
+
+const app = new Rhythm().use(mount(api));
+
+Bun.serve({ fetch: toFetchHandler(app) });
+```
+
+Middleware on a router (`router.use(mw)`) runs only when one of that router's routes matches, and a middleware that adds to the context (`cookies()`, `session()`, `i18n()`, `multipart()`) widens the type for the handlers after it. Middleware on the app (`app.use(mw)`) runs for every request, which suits things that wrap the whole response, such as `requestScope()`, `timeout()`, `compress()` and `etag()`. An app that uses HTTP middleware before it mounts a router declares the HTTP context as its input: `new Rhythm<{}, RhythmHttpContext>()`.
+
 ## Read and write cookies
 
-`cookies()` wraps Bun’s native `Bun.CookieMap` and `Bun.Cookie` in a `Cookies` jar on the context, typed by `CookiesContext`. Read with `get(name)`, `has(name)`, and `getAll()`; values come back decoded. Write with `set(name, value, options?)`; each call emits its own `Set-Cookie` header. `delete(name)` writes an empty value with `Max-Age=0`.
+`cookies()` wraps Bun’s native `Bun.CookieMap` and `Bun.Cookie` in a `Cookies` jar on the context, typed by `CookiesContext`. Read with `get(name)`, `has(name)`, and `getAll()`; values come back decoded. Write with `set(name, value, options?)`; each call emits its own `Set-Cookie` header. `delete(name, options?)` writes an empty value with `Max-Age=0`; pass the same `domain` and `path` the cookie was set with. Reads reflect the request’s `Cookie` header only, not values set earlier in the same request.
 
 `CookieOptions` is Bun’s `CookieInit` without `name`/`value`: `domain`, `path`, `expires` (number, `Date`, or string), `maxAge`, `secure`, `httpOnly`, `sameSite`, and `partitioned`. Bun’s serialization defaults apply: `Path=/` and `SameSite=Lax`.
 
 ```ts
 import { RhythmRouter } from "@rhythmjs/router";
-import { cookies, type CookiesContext } from "@rhythmjs/http/cookies";
+import { cookies } from "@rhythmjs/http/cookies";
 
-new RhythmRouter().use<CookiesContext>(cookies()).get("/", (ctx) => {
+new RhythmRouter().use(cookies()).get("/", (ctx) => {
   const theme = ctx.cookies.get("theme") ?? "light";
   ctx.cookies.set("theme", theme, { httpOnly: true, maxAge: 3600 });
   ctx.cookies.delete("legacy");
@@ -30,20 +49,21 @@ new RhythmRouter().use<CookiesContext>(cookies()).get("/", (ctx) => {
 });
 ```
 
-The standalone helpers are exported too, both on the native primitives: `parseCookies(header)` returns a decoded record, and `serializeCookie(name, value, options?)` one `Set-Cookie` value.
+The standalone helpers are exported too, both on the native primitives: `parseCookies(header)` returns a decoded record, and `serializeCookie(name, value, options?)` one `Set-Cookie` value. `CookiesContext` is the exported context type, for code that needs to name it.
 
 ## Keep a session
 
-`session()` provides cookie-based sessions with a pluggable `SessionStore`. Defaults: cookie name `sid`, one-day `maxAge` (86 400 seconds), `Path=/`, `HttpOnly`, `SameSite=Lax`; add `secure: true` in production. The context gains `ctx.session` (`SessionContext`): `get`, `set`, `delete`, `destroy`, and a stable `id`.
+`session()` provides cookie-based sessions with a pluggable `SessionStore`. Defaults: cookie name `sid`, one-day `maxAge` (86 400 seconds), `Path=/`, `HttpOnly`, `Secure`, `SameSite=Lax`; pass `secure: false` only for plain-HTTP development. The context gains `ctx.session` (`SessionContext`): `get`, `set`, `delete`, `regenerate`, `destroy`, and the current `id`.
 
-Writes are lazy on both ends. Nothing hits the store unless the session was mutated during the request, and the `Set-Cookie` header is only sent when a *new* session writes for the first time; an existing session keeps its cookie. An unknown or expired incoming id gets a fresh id, so a forged cookie value is never trusted as a session key.
+Writes are lazy on both ends. Nothing hits the store unless the session was mutated during the request, and the `Set-Cookie` header is only sent when a *new* session writes for the first time or when it is regenerated; an existing session keeps its cookie. An unknown or expired incoming id gets a fresh id, so a forged cookie value is never trusted as a session key.
 
 ```ts
-import { session, type SessionContext } from "@rhythmjs/http/session";
+import { session } from "@rhythmjs/http/session";
 
 new RhythmRouter()
-  .use<SessionContext>(session({ secure: true }))
+  .use(session())
   .post("/login", (ctx) => {
+    ctx.session.regenerate(); // new id after a privilege change
     ctx.session.set("user", "ada"); // stored + cookie issued after the handler
     ctx.text("logged in");
   })
@@ -53,11 +73,13 @@ new RhythmRouter()
   });
 ```
 
-The store contract is three methods (`get(id)`, `set(id, data, maxAge)`, `delete(id)`, sync or async), so a Redis or database store is a small object. The bundled `memorySessionStore()` suits a single process and expires entries lazily on read.
+Call `regenerate()` when privileges change, right after login: it issues a new id, carries the data over, and invalidates the old id, which stops session fixation.
+
+The store contract is three methods (`get(id)`, `set(id, data, maxAge)`, `delete(id)`, sync or async), so a Redis or database store is a small object. The bundled `memorySessionStore()` suits a single process; it drops expired entries on read and sweeps the rest as it writes.
 
 ## Request-scoped storage [#request-scope]
 
-`requestScope()` opens an `AsyncLocalStorage` frame around the rest of the chain, and the static `RequestScope` class reads it from *anywhere* in the same async call tree (repositories, loggers, service functions) without threading `ctx` through every signature.
+`requestScope()` opens an `AsyncLocalStorage` frame around the rest of the chain, and the static `RequestScope` class reads it from *anywhere* in the same async call tree (repositories, loggers, service functions) without threading `ctx` through every signature. Put it on the app to cover every request, or on a router to cover that router’s routes.
 
 ```ts
 import { requestScope, RequestScope } from "@rhythmjs/http/request-scope";

@@ -10,11 +10,11 @@ description: "Every export of @rhythmjs/config: configModule, defineConfig, regi
 const configModule: {
   forRoot<const TLoad extends readonly ConfigFactory[]>(
     ...configs: TLoad
-  ): Promise<Rhythm<{}, { configService: ConfigService<MergedConfig<TLoad>> }>>;
+  ): Promise<Rhythm<{ configService: ConfigService<MergedConfig<TLoad>> }>>;
 };
 ```
 
-Resolves to a Rhythm module (name `"config"`). `forRoot` is async: it runs every factory once when awaited and sets `configService` on the module's startup `context`, so a failure rejects at startup, not on the first request. Outputs deep-merge in argument order: plain factory outputs spread at the root, namespaced outputs nest under their token, plain objects merge recursively, and anything else (including arrays) is replaced by the later value. If any factory throws `ConfigError`, its issues are collected and the remaining factories still run; the promise rejects with one combined `ConfigError` after all of them. Non-config errors propagate immediately.
+Resolves to a Rhythm module (name `"config"`). `forRoot` is async: it runs every factory once when awaited and decorates the module's startup context with `configService`, so a failure rejects at startup, not on the first request. Bring the service into your app with `app.register(include(await configModule.forRoot(...), pick))`; `include` copies only what `pick` returns. Outputs deep-merge in argument order: plain factory outputs spread at the root, namespaced outputs nest under their token, plain objects merge recursively, and anything else (including arrays) is replaced by the later value. If any factory throws `ConfigError`, its issues are collected and the remaining factories still run; the promise rejects with one combined `ConfigError` after all of them. Non-config errors propagate immediately.
 
 ## defineConfig
 
@@ -60,7 +60,7 @@ interface ConfigService<T extends object> {
 }
 ```
 
-`createConfigService(value)` wraps any object in the dot-path reader; the module uses it internally, and it is handy for tests. `get` walks the path segment by segment and returns `undefined` when a segment is missing or a non-object is traversed; the fallback applies via `??`, so it covers both `null` and `undefined`. `getOrThrow` throws `ConfigError` with the path as issue path when the value is nullish. Paths resolve intermediate slices too: `get("database")` returns the whole nested object.
+`createConfigService(value)` wraps any object in the dot-path reader; the module uses it internally, and it is handy for tests. `get` walks the path segment by segment and returns `undefined` when a segment is missing or a non-object is traversed; the fallback applies via `??`, so it covers both `null` and `undefined`. `getOrThrow` throws `ConfigError` (`"Missing configuration value"`, with the path as issue path) when the value is nullish. Paths resolve intermediate slices too: `get("database")` returns the whole nested object.
 
 ## ConfigError
 
@@ -91,6 +91,6 @@ The type machinery, also re-exported from the root.
 <Def sig={"ConfigPath<T>"} id="configpath">Union of every dot path reachable in T. Nested objects contribute both the slice key and its deeper paths; arrays are leaves; optional segments are traversed through NonNullable.</Def>
 <Def sig={"ConfigValue<T, P>"} id="configvalue">The value type found at dot path P inside T.</Def>
 <Def sig={"ConfigService<T>"} id="configservice">The reader interface documented above.</Def>
-<Def sig={"ConfigContext<TLoad>"} id="configcontext">\{ configService: ConfigService\<MergedConfig\<TLoad\>\> \}, the context extension consumers declare, matching what the module puts on its context for the same factory tuple.</Def>
+<Def sig={"ConfigContext<TLoad>"} id="configcontext">\{ configService: ConfigService\<MergedConfig\<TLoad\>\> \}, the input a child router or module declares to consume the service, matching what the module provides to its host for the same factory tuple.</Def>
 <Def sig="ConfigIssue" id="configissue">\{ message: string; path?: readonly (string | number)\[\] \}.</Def>
 </DefList>

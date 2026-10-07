@@ -1,43 +1,44 @@
 ---
 title: "Run commands in-process"
-lead: "A command line in, captured output and an exit code back; flags parsed by the real parser, stdin as a web stream, stdio untouched."
-description: "Execute CLI commands in-process: string or argv input through the real flag parser, captured stdout/stderr lines, exit codes, and web-stream stdin."
+lead: "A command line in, captured output and an exit code back; flags parsed by the real parser, stdio untouched."
+description: "Execute CLI commands in-process: string or argv input through the real flag parser, captured stdout and stderr text, and exit codes."
 ---
 
 ## Create a runner
 
-`createCliRunner(appOrCli, options?)` from `@rhythmjs/testing/cli` wraps a Rhythm CLI app (or a bare `RhythmCli`, which it mounts for you) behind a single `run()`. The app's real middleware chain executes through `callback()`; nothing touches the process's actual stdio, argv, or exit code.
+`createCliRunner(appOrCli, options?)` from `@rhythmjs/testing/cli` wraps a Rhythm app that mounts a cli (or a bare `RhythmCli`) behind a single `run()`. Execution goes through the same `toCliHandler` as a real binary; nothing touches the process's actual stdio, argv, or exit code.
 
 ```ts
 import { createCliRunner } from "@rhythmjs/testing/cli";
 
 const runner = createCliRunner(cli);
 const result = await runner.run("remote add origin https://x.git");
-expect(result.stdout).toEqual(['added remote "origin" -> https://x.git']);
+expect(result.stdout).toBe('added remote "origin" -> https://x.git\n');
 expect(result.exitCode).toBe(0);
 ```
 
 ## Run a command
 
-`run(argv, options?)` accepts a command line as a string (split on whitespace, empty segments dropped) or as an argv array when arguments contain spaces. Flags are parsed with the real `parseArgv`, so `--env=prod` and boolean flags behave exactly as in production. The result is `{ ctx, stdout, stderr, exitCode }`: `stdout` and `stderr` are copies of the response's line arrays (nothing was printed), and `ctx` is the full final context for asserting on anything else the pipeline derived.
-
-## Piped stdin
-
-Pass `{ stdin: "line1\nline2" }` and the context's `ctx.stdin` becomes a real web `ReadableStream` over those bytes, exactly the shape piped input has under [`toCliHandler`](/cli/run/) on Bun. Without the option, `ctx.stdin` is `null`, the TTY shape.
+`run(argv)` accepts a command line as a string (trimmed and split on whitespace, so no quoted arguments) or as an argv array when arguments contain spaces. Flags are parsed by the cli's own `withParsedArgv()`, so `--env=prod` and boolean flags behave exactly as in production; without that middleware no flags are parsed. The result is `{ stdout, stderr, exitCode }`: `stdout` and `stderr` are the captured text, newlines included.
 
 ```ts
-const result = await runner.run("import --format=json", {
-  stdin: JSON.stringify({ users: ["ada"] }),
-});
-expect(result.exitCode).toBe(0);
+const failed = await runner.run("fail");
+expect(failed.stderr).toBe("error: boom\n");
+expect(failed.exitCode).toBe(3); // ctx.fail("boom", 3)
+
+const unknown = await runner.run("nope");
+expect(unknown.stderr).toBe("error: unknown command 'nope'\n");
+expect(unknown.exitCode).toBe(2);
 ```
 
-## Startup context
+An unknown command exits with `2`, a thrown error with `1`, and `ctx.fail(message, code)` with your code. The runner is reusable: each `run` captures its own output.
 
-Pass `context` to assign startup values onto the app's `context` before any run. It is typed as a `Partial` of the app's declared startup shape, and it overrides values the app already holds, so a fake wins over a real one. Prompts are a startup concern: a CLI that prompts should receive a fake `RhythmPrompt` this way, keeping the runner byte-deterministic.
+## Startup context [#startup-context]
+
+Pass `context` to assign values onto every run's context. It is typed as a `Partial` of the app's startup context and input (minus the cli base fields), and it overrides values the app already holds, so a fake wins over a real one. For a bare cli it supplies the input the cli requires.
 
 ```ts
 const runner = createCliRunner(app, { context: { db: fakeDb } });
 ```
 
-The runner has no `teardown()`: close any resource the test created yourself in `afterAll`.
+The runner has no stdin. For commands that use `withPrompt(...)`, give the prompt middleware your own IO to script the answers. There is no `teardown()`: close any resource the test created yourself in `afterAll`.

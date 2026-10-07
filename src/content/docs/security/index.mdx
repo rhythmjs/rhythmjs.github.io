@@ -12,6 +12,8 @@ description: "Authentication and authorization middleware for Rhythm: attachUser
 bun add @rhythmjs/security @rhythmjs/rhythm @rhythmjs/router
 ```
 
+All of it is ordinary middleware over the HTTP context from `@rhythmjs/router/context`. Edge concerns (`secureHeaders`, `cors`) go on the `Rhythm` app in front of `mount(router)`; request-gating concerns (`csrf`, `rateLimit`, `attachUser`, `requireAuthentication`, `requireRoles`, and the rest) go on a router or on individual routes. The samples below show routers; the app is always `new Rhythm().use(mount(router))` served with `Bun.serve({ fetch: toFetchHandler(app) })`.
+
 ## Attach the user
 
 `attachUser(resolve)` runs your resolver once per request and derives `ctx.user` onto the context (`UserContext<TUser>`). The resolver receives the full `RhythmHttpContext`, may be async, and whatever it returns is normalized with `?? null`: returning `undefined` and returning `null` both mean anonymous. Identity stays in your hands: a session lookup, a token verification, a database call; the middleware only owns the plumbing.
@@ -38,9 +40,11 @@ import { attachUser, requireAuthentication } from "@rhythmjs/security/authentica
 
 new RhythmRouter()
   .use(attachUser((ctx) => sessionUser(ctx)))
-  .use(requireAuthentication({ challenge: "Bearer" }))
-  .get("/me", (ctx) => ctx.json(ctx.user)); // ctx.user: TUser, narrowed, no null check
+  .use(requireAuthentication<User>({ challenge: "Bearer" }))
+  .get("/me", (ctx) => ctx.json(ctx.user)); // ctx.user: User, narrowed, no null check
 ```
+
+The `<User>` type argument names the narrowed user type; it is optional when the user type can be inferred from `attachUser`. `requireAuthentication` can also be a route's first handler: `router.get("/me", requireAuthentication<User>(), handler)`.
 
 Two companions cover the remaining flows: `isAuthenticated(ctx)` is the underlying type-guard predicate, usable in your own branches, and `redirectIfAuthenticated(to)` is the login-page inverse: an already-signed-in user is redirected away, everyone else falls through.
 
@@ -57,7 +61,7 @@ const credentials = getBasicCredentials(ctx.request);
 
 ## Authorize with predicates [#authorize-predicates]
 
-`@rhythmjs/security/authorization` builds on `ctx.user`. The primitive is `authorize(check)`: any sync or async predicate over the context; a refusal answers `403` (override with `status` / `message`) and the chain stops.
+`@rhythmjs/security/authorization` builds on `ctx.user`. The primitive is `authorize(check)`: any sync or async predicate over the context; a refusal answers `403` (override with `status` / `message`) and the chain stops. It does not look for a user itself, so put `requireAuthentication()` before any check that reads `ctx.user`.
 
 ```ts
 import { authorize } from "@rhythmjs/security/authorization";
@@ -83,4 +87,4 @@ legacyRouter.use(requireRoles(["editor"], { roles: (user) => user.groups }));
 
 ## 401 versus 403 [#status-semantics]
 
-The two modules split the status codes the way HTTP intends. Missing identity is `401`: `requireAuthentication` answers it, and so do `requireRoles` / `requirePermissions` when `ctx.user` is null: an anonymous request is never told it lacks a role. Present-but-insufficient identity is `403`: `authorize` refusals and failed role or permission checks. Rejections use the router's `ctx.error()`, so your exception filters and error mapping see them like any other error response.
+The two modules split the status codes the way HTTP intends. Missing identity is `401`: `requireAuthentication` answers it, and so do `requireRoles` / `requirePermissions` when `ctx.user` is null: an anonymous request is never told it lacks a role. Present-but-insufficient identity is `403`: `authorize` refusals and failed role or permission checks. Rejections are written with the context's `ctx.error(status, message)`: a plain-text response with the status and message, not a thrown error, so a [`filter()`](/middleware/filter/) never sees them. Missing identity from `requireRoles` / `requirePermissions` is always `401`; `status` and `message` apply to the `403`.

@@ -5,9 +5,9 @@ lead: "Scaffold a Rhythm application and serve your first controller on Bun."
 
 ## What you will build
 
-This tutorial builds one application, step by step: a notes API with validated input, a real database, authentication, a live WebSocket feed, background jobs, generated OpenAPI docs, and tests. Each page adds one layer and explains the primitive behind it, so by the end you have seen everything the framework can do — and every line came from these pages.
+This tutorial builds one application, step by step: a notes API with validated input, a real database, authentication, a live WebSocket feed, scheduled jobs, generated OpenAPI docs, and tests. Each page adds one layer and explains the primitive behind it, so by the end you have seen everything the framework can do — and every line came from these pages.
 
-You need [Bun](https://bun.sh) ≥ 1.2. Everything runs on Bun's native APIs — `Bun.serve`, native WebSockets, `Bun.redis` — with no adapter layers.
+You need [Bun](https://bun.sh) ≥ 1.2. Everything runs on Bun's native APIs — `Bun.serve`, native WebSockets, `Bun.cron` — with no adapter layers.
 
 ## Scaffold the project
 
@@ -24,7 +24,7 @@ Four source files carry the whole idea. A *service* holds business logic, a *con
 ```text
 src/
   main.ts             Bun.serve over toFetchHandler(appModule)
-  app.module.ts       Rhythm instance: holds the service in its startup context, mounts the controller
+  app.module.ts       Rhythm app: puts the service in its startup context, mounts the controller
   app.controller.ts   RhythmRouter instance: routes and handlers
   app.service.ts      plain object holding the business logic
 ```
@@ -47,7 +47,7 @@ The controller is a `RhythmRouter`. Its context type declares the dependencies i
 ```ts
 // src/app.controller.ts
 import { RhythmRouter } from "@rhythmjs/router";
-import type { RhythmHttpContext } from "@rhythmjs/router/adapters/context";
+import type { RhythmHttpContext } from "@rhythmjs/router/context";
 import type { appService } from "./app.service";
 
 export type AppContext = RhythmHttpContext & {
@@ -59,25 +59,17 @@ export const appController = new RhythmRouter<AppContext>().get("/", (ctx) => {
 });
 ```
 
-The module is a `Rhythm` kernel. Its second generic declares the startup context — values built once, before the first request — and the module assigns the service onto `context`. It then mounts the controller and ends with a 404 tail for anything no route claimed:
+The module is a `Rhythm` app. Startup values — built once, before the first request — are added with `register(decorate(...))`, and the controller is mounted with `mount()`. Nothing is declared twice: the types of the context grow as you chain:
 
 ```ts
 // src/app.module.ts
-import { Rhythm } from "@rhythmjs/rhythm";
-import type { RhythmHttpContext } from "@rhythmjs/router/adapters/context";
+import { Rhythm, decorate, mount } from "@rhythmjs/rhythm";
 import { appController } from "./app.controller";
 import { appService } from "./app.service";
 
-export const appModule = new Rhythm<RhythmHttpContext, { appService: typeof appService }>({
-  name: "app",
-  type: "module",
-});
-
-appModule.context.appService = appService;
-
-appModule.use(appController.middleware()).use((ctx) => {
-  ctx.json({ success: false, status: 404, message: "Not Found" }, 404);
-});
+export const appModule = new Rhythm({ name: "app" })
+  .register(decorate(() => ({ appService })))
+  .use(mount(appController));
 ```
 
 And `main.ts` turns the module into a fetch handler for `Bun.serve`:
@@ -104,10 +96,10 @@ Hello World!
 
 $ curl -i http://localhost:3000/missing
 HTTP/1.1 404 Not Found
-{"success":false,"status":404,"message":"Not Found"}
+Not Found
 ```
 
-That is the whole mental model: startup values are assigned once on `context`, middleware runs per request in onion order, and the request context carries both through the pipeline. Every page that follows only adds middleware and startup values to this skeleton.
+That is the whole mental model: startup values are added once with `decorate()`, middleware runs per request in onion order, and the request context carries both through the pipeline. A request no router touches falls out the end as a plain `404`. Every page that follows only adds routers, middleware, and startup values to this skeleton.
 
 <Callout title="Dev server binding">
 

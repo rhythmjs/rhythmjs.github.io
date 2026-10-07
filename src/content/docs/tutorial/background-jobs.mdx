@@ -1,103 +1,127 @@
 ---
-title: "Background jobs"
-lead: "Events, cron schedules, and durable queues for work beyond the request."
-description: "Events, cron schedules, and durable queues beyond the request."
+title: "Scheduled jobs"
+lead: "Recurring work on Bun's native cron: named jobs, middleware around every run, a manual trigger, and a clean stop."
+description: "Register scheduled jobs with @rhythmjs/cron, start them with the app, wrap runs in middleware, trigger them by hand, and stop on shutdown."
 ---
 
-## Announce changes with events
+## Register jobs
 
-The event bus decouples "a note was created" from everything that reacts to it. Define the event map once, register the module, and emit from handlers — subscribers use exact names or wildcard patterns:
+Work that happens on a clock, not a request, is a job. `@rhythmjs/cron` is a thin pipeline over Bun's own `Bun.cron`: jobs are named, handlers are ordinary `(ctx, next)` functions like route handlers, and there is no scheduler of our own. Like the controllers and the socket, a `RhythmCron` carries a context type for what its handlers use:
+
+```bash
+bun add @rhythmjs/cron
+```
 
 ```ts
-import { eventsModule } from "@rhythmjs/events";
+// src/notes/notes.cron.ts
+import { RhythmCron } from "@rhythmjs/cron";
+import type { NotesService } from "./notes.service";
 
-interface Events {
-  "note.created": { id: string; title: string };
-  "note.removed": { id: string };
-}
+export const notesCron = new RhythmCron<{ notesService: NotesService }>({ tz: "UTC" })
+  .cron("prune-empty", "*/30 * * * *", (ctx) => {
+    for (const note of ctx.notesService.list()) {
+      if (!note.content) ctx.notesService.remove(note.id);
+    }
+  })
+  .cron("digest", { schedule: "0 9 * * MON-FRI", tz: "America/New_York" }, (ctx) => {
+    console.log(`digest at ${ctx.job.firedAt.toISOString()}: ${ctx.notesService.list().length} notes`);
+  });
+```
 
-export const appModule = new Rhythm<RhythmHttpContext>({ name: "app", type: "module" })
-  .register(eventsModule.forRoot<Events>(), ({ eventBus }) => ({ eventBus }))
-  /* ... */;
+A schedule is a five-field cron expression, a nickname such as `"@hourly"`, or `{ schedule, tz }` to override the instance's time zone for one job. Expressions and time zones are validated when you register the job, a duplicate name throws, and so does a schedule that can never fire, so a typo fails at startup rather than silently never running. Every handler also gets `ctx.job`: `name`, `schedule`, `tz`, and `firedAt`.
 
-// in the controller:
-ctx.eventBus.emit("note.created", { id: note.id, title: note.title });
+## Start it with the app
 
-// anywhere with the bus:
-eventBus.on("note.*", ({ event, payload }) => {
-  console.log(`${event}:`, payload);
+Jobs get the app's startup context, the same one the services come from, and stop with it. Register `startCron(notesCron)` on the app and `app.stop()` takes care of the rest:
+
+```ts
+// src/app.module.ts
+import { Rhythm, decorate, mount } from "@rhythmjs/rhythm";
+import { startCron } from "@rhythmjs/cron";
+import { createNotesService } from "./notes/notes.service";
+import { notesCron } from "./notes/notes.cron";
+
+export const appModule = new Rhythm()
+  .register(decorate(() => ({ notesService: createNotesService() })))
+  .register(startCron(notesCron))      // starts the timers; stops them on appModule.stop()
+  .use(mount(notesController));
+```
+
+`startCron` is a startup-time register callback, not request middleware: the jobs begin when the app does, with the context your `decorate` and `include` calls built. Without the app, `notesCron.start(input)` and `notesCron.stop()` do the same by hand, and `notesCron.running` tells you which state you are in.
+
+## Wrap every run
+
+`use()` is middleware around *every* job, which is where cross-cutting concerns live: timing, logging, a lock. Each run is a fresh pass through the chain, so a job can be as small as its body:
+
+```ts
+export const notesCron = new RhythmCron<{ notesService: NotesService }>({ tz: "UTC" })
+  .use(async (ctx, next) => {
+    const started = performance.now();
+    console.log(`[cron] ${ctx.job.name} started`);
+    await next();
+    console.log(`[cron] ${ctx.job.name} finished in ${Math.round(performance.now() - started)}ms`);
+  })
+  .cron("prune-empty", "*/30 * * * *", (ctx) => {
+    for (const note of ctx.notesService.list()) {
+      if (!note.content) ctx.notesService.remove(note.id);
+    }
+  });
+```
+
+Extension middleware (`derive(...)`) works as on a router, widening what later middleware and the job handlers see. Handlers may also be a chain: `.cron(name, schedule, guard, handler)`.
+
+## A manual trigger
+
+For an admin who needs the digest now, or a test that must not wait for the clock, `cron.run(name, input)` runs a job immediately through the same middleware chain and resolves when it finishes. Unlike a scheduled run, an error here rejects, so the HTTP route reports it:
+
+```ts
+// in the notes controller
+.post("/api/jobs/:name/run", requireAuthentication(), requireRoles(["admin"]), async (ctx) => {
+  if (!notesCron.jobs.some((job) => job.name === ctx.params.name)) return ctx.error(404, "No such job");
+  await notesCron.run(ctx.params.name, { notesService: ctx.notesService });
+  ctx.json({ ok: true });
+})
+.get("/api/jobs", requireAuthentication(), (ctx) => {
+  ctx.json(notesCron.jobs.map((job) => ({ ...job, next: notesCron.next(job.name) })));
+})
+```
+
+`cron.jobs` lists name, schedule and time zone, and `cron.next(name)` previews the next fire time, a `Date` or `null`. `run` throws a `RangeError` for an unknown name, hence the explicit 404 above.
+
+## Time zones
+
+Without a `tz`, a job runs in the process's local time zone, which differs between your laptop and a server. Set `tz` on the instance for a default (the `"UTC"` above), and on a single job with the object form when it follows someone's wall clock, as the 9 o'clock digest above follows New York. Bun resolves daylight-saving changes for named zones; `cron.next(name)` is the quick way to check what a job will actually do.
+
+## Errors and onError
+
+A job that throws does not stop the schedule: the error goes to `onError(error, ctx)` (by default `console.error`), and the job fires again at its next time. Handle failures where you already handle them: the logger, your error tracker.
+
+```ts
+export const notesCron = new RhythmCron<{ notesService: NotesService }>({
+  tz: "UTC",
+  onError(error, ctx) {
+    console.error(`job ${ctx.job.name} failed at ${ctx.job.firedAt.toISOString()}`, error);
+  },
 });
 ```
 
-<Callout title="Set an error hook">
+Runs never overlap: Bun schedules the next fire only after the current run settles, so a slow `prune-empty` skips ticks rather than piling up.
 
-Pass `forRoot({ onError })` in real apps: the default rethrows a failing listener's error as an uncaught exception. Handler errors never break the bus or sibling listeners either way.
+## Stop cleanly
+
+Because `startCron` registered a cleanup, stopping the app stops the timers. In the graceful shutdown from the observability chapter, that is one line in the `close` hook:
+
+```ts
+const server = Bun.serve({ port, fetch: toFetchHandler(appModule) });
+
+process.on("SIGTERM", async () => {
+  await appModule.stop();   // stops the cron timers and every other cleanup
+  server.stop();
+});
+```
+
+<Callout title="Scheduling lives in your process">
+
+Cron here is in-process. Nothing is persisted: runs missed while the app was down are not replayed, and with several replicas every one of them fires every job. If a job must run on one instance only, take a lock in `use()` (a Redis `SET NX`, a database advisory lock) and call `next()` only when you hold it. See the [cron docs](/cron/) for the full lifecycle and API.
 
 </Callout>
-
-## Run on a schedule
-
-`@rhythmjs/schedule` runs cron, interval, and timeout jobs on an in-house cron engine (no dependencies). Define jobs, register the module, and start the scheduler alongside the server. `forRoot` builds the service eagerly; when `main.ts` needs the same instance, build it with `createScheduleService` and assign it to the context:
-
-```ts
-import { createScheduleService, cronJob, cronPatterns, intervalJob } from "@rhythmjs/schedule";
-import { startScheduler } from "@rhythmjs/schedule/scheduler";
-
-const jobs = [
-  cronJob("digest", cronPatterns.daily, async () => {
-    await sendDailyDigest();
-  }),
-  cronJob("cleanup", "*/30 * * * *", async () => {
-    await purgeExpiredNotes();
-  }),
-  intervalJob("heartbeat", 30_000, () => pingUptimeMonitor()),
-];
-
-export const scheduleService = createScheduleService(...jobs);
-// or, as a module: appModule.register(scheduleModule.forRoot(...jobs), ({ scheduleService }) => ({ scheduleService }))
-
-// in main.ts, after Bun.serve:
-const scheduler = startScheduler(scheduleService);
-// scheduler.stop() in your shutdown hook
-```
-
-Overlap protection defaults to `"skip"` (a still-running job is not started again), handler errors are recorded on `scheduleService.state(name)` rather than thrown, and a removed job's timer cancels itself.
-
-## Durable work with queues
-
-For work that must survive the request — emails, exports, webhooks — use a typed queue. In-memory by default; pass `redis` for durability across processes. The job map types both producers and processors. Build the service once at startup and put it on the context; `close()` is yours to call on shutdown:
-
-```ts
-import { createQueueService } from "@rhythmjs/queue";
-
-interface Jobs {
-  "email.digest": { userId: string };
-  "notes.export": { noteIds: string[] };
-}
-
-export const queueService = createQueueService<Jobs>({ redis: process.env.REDIS_URL });
-// declared on the app: new Rhythm<RhythmHttpContext, { queueService: typeof queueService }>(...)
-appModule.context.queueService = queueService;
-// (queueModule.forRoot<Jobs>(...) does the same inside a module you register)
-
-// produce (from a handler):
-await ctx.queueService.add("email.digest", { userId }, { attempts: 3, backoff: 5_000 });
-
-// process (in a worker entrypoint):
-queueService.process(
-  {
-    "email.digest": async (payload) => sendDigest(payload.userId),
-    "notes.export": async (payload) => exportNotes(payload.noteIds),
-  },
-  {
-    concurrency: 4,
-    onFailed: (name, id, error) => log.error(`job ${name}#${id} exhausted retries`, error),
-    onError: (error) => log.warn("queue engine hiccup", error),  // backend errors; the loop survives
-  },
-);
-
-// on shutdown: stops the workers, then releases the engine
-await queueService.close();
-```
-
-`schedule(name, { pattern }, payload)` adds repeatable jobs on the same cron engine, and `counts()` exposes queue depth for your health checks — which is exactly where the next step picks up.

@@ -9,7 +9,7 @@ description: "Wire MikroORM 7 into Rhythm on Bun: decorator-free defineEntity en
 This page is written for MikroORM 7. The PostgreSQL driver package re-exports the core; `@mikro-orm/migrations` adds the `Migrator` extension used below.
 
 ```bash
-bun add @mikro-orm/core @mikro-orm/postgresql @mikro-orm/migrations zod @rhythmjs/middleware
+bun add @mikro-orm/core @mikro-orm/postgresql @mikro-orm/migrations zod @rhythmjs/rhythm @rhythmjs/router @rhythmjs/middleware
 ```
 
 ## Entities without decorators [#entity-schema]
@@ -48,9 +48,9 @@ NoteSchema.setClass(Note);
 
 `EntitySchema` is still available if you prefer the explicit-object style, but the MikroORM docs now recommend `defineEntity`.
 
-## The database handle [#database-handle]
+## The ORM [#database-handle]
 
-`MikroORM.init` is async, so `createDatabase` is too: `main.ts` awaits it once before serving, and the handle's `close()` calls `orm.close()` on shutdown. Registering the `Migrator` extension here means the same config serves the app and the migration runner.
+`MikroORM.init` is async, so the app module decorates it with an async callback and the first request waits for it. Registering the `Migrator` extension means the same config serves the app and the migration runner.
 
 ```ts
 // src/database.ts
@@ -61,19 +61,13 @@ import { NoteSchema } from "./notes/note.entity";
 
 const clientUrl = process.env.DATABASE_URL ?? "postgres://postgres:postgres@localhost:5432/notes_mikro_orm";
 
-export interface Database {
-  orm: MikroORM;
-  close(): Promise<void>;
-}
-
-export async function createDatabase(): Promise<Database> {
-  const orm = await MikroORM.init({
+export function createOrm() {
+  return MikroORM.init({
     clientUrl,
     entities: [NoteSchema],
     extensions: [Migrator],
     migrations: { path: join(import.meta.dirname, "migrations"), snapshot: false },
   });
-  return { orm, close: () => orm.close() };
 }
 ```
 
@@ -114,7 +108,18 @@ export function createNotesService(orm: MikroORM) {
 
 Three things to know about MikroORM 7 here. `em.create` marks the new entity for persistence (`persistOnCreate`, on by default), so `flush()` inserts it; there is no constructor to call. An entity loaded with `findOne` is already managed, so `assign` followed by `flush()` is enough and needs no `persist`. And the combined `persistAndFlush` and `removeAndFlush` helpers are gone: `em.remove(note).flush()` replaces `removeAndFlush`.
 
-The module wiring is the shared pattern from the [overview](/data/): `filter()`, the notes module that derives its service from `orm` (`derive(({ orm }) => …)`), the controller, a thrown 404. The app module is `Rhythm<RhythmHttpContext, { orm: MikroORM }>`, and `main.ts` assigns `appModule.context.orm = database.orm`.
+The wiring is the shared pattern from the [overview](/data/). The app module decorates `orm` and closes it in the cleanup, derives the service from it and mounts the controller; `main.ts` serves it and calls `appModule.stop()` on shutdown.
+
+```ts
+// src/app.module.ts
+export const appModule = new Rhythm({ name: "app" })
+  .register(
+    decorate(async () => ({ orm: await createOrm() })),
+    ({ orm }) => orm.close(),
+  )
+  .use(derive(({ orm }) => ({ notesService: createNotesService(orm) })))
+  .use(mount(notesController));
+```
 
 ## Migrations
 
@@ -146,9 +151,9 @@ export class Migration20260930000000_init extends Migration {
 
 ```ts
 // src/migrate.ts
-const { orm, close } = await createDatabase();
+const orm = await createOrm();
 const migrated = await orm.migrator.up();
-await close();
+await orm.close();
 console.log(`applied ${migrated.length} migration(s)`);
 ```
 

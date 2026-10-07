@@ -6,30 +6,29 @@ description: "A real database in the startup context, from pool to CRUD."
 
 ## The database as a startup resource
 
-A database is the canonical startup resource: open the pool once, assign the query handle to the context, and keep `close()` where the code that opened it can reach it. This example uses [Drizzle on Bun's native SQL driver](/data/drizzle/); the [data recipes](/data/) cover Prisma, MikroORM, and MongoDB with the same shape:
+A database is the canonical startup resource: open the pool once, add the query handle to the startup context, and give the app the cleanup that closes it. This example uses [Drizzle on Bun's native SQL driver](/data/drizzle/); the [data recipes](/data/) cover Prisma, MikroORM, and MongoDB with the same shape. The pool is opened with the validated settings from step 7:
 
 ```ts
 // src/database.ts
 import { SQL } from "bun";
-import { drizzle, type BunSQLDatabase } from "drizzle-orm/bun-sql";
+import { drizzle } from "drizzle-orm/bun-sql";
+import { databaseConfig } from "./config/database.config";
 import * as schema from "./notes/notes.table";
 
-export type Database = BunSQLDatabase<typeof schema>;
-
-export interface DatabaseHandle {
-  db: Database;
-  close(): Promise<void>;
-}
-
-export function createDatabase(url: string): DatabaseHandle {
-  const client = new SQL(url);
+export function createDatabase(url: string, max: number) {
+  const client = new SQL({ url, max });
   return { db: drizzle({ client, schema }), close: () => client.close() };
 }
+
+export type Database = ReturnType<typeof createDatabase>["db"];
+
+const { url, poolSize } = await databaseConfig(); // throws on malformed config
+export const database = createDatabase(url, poolSize);
 ```
 
 ## Schema and service
 
-The table definition is plain Drizzle, and the service factory from step 3 now takes the database instead of a Map — the controller does not change at all:
+The table definition is plain Drizzle, and the service factory from step 3 now takes the database instead of a `Map`. The service becomes async, so each controller handler gains an `await` — the routes themselves do not change:
 
 ```ts
 // src/notes/notes.table.ts
@@ -64,7 +63,7 @@ export function createNotesService(db: Database) {
     },
     async create(input: CreateNoteInput): Promise<Note> {
       const [note] = await db.insert(notes).values(input).returning();
-      return note;
+      return note!;
     },
     async update(id: string, patch: UpdateNoteInput): Promise<Note | undefined> {
       const [note] = await db
@@ -84,46 +83,60 @@ export function createNotesService(db: Database) {
 export type NotesService = ReturnType<typeof createNotesService>;
 ```
 
+```ts
+// src/notes/notes.controller.ts — the handlers now await the service
+.get("/api/notes", async (ctx) => {
+  ctx.json(await ctx.notesService.list());
+})
+.get("/api/notes/:id", async (ctx) => {
+  const note = await ctx.notesService.get(ctx.params.id);
+  if (!note) throw new HttpError(404, "Note not found");
+  ctx.json(note);
+})
+```
+
 ## Wire it together
 
-The startup now reads as a dependency graph: config first, then the pool (consuming config), then the service (consuming the pool), then the controller (consuming the service). The app module declares the pool's shape, the notes module derives its service from it, and `main.ts` assigns the real pool and owns shutting it down:
+The startup now reads as a dependency graph: config first, then the pool (consuming config), then the service (consuming the pool), then the controller (consuming the service). The notes module from step 4 becomes a `forRoot` that takes the pool, and the app registers the pool together with the cleanup that closes it:
 
 ```ts
 // src/notes/notes.module.ts
-export type NotesModuleInput = RhythmHttpContext & { db: Database };
+import { Rhythm, decorate } from "@rhythmjs/rhythm";
+import type { Database } from "../database";
+import { createNotesService } from "./notes.service";
 
-export const notesModule = new Rhythm<NotesModuleInput>({ name: "notes", type: "module" })
-  .use(derive(({ db }: NotesModuleInput) => ({ notesService: createNotesService(db) })))
-  .use(notesController.middleware());
+export const notesModule = {
+  forRoot(db: Database) {
+    return new Rhythm({ name: "notes" }).register(decorate(() => ({ notesService: createNotesService(db) })));
+  },
+};
 ```
 
 ```ts
 // src/app.module.ts
-export const appModule = new Rhythm<RhythmHttpContext, { db: Database }>({ name: "app", type: "module" })
-  .use(filter())
-  .register(await configModule.forRoot(databaseConfig), (v) => v)
-  .register(notesModule)
-  .use(() => {
-    throw new HttpError(404, "Route not found");
-  });
+export const appModule = new Rhythm({ name: "app" })
+  .register(include(await configModule.forRoot(...configs), ({ configService }) => ({ configService })))
+  .register(
+    decorate(() => ({ db: database.db })),
+    () => database.close(), // whoever opened the pool closes it, when the app stops
+  )
+  .register(include(notesModule.forRoot(database.db), ({ notesService }) => ({ notesService })))
+  .use(mount(notesController));
 ```
 
 ```ts
 // src/main.ts
-const { url } = await databaseConfig();
-const database = createDatabase(url);
-appModule.context.db = database.db;
-
+const { port } = await appConfig();
 const server = Bun.serve({ port, fetch: toFetchHandler(appModule) });
 
 process.on("SIGTERM", async () => {
   await server.stop();
-  await database.close(); // whoever opened the pool closes it
+  await appModule.stop(); // runs the cleanups in reverse order: closes the pool
   process.exit(0);
 });
 ```
 
-`register(notesModule)` is type-checked: the app's input plus its startup shape must satisfy the notes module's input, so forgetting to declare `db` is a compile error, not a 3 a.m. surprise.
+`mount(notesController)` is type-checked: the app's startup context must satisfy the controller's `{ notesService }`, so dropping the `include` is a compile error, not a 3 a.m. surprise. The next steps replace the hand-written `SIGTERM` handler with `gracefulShutdown`.
 
 For local development, run Postgres from a compose file bound to loopback only — never publish a dev database on all interfaces:
 
@@ -136,5 +149,5 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: notes
     ports:
-      - "127.0.0.1:5432:5432" 
+      - "127.0.0.1:5432:5432"
 ```

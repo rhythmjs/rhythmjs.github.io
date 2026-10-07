@@ -6,27 +6,33 @@ description: "Logs, request ids, health checks, and graceful shutdown."
 
 ## See every request
 
-Three middleware from [@rhythmjs/observability](/observability/) cover the request path: `requestId()` puts an id on the context and response, `log()` writes one line per request (method, path, status, duration — never headers or bodies), and `timing()` adds a `Server-Timing` header. Order them first so they wrap everything:
+Three middleware from [@rhythmjs/observability](/observability/) cover the request path: `log()` writes one line per request (method, path, status, duration — never headers or bodies), `timing()` adds a `Server-Timing` header, and `requestId()` puts an id on the context and response. Put them first on the app, outermost first, so `log` measures and reports everything:
 
 ```ts
 import { log } from "@rhythmjs/observability/log";
 import { requestId } from "@rhythmjs/observability/request-id";
 import { timing } from "@rhythmjs/observability/timing";
 
-export const appModule = new Rhythm<RhythmHttpContext>({ name: "app", type: "module" })
-  .use(requestId())
+export const appModule = new Rhythm<{}, RhythmHttpContext>({ name: "app" })
+  /* ...startup registrations... */
   .use(log())
-  .use(process.env.NODE_ENV === "production" ? (ctx, next) => next() : timing())
-  .use(filter())
-  /* ... */
+  .use(timing())
+  .use(requestId())       // ctx.requestId: string, for everything mounted after it
+  .use(secureHeaders())
+  /* ...the rest of the edge stack and the routers... */
 ```
+
+A router that wants the id declares `RequestIdContext` (from `@rhythmjs/observability/request-id`) in its context type, and `mount()` checks that the app derives it before the router.
 
 ## Health checks
 
-The health module separates liveness (the process is up) from readiness (its dependencies answer). Indicators are small objects with a `check()`; results are cached briefly so load balancers cannot hammer your database through the endpoint:
+The health service separates liveness (the process is up) from readiness (its dependencies answer). Indicators are small objects with a `check()`; results are cached briefly so load balancers cannot hammer your database through the endpoint. The service is created in its own file because the routes and the shutdown hook both need the same instance:
 
 ```ts
-import { createHealthService, healthRoutes } from "@rhythmjs/observability/health";
+// src/health.ts
+import { createHealthService } from "@rhythmjs/observability/health";
+import { sql } from "drizzle-orm";
+import { database } from "./database";
 
 export const healthService = createHealthService({
   indicators: [
@@ -35,62 +41,73 @@ export const healthService = createHealthService({
       critical: true,
       timeout: 2_000,
       check: async () => {
-        await db.execute(sql`select 1`);
+        await database.db.execute(sql`select 1`);
         return { status: "up" };
       },
     },
-    {
-      name: "queue",
-      check: async () => ({ status: "up", details: await queueService.counts() }),
-    },
   ],
 });
-
-appModule.use(healthRoutes(healthService).middleware()); // GET /health/live, GET /health/ready
 ```
+
+```ts
+// src/app.module.ts
+import { healthRoutes } from "@rhythmjs/observability/health";
+
+appModule.use(mount(healthRoutes(healthService))); // GET /health/live, GET /health/ready
+```
+
+`healthRoutes` is a router with full paths (`/health/live`, `/health/ready`); move them with `healthRoutes(service, { path: "/internal" })`. If you only want the service on the context — for a handler of your own — `register(include(healthModule.forRoot({ indicators }), ({ healthService }) => ({ healthService })))` does the registration for you, but the routes and the shutdown hook need the instance itself, which is why this app builds it directly.
 
 <Callout title="Readiness detail exposure">
 
-Indicator `details` and failure messages appear in the readiness body. Keep them free of connection strings, or mount `healthRoutes` behind auth / an internal listener.
+`/health/ready` returns only each check's status and duration by default. `details: true` also returns indicator `details` and error messages, which can reveal hosts and connection errors — enable it only behind authentication or on an internal listener.
 
 </Callout>
 
 ## Graceful shutdown
 
-Production `main.ts` ties it together: an error boundary around the handler, signal-driven shutdown that flips readiness, drains, then runs one `close` hook that stops the server and releases everything you opened:
+Production `main.ts` ties it together: an error boundary around the handler, and signal-driven shutdown that flips readiness, drains, then runs one `close` hook that stops the server and the app — which runs every cleanup you registered, so the pool closes last:
 
 ```ts
 // src/main.ts
-import { errorToResponse, toFetchHandler } from "@rhythmjs/router/fetch";
 import { gracefulShutdown } from "@rhythmjs/observability/health";
+import { errorToResponse, toFetchHandler } from "@rhythmjs/router/fetch";
 import { appModule } from "./app.module";
+import { appConfig } from "./config/app.config";
 import { healthService } from "./health";
 
+const { port } = await appConfig();
 const handler = toFetchHandler(appModule);
 
 const server = Bun.serve({
-  port: Number(process.env.PORT ?? 3000),
-  async fetch(request, srv) {
+  port,
+  async fetch(request, server) {
+    Object.assign(request, { ip: server.requestIP(request)?.address }); // for rateLimit
     try {
-      return (await notesWs.upgrade(request, srv)) ?? (await handler(request));
+      return await handler(request, server);
     } catch (error) {
       return errorToResponse(error); // 5xx bodies are generic; details stay in server logs
     }
   },
-  websocket: notesWs.websocket,
 });
 
 gracefulShutdown({
-  healthService,                       // readiness flips down first
-  close: async () => {                 // then, after drainMs, release resources in the order you choose
-    await server.stop();
-    await database.close();
+  healthService,          // readiness flips down first
+  drainMs: 5_000,         // let the load balancer notice
+  timeoutMs: 15_000,      // watchdog: exit(1) if close hangs
+  close: async () => {
+    await server.stop();    // finish in-flight requests
+    await appModule.stop(); // run the app's cleanups: closes the pool
   },
-  drainMs: 5_000,
-  timeoutMs: 15_000,
 });
 
 console.log(`listening on ${server.url}`);
 ```
 
-With that, deploys are boring: the balancer sees `/health/ready` go down, traffic drains, in-flight requests finish, the pool closes last, because your `close` hook says so. Which leaves exactly one thing to prove — that all of it works.
+<Callout title="Keep your other wiring">
+
+If you followed the [WebSockets](/tutorial/websockets/) and [scheduled jobs](/tutorial/background-jobs/) steps, keep their pieces in this file and module too: the `websocket` option on `Bun.serve`, and `startCron` registered on the app, whose jobs are then stopped by the same `appModule.stop()`.
+
+</Callout>
+
+With that, deploys are boring: the balancer sees `/health/ready` go down, traffic drains, in-flight requests finish, the pool closes last, because the app's cleanups say so. Which leaves exactly one thing to prove — that all of it works.

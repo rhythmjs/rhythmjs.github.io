@@ -6,65 +6,73 @@ description: "Describe routes inline and serve a generated spec with a reference
 
 ## Describe routes inline
 
-OpenAPI metadata is middleware too: annotations sit on the route they describe, and the schema middleware doubles as runtime validation — `apiBody` and friends validate exactly like `validate()` while also feeding the generated document:
+OpenAPI metadata is middleware too: annotations sit on the route they describe, and the schema middleware doubles as runtime validation — `apiBody` and friends validate exactly like `validate()` while also feeding the generated document. One rule first: a router is documented only if you wrap it with `documented()` right after constructing it, before any `use()` or route call. Routers that are not wrapped are silently left out of the document.
 
 ```ts
-import { apiOperation, apiTags } from "@rhythmjs/openapi/operation";
+import { documented } from "@rhythmjs/openapi/generate";
+import { apiOperation } from "@rhythmjs/openapi/operation";
+import { apiTags } from "@rhythmjs/openapi/tags";
 import { apiBody } from "@rhythmjs/openapi/body";
 import { apiResponse } from "@rhythmjs/openapi/response";
 
-notesController.post(
-  "/",
-  apiOperation({ summary: "Create a note" }),
-  apiTags("notes"),
-  apiBody(createNoteSchema),                       // documents AND validates; ctx.valid.body
-  apiResponse(201, { schema: noteSchema, description: "The created note" }),
-  (ctx) => {
-    ctx.json(ctx.notesService.create(ctx.valid.body), 201);
-  },
-);
+export const notesController = documented(new RhythmRouter<NotesContext>({ name: "notes" }))
+  .use(filter())
+  .use(intercept(notesResponseSchema))
+  .use(apiTags("notes")) // router-level fragments apply to every route registered after
+  /* ...authentication from step 9... */
+  .post(
+    "/api/notes",
+    apiBody(createNoteSchema), // documents AND validates; ctx.valid.body — replaces validate()
+    apiOperation({ summary: "Create a note" }),
+    apiResponse(201, { schema: noteSchema, description: "The created note" }),
+    async (ctx) => {
+      ctx.json(await ctx.notesService.create(ctx.valid.body), 201);
+    },
+  );
 ```
 
-`apiQuery`, `apiParam`, `apiHeader`, and `apiCookie` cover the other inputs with the same validate-and-document behavior.
+`apiBody` is the route's one extension handler, so it comes first; the documentation-only middleware follow it. `apiQuery`, `apiParam`, `apiHeader`, and `apiCookie` cover the other inputs with the same validate-and-document behavior. Routes with no `api*` middleware are left out of the document by default, so internal routes are not published by accident.
 
 ## Serve the document
 
-`openapiModule` finds the routers mounted in your app, generates the spec from their annotations, and serves it as JSON; `scalarModule` renders a browsable UI over it:
+`openapiModule.forRoot()` returns a plain router that finds the `documented()` routers mounted in the same app, generates the spec from their annotations on the first request, and serves it as JSON. `scalarModule` renders a browsable UI over it. Both are added with `mount()`, before the routers they document:
 
 ```ts
 import { openapiModule } from "@rhythmjs/openapi/module";
 import { scalarModule } from "@rhythmjs/scalar";
 import { defineDocument } from "@rhythmjs/openapi/document";
 
-const config = defineDocument({
-  openapi: "3.1.0",
+const document = defineDocument({
   info: { title: "Notes API", version: "1.0.0" },
+  securitySchemes: { bearer: { type: "http", scheme: "bearer" } },
 });
 
-appModule
-  .register(openapiModule.forRoot({ document: config }))     // GET /openapi.json
-  .register(scalarModule.forRoot({ pageTitle: "Notes API" }))    // GET /docs
-  .use(notesController.middleware());
+export const appModule = new Rhythm<{}, RhythmHttpContext>({ name: "app" })
+  /* ...startup, edge stack... */
+  .use(mount(openapiModule.forRoot({ document })))            // GET /openapi.json
+  .use(mount(scalarModule.forRoot({ pageTitle: "Notes API" }))) // GET /docs
+  .use(mount(notesController));
 ```
+
+The generated document is also available in code as `openapiModule.forRoot({ document }).openapiService.document()` — useful to write the spec to disk in a build script.
 
 ## Document security
 
-`apiBearerAuth()`, `apiBasicAuth()`, `apiKeyAuth()`, and `apiOAuth2()` record a route's security requirements in the spec. They are *documentation only* — they never enforce anything. Enforcement stays with the security middleware from step 8, so a protected route carries both:
+`apiBearerAuth()`, `apiBasicAuth()`, `apiKeyAuth()`, and `apiOAuth2()` record a route's security requirements in the spec. They are *documentation only* — they never enforce anything. Enforcement stays with the security middleware from step 9, so a protected router carries both; the scheme name (`bearer`) must match a key in `securitySchemes`:
 
 ```ts
 import { apiBearerAuth } from "@rhythmjs/openapi/security";
 
-notesController.delete(
-  "/:id",
-  apiBearerAuth(),                       // documents the requirement
-  requireAuthentication(),               // enforces it
-  requireRoles(["admin"]),
-  (ctx) => { /* ... */ },
-);
+export const notesController = documented(new RhythmRouter<NotesContext>({ name: "notes" }))
+  /* ... */
+  .use(authenticate)
+  .use(requireAuthentication<User>()) // enforces it
+  .use(apiBearerAuth())               // documents the requirement for every route after this point
+  .delete("/api/notes/:id", requireRoles(["admin"]), async (ctx) => { /* ... */ });
 ```
 
 <Callout title="Docs in production">
 
-The spec and UI are served unauthenticated by default — mount them behind auth middleware (or only in non-production builds) if your API surface is not public.
+The spec and UI are served unauthenticated by default — mount them behind auth middleware (or only in non-production builds) if your API surface is not public. `mount(module, condition)` makes the second easy: `mount(scalarModule.forRoot(), () => process.env.NODE_ENV !== "production")`.
 
 </Callout>

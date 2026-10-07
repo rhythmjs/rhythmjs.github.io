@@ -51,22 +51,22 @@ export const modelService = {
 
 ## The controller streams the reply [#controller]
 
-This is the chat controller, a `RhythmRouter` with a `/api` prefix. A handler fills `ctx.response`, and its body takes a byte stream, so `result.textStream` piped through a `TextEncoderStream` is the whole response, with no headers to set. `abortSignal` stops the model call when the client disconnects. Clients read the stream with `TextStreamChatTransport`; for tool calls or reasoning in the chat UI, use the SDK's UI message stream instead, which needs its own headers.
+This is the chat controller, a `RhythmRouter` with full `/api/...` paths. A handler fills `ctx.response`, and its body takes a byte stream, so `result.textStream` piped through a `TextEncoderStream` is the whole response, with no headers to set. `abortSignal` stops the model call when the client disconnects. Clients read the stream with `TextStreamChatTransport`; for tool calls or reasoning in the chat UI, use the SDK's UI message stream instead, which needs its own headers.
 
 ```ts
 // src/chat/chat.controller.ts
 import { RhythmRouter } from "@rhythmjs/router";
-import type { RhythmHttpContext } from "@rhythmjs/router/adapters/context";
+import type { RhythmHttpContext } from "@rhythmjs/router/context";
 import { convertToModelMessages, generateText, streamText, type UIMessage } from "ai";
 import type { ChatModel } from "./models";
 
 export type ChatContext = RhythmHttpContext & ChatModel;
 
-export const chatController = new RhythmRouter<ChatContext>({ prefix: "/api" })
-  .get("/model", (ctx) => {
+export const chatController = new RhythmRouter<ChatContext>()
+  .get("/api/model", (ctx) => {
     ctx.json(ctx.modelInfo);
   })
-  .post("/chat", async (ctx) => {
+  .post("/api/chat", async (ctx) => {
     const { messages } = (await ctx.request.json()) as { messages?: UIMessage[] };
     if (!Array.isArray(messages) || messages.length === 0) {
       ctx.error(400, "messages are required");
@@ -82,7 +82,7 @@ export const chatController = new RhythmRouter<ChatContext>({ prefix: "/api" })
 
     ctx.response.body = result.textStream.pipeThrough(new TextEncoderStream());
   })
-  .post("/summarize", async (ctx) => {
+  .post("/api/summarize", async (ctx) => {
     const { text } = (await ctx.request.json()) as { text?: string };
     if (!text) {
       ctx.error(400, "text is required");
@@ -101,53 +101,38 @@ export const chatController = new RhythmRouter<ChatContext>({ prefix: "/api" })
 
 ## The chat module owns the feature [#module]
 
-The module registers the awaited config module, derives the model from the configured id with the service, and mounts the controller.
+The module decorates its startup context with the service, `include`s the awaited config module, derives the model from the configured id, and mounts the controller.
 
 ```ts
 // src/chat/chat.module.ts
-import { configModule, type ConfigContext } from "@rhythmjs/config";
-import { derive, Rhythm } from "@rhythmjs/rhythm";
-import type { RhythmHttpContext } from "@rhythmjs/router/adapters/context";
+import { configModule } from "@rhythmjs/config";
+import { Rhythm, decorate, derive, include, mount } from "@rhythmjs/rhythm";
 import { load } from "../config/ai.config";
 import { chatController } from "./chat.controller";
 import { modelService } from "./models";
 
-type ConfiguredContext = RhythmHttpContext & ConfigContext<typeof load> & { modelService: typeof modelService };
-
-export const chatModule = new Rhythm<RhythmHttpContext, { modelService: typeof modelService }>({
-  name: "chat",
-  type: "module",
-})
-  .register(await configModule.forRoot(...load), ({ configService }) => ({ configService }))
-  .use(derive((ctx: ConfiguredContext) => ctx.modelService.create(ctx.configService.get("ai.model"))))
-  .use(chatController.middleware());
-
-chatModule.context.modelService = modelService;
+export const chatModule = new Rhythm({ name: "chat" })
+  .register(decorate(() => ({ modelService })))
+  .register(include(await configModule.forRoot(...load), ({ configService }) => ({ configService })))
+  .use(derive((ctx) => ctx.modelService.create(ctx.configService.get("ai.model"))))
+  .use(mount(chatController));
 ```
 
-## Register it in the app [#app]
+## Mount it in the app [#app]
 
-The app module only registers the chat module, before the template's own controller. Because `configModule.forRoot` is awaited when the chat module is imported, a bad config fails at startup and not at the first request; `main.ts` needs no setup call.
+The app module mounts the chat module next to the template's own controller. Because `configModule.forRoot` is awaited when the chat module is imported, a bad config fails at startup and not at the first request; `main.ts` needs no setup call.
 
 ```ts
 // src/app.module.ts
-import { Rhythm } from "@rhythmjs/rhythm";
-import type { RhythmHttpContext } from "@rhythmjs/router/adapters/context";
+import { Rhythm, decorate, mount } from "@rhythmjs/rhythm";
 import { appController } from "./app.controller";
 import { appService } from "./app.service";
 import { chatModule } from "./chat/chat.module";
 
-export const appModule = new Rhythm<RhythmHttpContext, { appService: typeof appService }>({
-  name: "app",
-  type: "module",
-})
-  .register(chatModule)
-  .use(appController.middleware())
-  .use((ctx) => {
-    ctx.json({ success: false, status: 404, message: "Not Found" }, 404);
-  });
-
-appModule.context.appService = appService;
+export const appModule = new Rhythm({ name: "app" })
+  .register(decorate(() => ({ appService })))
+  .use(mount(appController))
+  .use(mount(chatModule));
 ```
 
 ```ts

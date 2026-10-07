@@ -29,6 +29,13 @@ export function createNotesService(store: Map<string, Note> = new Map()) {
       store.set(note.id, note);
       return note;
     },
+    update(id: string, patch: { title?: string; content?: string }): Note | undefined {
+      const note = store.get(id);
+      if (!note) return undefined;
+      const updated = { ...note, ...patch };
+      store.set(id, updated);
+      return updated;
+    },
     remove(id: string): boolean {
       return store.delete(id);
     },
@@ -38,53 +45,55 @@ export function createNotesService(store: Map<string, Note> = new Map()) {
 export type NotesService = ReturnType<typeof createNotesService>;
 ```
 
-## Assign once, use everywhere
+## Add once, use everywhere
 
-A `Rhythm` kernel carries a startup context: a plain object, `module.context`, typed by the kernel's second generic. Assign built services onto it; every run starts from a copy of it merged with the request input, so everything mounted in the module sees the values on `ctx`. Services are built eagerly, in plain code — dependency injection is a function argument:
+A `Rhythm` app carries a startup context: values built once, before the first request. `register(decorate(() => ({ ... })))` runs right away and adds the returned fields to that context; every request then starts from a copy of it, so everything mounted in the app sees the values on `ctx`. Services are built eagerly, in plain code — dependency injection is a function argument:
 
 ```ts
-export const appModule = new Rhythm<
-  RhythmHttpContext,
-  { notesService: NotesService; statsService: StatsService }
->({ name: "app", type: "module" });
-
-const notesService = createNotesService();
-appModule.context.notesService = notesService;
-appModule.context.statsService = createStatsService(notesService);
-
-appModule.use(notesController.middleware());
+// src/app.module.ts
+export const appModule = new Rhythm({ name: "app" })
+  .register(decorate(() => ({ appService })))
+  .register(decorate(() => ({ notesService: createNotesService() })))
+  .use(mount(appController))
+  .use(mount(notesController));
 ```
 
-TypeScript cannot infer a type from a later property assignment, so the shape is declared once as the second generic. Nothing checks at runtime that every declared key was assigned, so assign them next to the declaration.
+Nothing is declared twice: the app's type grows with each `decorate`, and a step can read only what an earlier step added. A later `register(decorate(({ notesService }) => ...))` sees the service above it, which is how `statsService` would be built from `notesService`.
 
-The controller declares what it needs in its context type and reads it off `ctx`:
+The controller declares what it needs in its context type and reads it off `ctx` — the type-level equivalent of constructor injection. `mount()` checks that the app can supply it, so forgetting the `decorate` is a compile error:
 
 ```ts
-export type NotesContext = RhythmHttpContext & {
-  notesService: NotesService;
-};
+// src/notes/notes.controller.ts
+import { RhythmRouter } from "@rhythmjs/router";
+import type { NotesService } from "./notes.service";
 
-export const notesController = new RhythmRouter<NotesContext>({ prefix: "/api/notes" })
-  .get("/", (ctx) => {
+export type NotesContext = { notesService: NotesService };
+
+export const notesController = new RhythmRouter<NotesContext>({ name: "notes" })
+  .get("/api/notes", (ctx) => {
     ctx.json(ctx.notesService.list());
   });
 ```
 
+The in-memory `Map` and routes of the previous step move into the service; the controller only translates between HTTP and service calls.
+
 ## Closing resources
 
-Rhythm has no lifecycle: no setup hook, no teardown, no dispose. Whoever creates a resource closes it. A service that holds something open exposes `close()`, and the code that created it calls that on shutdown — `main.ts` in the next steps:
+Whoever creates a resource closes it, and `register` takes a second argument for exactly that: a cleanup that runs when the app is stopped, in reverse order of registration. A service that holds something open exposes `close()`:
 
 ```ts
-export async function createDatabase(url: string) {
-  const client = connect(url);
-  return { db: wrap(client), close: () => client.close() };
-}
+const database = createDatabase(url);
 
-// main.ts
-const database = await createDatabase(process.env.DATABASE_URL!);
-appModule.context.db = database.db;
-// handlers see ctx.db; main.ts owns database.close()
+export const appModule = new Rhythm({ name: "app" }).register(
+  decorate(() => ({ db: database.db })),
+  () => database.close(), // runs on appModule.stop()
+);
+
+// main.ts, on SIGTERM
+await appModule.stop();
 ```
+
+If the app is built from child modules with `include()` (next step), the child's own cleanups are registered with the parent automatically, so one `stop()` closes the whole tree.
 
 ## Per-request values
 
@@ -93,14 +102,14 @@ Startup values are per-application. For per-request values — the current user,
 ```ts
 import { derive } from "@rhythmjs/rhythm";
 
-const withRequestMeta = derive((ctx: RhythmHttpContext) => ({
+const withRequestMeta = derive((ctx: { request: Request }) => ({
   startedAt: Date.now(),
   ua: ctx.request.headers.get("user-agent") ?? "unknown",
 }));
 
-router.use(withRequestMeta).get("/", (ctx) => {
+new RhythmRouter().use(withRequestMeta).get("/me", (ctx) => {
   ctx.json({ ua: ctx.ua }); // typed
 });
 ```
 
-The rule of thumb: `context` for things built once and shared, `derive()` for things computed per request. Both put values on `ctx`; only their lifetimes differ.
+The rule of thumb: `decorate()` for things built once and shared, `derive()` for things computed per request. Both put values on `ctx`; only their lifetimes differ.

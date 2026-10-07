@@ -23,6 +23,8 @@ const router = new RhythmRouter().get("/users/ada", intercept(User), (ctx) => {
 // GET /users/ada => 200 {"fullName":"Ada Lovelace"}
 ```
 
+Use it on the router (`router.use(intercept(schema))` for every route, or as a route's handler as above). Like `filter`, it belongs on the router rather than the app, which also keeps its failure response inside the router's own error handling.
+
 ## What gets intercepted
 
 Only successful responses with string bodies are touched: the status must be 2xx and `ctx.response.body` must be a string. Error responses, streams, buffers, and null bodies pass through untouched, which is also why error payloads written by [filter](/middleware/filter/) (non-2xx) never collide with an intercept schema.
@@ -31,7 +33,7 @@ The string body is parsed as JSON first; if parsing fails, the *raw string* is v
 
 ## Writing the result back [#writing-the-result]
 
-The schema’s output replaces the body. An object or array result is `JSON.stringify`-ed and the `content-type` is set to `application/json; charset=utf-8`. A string result is written verbatim and the content-type is left alone, so text stays text.
+The schema’s output replaces the body. An object or array result is written with `ctx.json`, so the `content-type` is set to `application/json; charset=utf-8`. A string result is written verbatim and the content-type is left alone, so text stays text.
 
 Transforms are first-class: rename fields, derive values, or collapse a database row into an API shape in one place instead of in every handler.
 

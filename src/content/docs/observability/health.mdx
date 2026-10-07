@@ -4,24 +4,28 @@ lead: "Concurrent health indicators behind cached liveness and readiness probes,
 description: "Health indicators, liveness and readiness probes, and graceful shutdown for Rhythm apps."
 ---
 
-## The health module
+## The health service and module [#service]
 
-`@rhythmjs/observability/health` is a kernel module rather than a middleware. `healthModule.forRoot(options)` builds a `healthService` and assigns it to the module context; the options are `indicators` (the checks below), `timeout` (per-indicator default, `5000` ms), and `cacheTtl` (readiness report cache, `1000` ms).
+`@rhythmjs/observability/health` is a startup module rather than a middleware. `createHealthService(options)` builds a `HealthService`; the options are `indicators` (the checks below), `timeout` (per-indicator default, `5000` ms), and `cacheTtl` (readiness report cache, `1000` ms). `healthModule.forRoot(options)` is the same service as a Rhythm module: a child app whose startup context holds a `healthService`, which you pull into your app with `include`.
 
 ```ts
-import { Rhythm } from "@rhythmjs/rhythm";
+import { Rhythm, include } from "@rhythmjs/rhythm";
 import { healthModule } from "@rhythmjs/observability/health";
 
 const app = new Rhythm().register(
-  healthModule.forRoot({
-    indicators: [
-      { name: "db", check: async () => ({ status: (await db.ping()) ? "up" : "down" }) },
-      { name: "search", critical: false, timeout: 1000, check: () => search.health() },
-    ],
-  }),
-  ({ healthService }) => ({ healthService }),
+  include(
+    healthModule.forRoot({
+      indicators: [
+        { name: "db", check: async () => ({ status: (await db.ping()) ? "up" : "down" }) },
+        { name: "search", critical: false, timeout: 1000, check: () => search.health() },
+      ],
+    }),
+    (health) => ({ healthService: health.healthService }),
+  ),
 );
 ```
+
+Because the module creates its own instance, code outside the request context (`healthRoutes`, `gracefulShutdown`) cannot reach it. When you need to hand the service to those, create it yourself with `createHealthService` and keep the reference, as the sections below do.
 
 ## Indicators
 
@@ -35,28 +39,36 @@ The service exposes the two probe questions separately. `live()` is synchronous 
 
 ## Serving the probes [#serving-probes]
 
-`healthRoutes(service, { path? })` returns a `RhythmRouter` mounted at `/health` by default: `GET /health/live` always answers `200` with the liveness snapshot, and `GET /health/ready` answers the report with `200` when up and `503` when down; the status code Kubernetes-style readiness probes act on.
+`healthRoutes(service, { path? })` returns a `RhythmRouter` (named `"health"`) that you add to the app with `mount`. Its routes are the full paths `${path}/live` and `${path}/ready`, with `path` defaulting to `/health`; mounting adds no prefix, so use `path` to relocate them. `GET /health/live` always answers `200` with the liveness snapshot, and `GET /health/ready` answers the report with `200` when up and `503` when down; the status code Kubernetes-style readiness probes act on.
 
 ```ts
-import { healthRoutes } from "@rhythmjs/observability/health";
+import { Rhythm, mount } from "@rhythmjs/rhythm";
+import { createHealthService, healthRoutes } from "@rhythmjs/observability/health";
 
-router.use(healthRoutes(healthService).middleware());
+const healthService = createHealthService({ indicators });
+
+const app = new Rhythm().use(mount(healthRoutes(healthService)));
 // GET /health/live -> 200 { status: "up", uptime, timestamp }
 // GET /health/ready -> 200 | 503 HealthReport
 ```
 
+By default `/ready` returns only each check's `status` and `durationMs`. `details: true` also returns indicator `details` and error messages, which can reveal hosts and connection errors, so only enable it behind authentication. `service.ready()` always returns the full report for in-process use.
+
 ## Graceful shutdown
 
-`gracefulShutdown(options)` ties the pieces to process signals (`SIGTERM` and `SIGINT` by default). On the first signal it runs one ordered sequence: flip the `healthService` to shutting-down (readiness starts failing, so load balancers drain the instance), wait `drainMs` (default `0`), run your `close` hook (stop servers, close databases, `queueService.close()`, `scheduler.stop()`), then exit `0`. The helper owns no resources itself; whatever you created, `close` releases. A force timer - `timeoutMs`, default `10 000` ms, unref'd so it never keeps the process alive, and exits `1` if the sequence hangs. Repeated signals are ignored once shutdown has started.
+`gracefulShutdown(options)` ties the pieces to process signals (`SIGTERM` and `SIGINT` by default). On the first signal it runs one ordered sequence: flip the `healthService` to shutting-down (readiness starts failing, so load balancers drain the instance), wait `drainMs` (default `0`), run your `close` hook (stop the server, `app.stop()` to run the app's registered cleanups, close databases), then exit `0`. The helper owns no resources itself; whatever you created, `close` releases. A force timer (`timeoutMs`, default `10 000` ms, unref'd so it never keeps the process alive) exits `1` if the sequence hangs. Repeated signals are ignored once shutdown has started.
 
 ```ts
+import { toFetchHandler } from "@rhythmjs/router/fetch";
 import { gracefulShutdown } from "@rhythmjs/observability/health";
+
+const server = Bun.serve({ fetch: toFetchHandler(app) });
 
 const shutdown = gracefulShutdown({
   healthService,
   close: async () => {
-    server.stop();
-    await db.close();
+    await server.stop();
+    await app.stop();
   },
   drainMs: 5000,
 });
@@ -65,4 +77,4 @@ const shutdown = gracefulShutdown({
 process.on("uncaughtException", () => void shutdown());
 ```
 
-Set `exit: false` to run the sequence without exiting the process, useful under test runners, where the returned trigger function replaces the signal.
+Set `exit: false` (and `signals: []`) to run the sequence without registering signal handlers or exiting the process, useful under test runners, where the returned trigger function replaces the signal.

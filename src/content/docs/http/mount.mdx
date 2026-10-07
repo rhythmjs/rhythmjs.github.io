@@ -1,63 +1,59 @@
 ---
 title: "Mounting handlers"
 lead: "Hand a path, and everything beneath it, to a fetch-style handler from another library: Better Auth, a webhook SDK, a tRPC server."
-description: "mount(path, handler) runs a fetch-style handler for matching paths with rou3 patterns, and passes every other request on."
+description: "Mount a (request) => Response handler at a path with mount(fromFetch(handler), pathIs(pattern)), no adapter module needed."
 ---
 
 ## Mount a fetch handler [#mount]
 
-Many libraries expose a Web-standard `(request) => Response` handler. `mount(path, handler)` from `@rhythmjs/http/mount` runs it for the paths you give and lets every other request carry on through the app.
+Many libraries expose a Web-standard `(request) => Response` handler. There is no dedicated module for it: `fromFetch` from `@rhythmjs/router/fetch` wraps the handler as something `mount` accepts, and `pathIs` from `@rhythmjs/router/path` is the condition that limits it to the paths you give. Every other request carries on through the app untouched.
 
 ```bash
-bun add @rhythmjs/http @rhythmjs/rhythm @rhythmjs/router
+bun add @rhythmjs/rhythm @rhythmjs/router
 ```
 
 ```ts
-import { mount } from "@rhythmjs/http/mount";
+import { Rhythm, mount } from "@rhythmjs/rhythm";
+import { fromFetch } from "@rhythmjs/router/fetch";
+import { pathIs } from "@rhythmjs/router/path";
 
-const app = new Rhythm<RhythmHttpContext>()
-  .use(mount("/api/auth/**", (ctx) => auth.handler(ctx.request)))
-  .use(router.middleware());
+const app = new Rhythm()
+  .use(mount(fromFetch((request) => auth.handler(request)), pathIs("/api/auth/**")))
+  .use(mount(api));
 ```
 
-When the handler returns a `Response`, its status, headers and body stream become the response and the chain stops. Every `Set-Cookie` header is kept, and headers set earlier in the chain (CORS, for example) stay unless the `Response` sets them again.
+`fromFetch` copies the returned `Response` onto `ctx.response`: its status, status text, headers and body stream. Every `Set-Cookie` header is kept. Other headers replace same-named headers set earlier in the chain (CORS, for example) and leave the rest alone.
 
 ## Paths follow the router's patterns [#paths]
 
-`path` uses the same rou3 conventions as [`RhythmRouter`](/router/): static segments, `:name` parameters, `*` for one segment and `**` as the catch-all. The HTTP method is not part of the match.
+`pathIs(pattern)` uses the same rou3 conventions as [`RhythmRouter`](/router/): static segments, `:name` parameters, `*` and `**`. The HTTP method is not part of the match.
 
 - `"/api/auth/**"` matches `/api/auth` and everything beneath it at any depth, but not `/api/authx`. This is the usual choice for a library that owns a whole prefix.
-- `"/api/auth/*"` matches one segment only, so it would miss `/api/auth/sign-up/email`.
 - `"/hooks/:id/**"` matches a named segment followed by anything.
 - `"/**"` mounts the whole app.
 
-A path that does not start with `/` throws a `TypeError` when you call `mount`.
+A pattern that does not start with `/` throws a `TypeError` when you call `pathIs`. Prefer `**` over a trailing `*` for a catch-all: in the current rou3 a trailing `*` also matches deeper paths, so `"/api/auth/*"` does reach `/api/auth/sign-up/email`.
 
-## Return a Response, or behave like middleware [#handler]
+## It is a mount, so the chain continues [#handler]
 
-The handler is a middleware, `(ctx, next) => Response | void`. Returning a `Response` ends the request there. Returning nothing leaves the decision to the handler, which can write `ctx.response` itself or call `next()`.
+`mount(plugin, condition)` runs the plugin when the condition is true and then always calls `next()`. That means the response is written by the handler, and whatever follows in the app still runs: a later `mount(api)` finds no matching route under `/api/auth/**` and leaves the response alone, and middleware that acts after `next()`, such as `compress()` or `secureHeaders()`, sees the handler's response like any other.
 
-```ts
-mount("/api/**", async (ctx, next) => {
-  ctx.response.headers.set("x-mounted", "true");
-  await next();
-});
-```
-
-An error thrown by the handler propagates like any middleware error, so a [`filter()`](/middleware/filter/) above the mount maps it.
+An error thrown by the handler is wrapped (`mounted module "fetch" failed`) with the original as its `cause`; [`errorToResponse`](/router/) looks through the `cause` chain for a declared status.
 
 ## Order matters [#order]
 
-Middleware registered before the mount runs for the mounted path too, and one registered after it does not, because the mount ends the request. Put cross-cutting middleware such as [`cors()`](/security/protection/) first, so a preflight is answered before the handler and the handler's responses carry the headers.
+Middleware registered before the mount runs for the mounted path too; put cross-cutting middleware such as [`cors()`](/security/protection/) first, so a preflight is answered before the handler and the handler's responses carry the headers.
 
 ```ts
-.use(cors({ origin: frontendOrigin, credentials: true }))
-.use(mount("/api/auth/**", (ctx) => auth.handler(ctx.request)))
+const app = new Rhythm<{}, RhythmHttpContext>()
+  .use(cors({ origin: frontendOrigin, credentials: true }))
+  .use(mount(fromFetch((request) => auth.handler(request)), pathIs("/api/auth/**")))
+  .use(mount(api));
 ```
 
 ## Things to check
 
-- Rhythm middleware registered after the mount does not see the requests it answers, so rate-limit or authenticate those paths with the mounted library's own settings.
+- Router middleware such as `rateLimit()` or `requireAuthentication()` lives on a [`RhythmRouter`](/router/) and only runs for that router's routes, so it does not guard a mounted fetch handler. Protect those paths with the mounted library's own settings, or put app-level middleware before the mount.
 - The handler reads `ctx.request`; if an earlier middleware already consumed the body, clone it first.
 
-The [Better Auth recipe](/integrations/better-auth/) mounts its handler this way, with CORS in front. The signature is in the [API reference](/http/api/#mount).
+The [Better Auth recipe](/integrations/better-auth/) mounts its handler this way, with CORS in front. The functions are described in the [API reference](/http/api/#mount).

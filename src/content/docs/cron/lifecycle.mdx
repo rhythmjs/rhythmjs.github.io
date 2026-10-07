@@ -1,0 +1,82 @@
+---
+title: "Lifecycle and errors"
+lead: "Start jobs with the app, stop them with it, run one on demand, and decide what a failing run does."
+description: "Start and stop cron jobs with startCron or start/stop, run and preview jobs, handle errors with onError, understand durability and replicas, and test without waiting."
+---
+
+## Start and stop with the app [#start-cron]
+
+`startCron(cron)` is the usual wiring: `app.register(startCron(cron))` starts every job with the app's startup context and stops them when `app.stop()` runs. The instance must be compatible with the app's startup context, which the types check.
+
+```ts
+const app = new Rhythm().register(decorate(() => ({ db }))).register(startCron(cron));
+
+await app.callback()(); // jobs are scheduled
+await app.stop(); // jobs are stopped
+```
+
+## Manual control [#manual]
+
+Without an app, drive the instance directly. `start(input?)` schedules every job (calling it while running does nothing), `stop()` cancels them, and `running` reports whether anything is scheduled. `cron.jobs` lists `{ name, schedule, tz }` for each registered job.
+
+```ts
+cron.start({ db });
+console.log(cron.running); // true
+cron.stop();
+```
+
+`RhythmCron` is `Disposable`, so `using cron = ...` stops it at the end of the scope.
+
+## Run now, preview next [#run-next]
+
+`run(name, input?)` executes a job immediately through the full chain, middleware included, with the given context (or the one passed to `start`). Unlike a scheduled fire, its errors reject, so a caller such as an HTTP route can report them. `next(name, from?)` returns the next fire time as a `Date`, or `null`.
+
+```ts
+await cron.run("cleanup", { db });
+cron.next("report")?.toISOString(); // next weekday 09:30 in the job's zone
+```
+
+## Errors [#errors]
+
+A scheduled run that throws never stops the job: the error goes to the `onError(error, ctx)` option and the job keeps its schedule. The default logs with `console.error`. Set your own to report, count, or alert.
+
+```ts
+const cron = new RhythmCron<{ db: Db }>({
+  onError(error, ctx) {
+    reportFailure(ctx.job.name, error);
+  },
+});
+```
+
+## No overlap [#no-overlap]
+
+Bun starts the next fire only after the current run settles. A slow handler never stacks runs of itself; a fire that would have happened during a long run is skipped, not queued.
+
+## Durability and replicas [#durability]
+
+<Callout title="Scheduling lives in your process">
+
+Cron here is in-process. Nothing is persisted, so runs missed while the app was down are not replayed, and with several replicas every one of them fires every job. If a job must run on one instance only, take a lock in `use()` (a Redis `SET NX`, a database advisory lock) and call `next()` only when you hold it.
+
+</Callout>
+
+By default the timers keep the process alive. Pass `unref: true` to let the process exit when nothing else is running, which suits scripts and tests.
+
+## Test without waiting [#testing]
+
+Do not wait for the clock. Call `run(name, input)` with a fake context and assert on the effects, and use `next(name, from)` to check a schedule:
+
+```ts
+import { expect, test } from "bun:test";
+
+test("cleanup removes expired sessions", async () => {
+  const db = fakeDb();
+  await cron.run("cleanup", { db });
+  expect(db.sessions).toBe(0);
+});
+
+test("report fires on weekday mornings", () => {
+  const friday = new Date("2026-01-02T00:00:00Z");
+  expect(cron.next("report", friday)?.getUTCHours()).toBe(14);
+});
+```

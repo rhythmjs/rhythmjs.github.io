@@ -18,7 +18,7 @@ router.use(etag()).get("/report", (ctx) => {
 
 ## Declaring cache policy [#cache-control]
 
-`cacheControl(options)` sets a `Cache-Control` header from typed directives - `maxAge`, `sMaxAge`, `staleWhileRevalidate`, `staleIfError`, `public`, `private`, `noCache`, `noStore`, `mustRevalidate`, `immutable`, and never overwrites a header a handler already set. `formatCacheControl(options)` exposes the formatter on its own.
+`cacheControl(options)` sets a `Cache-Control` header from typed directives (`maxAge`, `sMaxAge`, `staleWhileRevalidate`, `staleIfError`, `public`, `private`, `noCache`, `noStore`, `mustRevalidate`, `immutable`) and never overwrites a header a handler already set. Time values must be non-negative integers, or creating the middleware throws a `RangeError`. `formatCacheControl(options)` exposes the formatter on its own.
 
 ```ts
 import { cacheControl } from "@rhythmjs/http/cache";
@@ -29,7 +29,7 @@ router.use(cacheControl({ public: true, maxAge: 60, staleWhileRevalidate: 600 })
 
 ## The server-side cache [#server-cache]
 
-`cache(options?)` memoizes whole responses. Only `GET` and `HEAD` pass through it; the default key is `method + pathname + search`, and `vary: ["accept-language"]` folds chosen request headers into the key. A hit replays the stored status, headers, and body with `Age` and `x-cache: HIT`; a miss runs the chain, tags `x-cache: MISS`, and stores the response for `ttl` seconds (default 60).
+`cache(options?)` memoizes whole responses. Only `GET` and `HEAD` pass through it, and a request that carries a `Cookie` header bypasses it entirely (no lookup, no store) unless you set `cookies: true`; enable that only when responses do not depend on cookies, or fold the relevant cookie into the key with `vary: ["cookie"]`. The default key is `method + pathname + search`, and `vary: ["accept-language"]` folds chosen request headers into the key. A hit replays the stored status, headers, and body with `Age` and `x-cache: HIT`; a miss runs the chain, tags `x-cache: MISS`, and stores the response for `ttl` seconds (default 60).
 
 ```ts
 import { cache } from "@rhythmjs/http/cache";
@@ -39,11 +39,11 @@ router.use(cache({ ttl: 30, vary: ["accept-language"] })).get("/pricing", (ctx) 
 });
 ```
 
-Responses are skipped when they are not `200`, have no body, say `no-store` or `private`, are server-sent events, carry `Vary: *` or `Set-Cookie`, have a stream body, answer a request with `Authorization` (unless the response opts in with `public`, `s-maxage`, or `must-revalidate`), or when your `filter(ctx)` hook returns false — a shared cache must never replay one user's response to another. The `CacheStore` contract (`get`/`set`/`delete`) is async-friendly; the bundled `memoryCacheStore()` is an LRU capped at `maxEntries` (default 1024) entries of at most `maxEntryBytes` (default 1 MiB) each, and sweeps expired entries opportunistically.
+Responses are skipped when they are not `200`, have no body, say `no-store` or `private`, are server-sent events, carry `Vary: *` or `Set-Cookie`, have a stream body, answer a request with `Authorization` (unless the response opts in with `public`, `s-maxage`, or `must-revalidate`), or when your `filter(ctx)` hook returns false: a shared cache must never replay one user's response to another. The `CacheStore` contract (`get`/`set`/`delete`) is async-friendly; the bundled `memoryCacheStore()` is an LRU capped at `maxEntries` (default 1024) entries of at most `maxEntryBytes` (default 1 MiB) each, and sweeps expired entries opportunistically. Back it with Redis or similar to share entries across processes, and invalidate with `store.delete(key)`.
 
 ## Compression on Bun’s native codecs [#compression]
 
-`compress(options?)` negotiates `zstd`, `gzip`, and `deflate` against `Accept-Encoding` (respecting `;q=0`) in that default preference order. Buffered bodies are compressed *synchronously* with `Bun.zstdCompressSync` / `Bun.gzipSync`; streaming bodies pipe through `CompressionStream`, which cannot speak zstd, so a streaming response falls to gzip. HTTP `deflate` means zlib-wrapped, which `Bun.deflateSync` does not produce, so deflate always takes the stream path too.
+`compress(options?)` negotiates `zstd`, `gzip`, and `deflate` against `Accept-Encoding` (respecting `;q=0`) in that default preference order (`encodings` changes it). Buffered bodies are compressed *synchronously* with `Bun.zstdCompressSync` / `Bun.gzipSync`; streaming bodies pipe through `CompressionStream`, which cannot speak zstd, so a streaming response falls to gzip. HTTP `deflate` means zlib-wrapped, which `Bun.deflateSync` does not produce, so deflate always takes the stream path too.
 
 ```ts
 import { compress } from "@rhythmjs/http/compress";
@@ -57,4 +57,11 @@ Guardrails: bodies under `threshold` bytes (default 1024; streams always compres
 
 ## Stacking the three [#stack-order]
 
-Register `compress` before `etag` so the tag is computed over the uncompressed body and stays stable across encodings; put `cache` outside both to store the original response and let each client negotiate its own encoding on replay.
+All three act after `next()`, on the finished response, so registration order decides what each one sees. Register `compress` before `etag` (outermost first) so the tag is computed over the uncompressed body and stays stable across encodings. Register `cache` inside both, closest to the handler: it then stores the original, uncompressed response, and a hit still runs through `compress`, so each client negotiates its own encoding. A `cache` placed outside them would store an already compressed body and replay it to everyone. (A replayed hit carries a byte body, and `etag` only tags string bodies, so hits do not get an `ETag`.)
+
+```ts
+const app = new Rhythm<{}, RhythmHttpContext>()
+  .use(compress())
+  .use(etag())
+  .use(mount(api)); // api = new RhythmRouter().use(cache({ ttl: 30 })).get(...)
+```

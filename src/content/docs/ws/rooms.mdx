@@ -1,0 +1,116 @@
+---
+title: "Rooms and pub/sub"
+lead: "Fan-out is Bun's native topic pub/sub. One endpoint, rooms joined by message, memberships kept in ws.data, and pushes from plain HTTP routes."
+description: "Rooms with Bun pub/sub: subscribe and publish, joining by message, authorizing joins, tracking membership in ws.data, and publishing from HTTP routes."
+---
+
+## Topics [#topics]
+
+Pub/sub is Bun's: a peer subscribes to a topic string, and a publish to that topic is delivered to every subscriber, in-process and without a loop over sockets in your code. A room is just a topic name you choose.
+
+```ts
+const ws = new RhythmWs().ws("/ws/rooms/:id", {
+  open(peer) {
+    peer.subscribe(`room:${peer.data.id}`);
+  },
+  message(peer, message) {
+    peer.publish(`room:${peer.data.id}`, String(message));
+  },
+});
+```
+
+`peer.publish` delivers to every other subscriber of the topic; set `publishToSelf: true` in [`createWebsocket`](/ws/serving/) to include the sender. `peer.send` answers one socket only. Subscriptions end when the socket closes, with no cleanup of your own.
+
+## One endpoint, join by message [#join-by-message]
+
+A path param per room (`/ws/rooms/:id`) is the shortest thing that works. For most apps a single endpoint is better: the client opens `/ws` once, then says which room it wants. One socket survives switching rooms, the room is validated in one place, and `upgrade` stays about identity. The current room lives on `ws.data`, which is a mutable object per connection:
+
+```ts
+import { RhythmWs } from "@rhythmjs/ws";
+
+type Command = { type: "join"; room: string } | { type: "say"; text: string };
+
+const ws = new RhythmWs().ws("/ws", {
+  upgrade() {
+    return { handle: crypto.randomUUID().slice(0, 6), room: undefined as string | undefined };
+  },
+  message(peer, message) {
+    const command = JSON.parse(String(message)) as Command;
+
+    if (command.type === "join") {
+      if (peer.data.room) {
+        peer.unsubscribe(`room:${peer.data.room}`);
+        peer.publish(`room:${peer.data.room}`, `${peer.data.handle} left`);
+      }
+      peer.data.room = command.room;
+      peer.subscribe(`room:${command.room}`);
+      peer.publish(`room:${command.room}`, `${peer.data.handle} joined`);
+      return;
+    }
+
+    if (peer.data.room) peer.publish(`room:${peer.data.room}`, `${peer.data.handle}: ${command.text}`);
+  },
+  close(peer) {
+    if (peer.data.room) peer.publish(`room:${peer.data.room}`, `${peer.data.handle} left`);
+  },
+});
+```
+
+The browser side is a plain socket and two messages:
+
+```ts
+const socket = new WebSocket("ws://localhost:3000/ws");
+socket.onopen = () => socket.send(JSON.stringify({ type: "join", room: "lobby" }));
+// later: socket.send(JSON.stringify({ type: "say", text: "hello" }));
+```
+
+<Callout title="Parse defensively">
+
+`JSON.parse` throws on bad input, and a client controls every byte it sends. Wrap the parse (or validate with a schema) and ignore or close on malformed commands. Keep the example above short, but do not ship it unguarded.
+
+</Callout>
+
+## Authorizing joins [#authorizing-joins]
+
+A join is a request for access, so the handler is where you authorize it. Identity was established at the handshake and lives on `ws.data`; the `join` branch checks that identity against the room before subscribing. Reject with a message to that peer, or close the socket:
+
+```ts
+const ws = new RhythmWs().use(session()).ws("/ws", {
+  upgrade(ctx) {
+    const userId = ctx.session.get<string>("userId");
+    if (!userId) return ctx.error(401);
+    return { userId, rooms: new Set<string>() };
+  },
+  async message(peer, message) {
+    const command = JSON.parse(String(message)) as Command;
+    if (command.type !== "join") return;
+
+    if (!(await roomsService.canJoin(peer.data.userId, command.room))) {
+      peer.send(JSON.stringify({ type: "error", message: "forbidden", room: command.room }));
+      return;
+    }
+    peer.data.rooms.add(command.room);
+    peer.subscribe(`room:${command.room}`);
+  },
+});
+```
+
+Tracking membership in `ws.data` (here a `Set`, so one connection can sit in several rooms) is also what makes the other handlers safe: a `say` message names a room, and the handler only publishes to it when `peer.data.rooms.has(room)`. Never publish to a topic just because the client named it.
+
+## Publishing from HTTP routes [#publishing-from-http]
+
+Bun's server is `ctx.server` in every HTTP handler, and it publishes to any topic with no socket in hand. A normal route can announce into a room, or notify a single user whose connection subscribed to `user:<id>` at open:
+
+```ts
+const http = new RhythmRouter()
+  .post("/api/rooms/:id/announce", async (ctx) => {
+    ctx.server?.publish(`room:${ctx.params.id}`, await ctx.request.text());
+    ctx.json({ ok: true }, 201);
+  })
+  .post("/api/notify/:user", async (ctx) => {
+    ctx.server?.publish(`user:${ctx.params.user}`, JSON.stringify(await ctx.request.json()));
+    ctx.json({ ok: true }, 201);
+  });
+```
+
+`ctx.server` is `undefined` only when the handler runs without Bun's server (for example in a unit test that calls the app directly), hence the optional chaining. Per-user push is the same idea as any room: subscribe each connection to `user:${peer.data.userId}` in `open`, then publish to that topic from anywhere.

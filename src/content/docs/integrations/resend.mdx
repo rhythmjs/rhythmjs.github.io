@@ -14,7 +14,7 @@ bun add resend
 
 ## A service wraps the client [#service]
 
-The client holds only an API key, so there is nothing to close. A plain service creates it lazily and sends; the app module puts the service on its startup context, and tests stub it. Until a domain is verified, send from Resend's `onboarding@resend.dev`, the default here.
+The client holds only an API key, so there is nothing to close. A plain service creates it lazily and sends; the app module decorates its startup context with the service, and tests stub it. Until a domain is verified, send from Resend's `onboarding@resend.dev`, the default here.
 
 ```ts
 // src/mail/mail.service.ts
@@ -43,7 +43,7 @@ export function escapeHtml(value: string): string {
 ```ts
 // src/app.controller.ts
 import { RhythmRouter } from "@rhythmjs/router";
-import type { RhythmHttpContext } from "@rhythmjs/router/adapters/context";
+import type { RhythmHttpContext } from "@rhythmjs/router/context";
 import type { appService } from "./app.service";
 import { escapeHtml, type mailService } from "./mail/mail.service";
 
@@ -77,23 +77,14 @@ export const appController = new RhythmRouter<AppContext>()
 
 ```ts
 // src/app.module.ts
-import { Rhythm } from "@rhythmjs/rhythm";
-import type { RhythmHttpContext } from "@rhythmjs/router/adapters/context";
+import { Rhythm, decorate, mount } from "@rhythmjs/rhythm";
 import { appController } from "./app.controller";
 import { appService } from "./app.service";
 import { mailService } from "./mail/mail.service";
 
-export const appModule = new Rhythm<
-  RhythmHttpContext,
-  { appService: typeof appService; mailService: typeof mailService }
->({ name: "app", type: "module" })
-  .use(appController.middleware())
-  .use((ctx) => {
-    ctx.json({ success: false, status: 404, message: "Not Found" }, 404);
-  });
-
-appModule.context.appService = appService;
-appModule.context.mailService = mailService;
+export const appModule = new Rhythm({ name: "app" })
+  .register(decorate(() => ({ appService, mailService })))
+  .use(mount(appController));
 ```
 
 ## Things to check

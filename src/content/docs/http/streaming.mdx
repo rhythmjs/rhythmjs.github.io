@@ -6,34 +6,45 @@ description: "Server-sent events and streaming response headers, plus a deadline
 
 ## Server-sent events
 
-`sse(options?)` stamps the headers an EventSource endpoint needs: `content-type: text/event-stream`, `cache-control: no-cache, no-transform`, `connection: keep-alive`, and `x-accel-buffering: no` for nginx-style proxies. It only fills headers the handler has not set, and any `headers` you pass in options always win. Pair it with a `ReadableStream` body:
+`sse(options?)` stamps the headers an EventSource endpoint needs: `content-type: text/event-stream; charset=utf-8`, `cache-control: no-cache, no-transform`, `connection: keep-alive`, and `x-accel-buffering: no` for nginx-style proxies. It runs after the handler and only fills headers that are still unset, and any `headers` you pass in options always win. Use it as a route’s first handler or with `router.use`, and pair it with a `ReadableStream` body:
 
 ```ts
 import { sse } from "@rhythmjs/http/sse";
 
-router.use(sse()).get("/ticker", (ctx) => {
+router.get("/ticker", sse(), (ctx) => {
+  const encoder = new TextEncoder();
+  let timer: ReturnType<typeof setInterval>;
   ctx.response.body = new ReadableStream({
-    async start(controller) {
-      for (let n = 0; ; n++) {
-        controller.enqueue(new TextEncoder().encode(`data: tick ${n}
-
-`));
-        await Bun.sleep(1000);
-      }
+    start(controller) {
+      let n = 0;
+      timer = setInterval(() => controller.enqueue(encoder.encode(`data: tick ${n++}\n\n`)), 1000);
+    },
+    cancel() {
+      clearInterval(timer); // the client went away
     },
   });
 });
 ```
 
+Bun streams the body with backpressure, and `ctx.request.signal` aborts when the client disconnects, so producers can stop cleanly. The body streams after the middleware chain resolves, so middleware that acts after `next()` sees time-to-headers, not the lifetime of the stream.
+
 The rest of the stack cooperates: `compress` and `cache` both skip `text/event-stream` responses by design, so events are never buffered.
 
 ## Plain streaming responses [#plain-streams]
 
-`stream(options?)` is the same header-stamping pattern for non-SSE streams such as progress logs, NDJSON, and long exports: `content-type: text/plain`, the same no-buffering trio, plus `x-content-type-options: nosniff`. Override the content type per route or via `options.headers` for NDJSON and friends.
+`stream(options?)` is the same header-stamping pattern for non-SSE streams such as progress logs, NDJSON, LLM tokens, and long exports: `content-type: text/plain; charset=utf-8`, the same no-buffering trio, plus `x-content-type-options: nosniff`. Override the content type per route or via `options.headers` for NDJSON and friends.
+
+```ts
+import { stream } from "@rhythmjs/http/stream";
+
+router.get("/export", stream(), (ctx) => {
+  ctx.response.body = upstream.body;
+});
+```
 
 ## Deadline the chain [#timeouts]
 
-`timeout(ms)` races the downstream chain against a deadline. If the deadline wins, the response becomes `504 Gateway Timeout` (JSON body); note the downstream work is *not* aborted; its eventual result is discarded and its rejection swallowed. Put it outside slow handlers or around upstream calls you do not control:
+`timeout(ms)` races the downstream chain against a deadline. If the deadline wins, the response becomes `504 Gateway Timeout` (a JSON body of `{ success: false, status: 504, message }`); note the downstream work is *not* aborted; its eventual result is discarded and its rejection swallowed. An error thrown before the deadline still propagates as an error, and the deadline covers the handler, not the streaming of a body it returns. Put it outside slow handlers or around upstream calls you do not control:
 
 ```ts
 import { timeout } from "@rhythmjs/http/timeout";

@@ -6,11 +6,11 @@ description: "Author your own forRoot-style modules: options in, services out."
 
 ## A module of your own
 
-Every @rhythmjs module — config, events, schedule, queue — is built from the same three pieces you already know: an options interface, a service factory, and a `forRoot` factory that builds the service and assigns it to a `Rhythm` module's startup context. Nothing is reserved for the framework; a mailer module of your own is the identical shape:
+Every @rhythmjs module — config, health, OpenAPI — is built from the same three pieces you already know: an options interface, a service factory, and a `forRoot` factory that builds the service and adds it to a `Rhythm` module's startup context. Nothing is reserved for the framework; a mailer module of your own is the identical shape:
 
 ```ts
 // src/mailer/mailer.module.ts
-import { Rhythm } from "@rhythmjs/rhythm";
+import { Rhythm, decorate } from "@rhythmjs/rhythm";
 
 export interface MailerOptions {
   from: string;
@@ -34,68 +34,72 @@ export type MailerService = ReturnType<typeof createMailerService>;
 
 export const mailerModule = {
   forRoot(options: MailerOptions) {
-    const module = new Rhythm<{}, { mailerService: MailerService }>({ type: "module", name: "mailer" });
-    module.context.mailerService = createMailerService(options);
-    return module;
+    const mailerService = createMailerService(options);
+    return new Rhythm({ name: "mailer" }).register(
+      decorate(() => ({ mailerService })),
+      () => mailerService.close(), // runs when the app that included the module stops
+    );
   },
 };
 ```
 
-The module only builds the service; it does not own its shutdown. The service already exposes `close()`, so the composition root keeps a reference and calls it when the process stops. If building the service is async (connecting, loading), make `forRoot` async and `await` it where you register — `await configModule.forRoot(...)` works exactly this way.
+The module owns its shutdown: the cleanup passed to `register` runs on `stop()`, and `include()` registers the module's `stop()` as a cleanup of the parent, so one `appModule.stop()` closes everything. If building the service is async (connecting, loading), make `forRoot` async and `await` it where you include it — `await configModule.forRoot(...)` works exactly this way.
 
-Consumers register it exactly like the built-ins — options at the composition root, the service wherever the context flows:
+Consumers include it like the built-ins — options at the composition root, the service wherever the context flows:
 
 ```ts
 appModule.register(
-  mailerModule.forRoot({ from: "notes@example.com" }),
-  ({ mailerService }) => ({ mailerService }),
+  include(mailerModule.forRoot({ from: "notes@example.com" }), ({ mailerService }) => ({ mailerService })),
 );
 
-// in any handler below:
+// in any router declared as RhythmRouter<{ mailerService: MailerService }>:
 await ctx.mailerService.send(user.email, "Welcome", "…");
 ```
 
 ## Modules that ship routes
 
-A module is a full kernel, so it can carry controllers and middleware of its own — a self-contained feature the parent mounts as one line. Register it without an `exportValue` and its internals stay sealed; only its routes are observable:
+A module is a full app, so it can carry routers and middleware of its own — a self-contained feature the parent mounts as one line. Because `mount()` runs it per request and seals what it derives, only its routes are observable:
 
 ```ts
 // src/admin/admin.module.ts
-const adminController = new RhythmRouter<AdminContext>({ prefix: "/admin" })
-  .use(requireRoles(["admin"]))
-  .get("/stats", (ctx) => {
+import { Rhythm, decorate, mount } from "@rhythmjs/rhythm";
+import { RhythmRouter } from "@rhythmjs/router";
+import { attachUser, requireAuthentication } from "@rhythmjs/security/authentication";
+import { requireRoles } from "@rhythmjs/security/authorization";
+
+const adminController = new RhythmRouter<{ adminService: AdminService }>({ name: "admin" })
+  .use(attachUser<User>(resolveUser))
+  .use(requireAuthentication<User>())
+  .get("/admin/stats", requireRoles(["admin"]), (ctx) => {
     ctx.json(ctx.adminService.stats());
   });
 
 export const adminModule = {
   forRoot(options: AdminOptions) {
-    const module = new Rhythm<RhythmHttpContext, { adminService: AdminService }>({
-      name: "admin",
-      type: "module",
-    });
-    module.context.adminService = createAdminService(options);
-    return module.use(adminController.middleware());
+    return new Rhythm({ name: "admin" })
+      .register(decorate(() => ({ adminService: createAdminService(options) })))
+      .use(mount(adminController));
   },
 };
 
 // the parent sees routes, not services:
-appModule.register(adminModule.forRoot({ retainDays: 30 }));
+appModule.use(mount(adminModule.forRoot({ retainDays: 30 })));
 ```
 
-This is how `healthRoutes` and the OpenAPI docs middleware work under the hood: functionality arrives as a mountable unit, and the boundary is the module, not a folder convention.
+This is how `healthRoutes` and the OpenAPI docs module work under the hood: functionality arrives as a mountable unit, and the boundary is the module, not a folder convention. The security helpers used above are step 9's.
 
 ## forFeature for per-use wiring
 
-When one shared core serves many features — one storage client, many buckets — pair `forRoot` with a `forFeature` that returns *middleware* instead of a module. It reads the root's exported service off the context at request time and derives the feature-scoped view, typed end to end:
+When one shared core serves many features — one storage client, many buckets — pair `forRoot` with a `forFeature` that returns *middleware* instead of a module. It reads the root's service off the context at request time and derives the feature-scoped view, typed end to end:
 
 ```ts
-import { derive } from "@rhythmjs/rhythm";
+import { Rhythm, decorate, derive } from "@rhythmjs/rhythm";
 
 export const storageModule = {
   forRoot(options: StorageOptions) {
-    const module = new Rhythm<{}, { storageService: StorageService }>({ type: "module", name: "storage" });
-    module.context.storageService = createStorageService(options);
-    return module;
+    return new Rhythm({ name: "storage" }).register(
+      decorate(() => ({ storageService: createStorageService(options) })),
+    );
   },
   forFeature(bucket: string) {
     return derive((ctx: { storageService: StorageService }) => ({
@@ -107,18 +111,20 @@ export const storageModule = {
 
 ```ts
 // composition root: the shared client, once
-appModule.register(storageModule.forRoot({ root: "./data" }), (v) => v);
+appModule.register(
+  include(storageModule.forRoot({ root: "./data" }), ({ storageService }) => ({ storageService })),
+);
 
 // each feature wires its own slice where it needs it
-uploadsController
+export const uploadsController = new RhythmRouter<{ storageService: StorageService }>({ name: "uploads" })
   .use(storageModule.forFeature("uploads"))
-  .post("/", multipart({ maxBytes: 10_000_000 }), async (ctx) => {
+  .post("/api/uploads", multipart({ maxBytes: 10_000_000 }), async (ctx) => {
     await ctx.bucket.put(crypto.randomUUID(), ctx.form.file("file")!);
     ctx.response.status = 201;
   });
 ```
 
-The division of labor is the convention across the ecosystem: `forRoot` owns the shared service (built once, closed by whoever called it), `forFeature` owns per-request derivation — and because it is just `derive()`, the extension is visible to the type system downstream.
+The division of labor is the convention across the ecosystem: `forRoot` owns the shared service (built once, closed on `stop()`), `forFeature` owns per-request derivation — and because it is just `derive()`, the extension is visible to the type system downstream.
 
 ## Packaging conventions
 
@@ -133,20 +139,21 @@ mailer/
   src/mailer.test.ts
 ```
 
-Depend on `@rhythmjs/rhythm` as a *peer* dependency so the consumer's kernel is the only kernel, keep options serializable (they arrive at the composition root, often straight from the config service of step 7), and test the module in isolation the way step 14 tests everything else — register it into a throwaway kernel and assert on the context:
+Depend on `@rhythmjs/rhythm` as a *peer* dependency so the consumer's kernel is the only kernel, keep options serializable (they arrive at the composition root, often straight from the config service of step 7), and test the module in isolation the way step 14 tests everything else — include it into a throwaway app and assert on the context:
 
 ```ts
 test("mailer sends through the console transport", async () => {
   const seen: string[] = [];
   console.log = (line: string) => void seen.push(line);
 
-  const app = new Rhythm<{}>({ name: "test" })
-    .register(mailerModule.forRoot({ from: "t@example.com" }), (v) => v)
-    .use(async (ctx) => {
-      await ctx.mailerService.send("u@example.com", "hi", "…");
-    });
+  const app = new Rhythm({ name: "test" }).register(
+    include(mailerModule.forRoot({ from: "t@example.com" }), ({ mailerService }) => ({ mailerService })),
+  );
 
-  await app.run({});
+  const { mailerService } = await app.callback()();
+  await mailerService.send("u@example.com", "hi", "…");
+  await app.stop();
+
   expect(seen[0]).toContain("t@example.com -> u@example.com");
 });
 ```

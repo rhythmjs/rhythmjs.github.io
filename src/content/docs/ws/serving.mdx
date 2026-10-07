@@ -1,68 +1,84 @@
 ---
-title: "Serve and fan out"
-lead: "One fetch expression upgrades matching requests, one websocket behavior dispatches every connection, and fan-out is Bun's own pub/sub."
-description: "Wire RhythmWs into Bun.serve: the three-way upgrade contract, one shared websocket behavior, router integration, and Bun-native pub/sub."
+title: "Serving and tuning"
+lead: "One websocket object serves every RhythmWs in the process; createWebsocket tunes Bun's own limits, and pub/sub stays in-process until you add a backplane."
+description: "Serve RhythmWs with Bun.serve: the shared websocket handler, createWebsocket options, backpressure, multiple instances, and scaling out."
 ---
 
-## The upgrade contract
+## The websocket handler [#websocket-handler]
 
-The fetch-side half is `upgrade(request, server)`, bound so you can pass it around. Its result is three-way: it returns `null` *synchronously* when the request is not a websocket upgrade or matches no route (which is what makes single-expression composition with `??` work); otherwise a promise that resolves to `undefined` once `server.upgrade()` has taken the socket, or to the `Response` that rejects the handshake (from a guard or from the route's `upgrade`). A refused `server.upgrade()` answers `500 Upgrade failed`, Bun's own convention.
-
-```ts
-Bun.serve({
-  port: 3000,
-  fetch: (request, server) => ws.upgrade(request, server) ?? app(request),
-  websocket: ws.websocket,
-});
-```
-
-## The websocket behavior
-
-`ws.websocket` is the one behavior object `Bun.serve` accepts. Each event looks up the connection's route through the shared registry keyed on `ws.data` identity and forwards to that route's handler: `open`, `message`, `drain`, `close`. The getter also carries the constructor's behavior tuning, passed through to Bun verbatim: `idleTimeout`, `maxPayloadLength`, `backpressureLimit`, `closeOnBackpressureLimit`, `sendPings`, `publishToSelf`, and `perMessageDeflate`.
-
-## Multiple apps, one server
-
-Because dispatch is keyed on data identity in a registry shared across instances, one `websocket` behavior serves connections upgraded by *any* `RhythmWs` on the server. Chain the upgrades and pass either instance's behavior:
-
-```ts
-Bun.serve({
-  fetch: (req, server) =>
-    support.upgrade(req, server) ?? sales.upgrade(req, server) ?? app(req),
-  websocket: support.websocket, // dispatches for sales too
-});
-```
-
-Prefer `merge()` when the apps share guards or a prefix; prefer chained upgrades when they are independent deployables. Note the behavior tuning comes from whichever instance provides `websocket`.
-
-## With @rhythmjs/router [#with-the-router]
-
-There is no server wrapper anywhere in the ecosystem: the router's app is a fetch handler, so both halves plug into the same hand-written `Bun.serve` call you already own. The sync-`null` contract keeps it one expression.
+Bun wants one `websocket` object next to `fetch`. `@rhythmjs/ws` exports it ready-made. Each event looks up the route handlers carried by the connection's `ws.data` and forwards to them (`open`, `message`, `drain`, `close`, `ping`, `pong`), so a single object serves connections upgraded by *every* `RhythmWs` in the app, however many you mount.
 
 ```ts
 import { toFetchHandler } from "@rhythmjs/router/fetch";
-
-const handler = toFetchHandler(app);
+import { websocket } from "@rhythmjs/ws";
 
 Bun.serve({
   port: 3000,
-  fetch: (request, server) => ws.upgrade(request, server) ?? handler(request),
-  websocket: ws.websocket,
+  fetch: toFetchHandler(app),
+  websocket,
 });
 ```
 
-## Pushing from HTTP handlers [#pushing-from-http]
+`fetch: toFetchHandler(app)` is what makes this work: it calls the app as `fetch(request, server)`, so `ctx.server` is Bun's server and the upgrade can take the socket. There is no server wrapper anywhere in the ecosystem; this is the same `Bun.serve` call you already own.
 
-Fan-out is Bun's native pub/sub. Inside handlers, `ws.subscribe(topic)` and `ws.publish(topic, data)` work as Bun documents them (`publish` excludes the sender unless `publishToSelf` is set). Outside any socket, the server itself publishes; an ordinary route can announce into a room:
+## Tuning with createWebsocket [#create-websocket]
+
+`websocket` is `createWebsocket()` with Bun's defaults. Call `createWebsocket(behavior)` to set Bun's per-server options; they are passed to Bun verbatim:
 
 ```ts
-router.post("/api/rooms/:id/announce", async (ctx) => {
-  server.publish(`room:${ctx.params.id}`, await ctx.request.text());
-  ctx.json({ ok: true }, 201);
+import { createWebsocket } from "@rhythmjs/ws";
+
+Bun.serve({
+  fetch: toFetchHandler(app),
+  websocket: createWebsocket({
+    maxPayloadLength: 64 * 1024,
+    idleTimeout: 60,
+    backpressureLimit: 1024 * 1024,
+    closeOnBackpressureLimit: true,
+    publishToSelf: false,
+  }),
 });
 ```
 
-## Scaling out, testing [#scaling-and-testing]
+<DefList>
+<Def sig="maxPayloadLength" id="max-payload">Largest message accepted, in bytes. Oversized messages close the connection. Set it to what your protocol needs, not to Bun's generous default.</Def>
+<Def sig="idleTimeout" id="idle-timeout">Seconds of inactivity before Bun closes the socket. Pair it with `sendPings` or client heartbeats so quiet but healthy connections survive.</Def>
+<Def sig="backpressureLimit" id="backpressure-limit">Buffered outgoing bytes before `send` reports backpressure (it returns `-1` when queued, `0` when dropped).</Def>
+<Def sig="closeOnBackpressureLimit" id="close-on-backpressure">Close the connection when the limit is exceeded, so one slow reader cannot hold memory forever.</Def>
+<Def sig="sendPings" id="send-pings">Send automatic pings to keep idle connections open through proxies.</Def>
+<Def sig="publishToSelf" id="publish-to-self">Whether `peer.publish` also delivers to the publisher. Off by default; cursor-style apps want it off, simple echo chats on.</Def>
+<Def sig="perMessageDeflate" id="deflate">Compression settings. Trades CPU and memory per connection for bandwidth.</Def>
+</DefList>
 
-Bun's pub/sub is in-process: `peer.publish` and `server.publish` reach peers on the same instance. For replicas, relay publishes through a backplane you own (Redis pub/sub via `Bun.redis`, NATS) by calling `server.publish` in the subscriber.
+Because one handler serves every instance, these limits are per server, not per route. If two endpoints need different limits (a chat with small messages and an upload channel with large ones), set the limit for the larger and enforce the smaller one in that route's `message`.
 
-Guards, upgrades, and handlers all run socketless under the harness in [`@rhythmjs/testing/ws`](/testing/ws/); `upgradeWs` exercises this page's whole contract against a mock server.
+## Multiple instances, one server [#multiple-instances]
+
+Split connection routing the way you split controllers: separate `RhythmWs` instances, each with its own middleware and its own routes, mounted into one app. Each runs only its own middleware, and one `websocket` handler serves them all:
+
+```ts
+const app = new Rhythm()
+  .use(mount(http))
+  .use(mount(publicWs)) // /ws/status
+  .use(mount(memberWs)); // /ws/inbox, behind session and login middleware
+```
+
+An instance has its own `origin` option, so a public status feed can allow other origins while the member socket stays same-origin only.
+
+## Scaling out [#scaling]
+
+Bun's pub/sub is in-process: `peer.publish` and `server.publish` reach sockets connected to the same server instance only. A second replica never sees them. To run replicas, relay publishes through a backplane you own (Redis pub/sub, NATS): publish to the backplane from your handlers and HTTP routes, and in each instance's subscriber call `server.publish` so every instance fans out to its own sockets.
+
+```ts
+// backplane: any pub/sub client you own (Redis, NATS, ...)
+backplane.subscribe("chat", (message) => server.publish("room:lobby", message));
+
+// in handlers and routes: publish to the backplane, not to Bun directly
+backplane.publish("chat", JSON.stringify(event));
+```
+
+Keep memberships in `ws.data`: they die with the connection, so no cross-instance membership store is needed for fan-out. Sticky routing is only required if you keep other per-connection state outside the process.
+
+## Testing [#testing]
+
+Handshakes, middleware, `upgrade`, and handlers all run without sockets under [`@rhythmjs/testing/ws`](/testing/ws/); `upgradeWs` exercises the whole upgrade path against a mock Bun server.

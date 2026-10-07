@@ -9,26 +9,27 @@ Start from the [template](https://github.com/rhythmjs/template). `src/app.servic
 ## Install
 
 ```bash
-bun add @rhythmjs/openapi @rhythmjs/scalar @rhythmjs/http
+bun add @rhythmjs/openapi @rhythmjs/scalar
 ```
 
 ## Describe the route [#controller]
 
-`apiOperation` and `apiResponse` are ordinary middleware that carry documentation, so the router stays the single source of truth: what is documented is what runs.
+`apiOperation` and `apiResponse` are ordinary middleware that carry documentation, so the router stays the single source of truth: what is documented is what runs. Wrap the router with `documented()` right after constructing it, or it is left out of the document.
 
 ```ts
 // src/app.controller.ts
+import { documented } from "@rhythmjs/openapi/generate";
 import { apiOperation } from "@rhythmjs/openapi/operation";
 import { apiResponse } from "@rhythmjs/openapi/response";
 import { RhythmRouter } from "@rhythmjs/router";
-import type { RhythmHttpContext } from "@rhythmjs/router/adapters/context";
+import type { RhythmHttpContext } from "@rhythmjs/router/context";
 import type { appService } from "./app.service";
 
 export type AppContext = RhythmHttpContext & {
   appService: typeof appService;
 };
 
-export const appController = new RhythmRouter<AppContext>().get(
+export const appController = documented(new RhythmRouter<AppContext>()).get(
   "/",
   apiOperation({ summary: "Say hello", operationId: "getHello" }),
   apiResponse(200, { description: "A greeting", content: { "text/plain": { schema: { type: "string" } } } }),
@@ -38,41 +39,33 @@ export const appController = new RhythmRouter<AppContext>().get(
 );
 ```
 
-## Register the two modules [#module]
+## Mount the two modules [#module]
 
-`openapiModule` finds the router on its own and serves only the document, at `/openapi.json`. `scalarModule` is a separate module that serves the Scalar page at `/docs`, loading that document. Register both before the controller and before any catch-all.
+`openapiModule` finds the documented routers of the app it is mounted in and serves only the document, at `/openapi.json`. `scalarModule` is a separate router that serves the Scalar page at `/docs`, loading that document. Both are plain routers added with `.use(mount(...))`; mount them before any catch-all.
 
 ```ts
 // src/app.module.ts
 import { defineDocument } from "@rhythmjs/openapi/document";
 import { openapiModule } from "@rhythmjs/openapi/module";
-import { Rhythm } from "@rhythmjs/rhythm";
-import type { RhythmHttpContext } from "@rhythmjs/router/adapters/context";
+import { Rhythm, decorate, mount } from "@rhythmjs/rhythm";
 import { scalarModule } from "@rhythmjs/scalar";
 import { appController } from "./app.controller";
 import { appService } from "./app.service";
 
-const openapiConfig = defineDocument({ info: { title: "Hello API", version: "1.0.0" } });
+const document = defineDocument({ info: { title: "Hello API", version: "1.0.0" } });
 
-export const appModule = new Rhythm<RhythmHttpContext, { appService: typeof appService }>({
-  name: "app",
-  type: "module",
-})
-  .register(openapiModule.forRoot({ document: openapiConfig }))
-  .register(scalarModule.forRoot())
-  .use(appController.middleware())
-  .use((ctx) => {
-    ctx.json({ success: false, status: 404, message: "Not Found" }, 404);
-  });
-
-appModule.context.appService = appService;
+export const appModule = new Rhythm({ name: "app" })
+  .register(decorate(() => ({ appService })))
+  .use(mount(openapiModule.forRoot({ document })))
+  .use(mount(scalarModule.forRoot()))
+  .use(mount(appController));
 ```
 
 ## Things to check
 
 - `GET /openapi.json` is the generated document and `GET /docs` is the Scalar page. `path` and `url` on `scalarModule.forRoot` move the page and point it at another document URL.
 - Scalar loads from a CDN, so the browser needs network access to render the page.
-- Neither endpoint has authentication, and the document publishes your route map. Register them behind your own auth, or only outside production, if the API is not public.
+- Neither endpoint has authentication, and the document publishes your route map. Mount them behind your own auth, or only outside production, if the API is not public.
 - The options of each package are on the [OpenAPI](/openapi/document/) page and in the [`@rhythmjs/scalar` README](https://github.com/rhythmjs/openapi/tree/main/packages/scalar).
 
 The full app, with tests, is [examples/scalar](https://github.com/rhythmjs/examples/tree/main/examples/scalar), built from the [template](https://github.com/rhythmjs/template).

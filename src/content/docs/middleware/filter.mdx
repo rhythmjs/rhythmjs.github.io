@@ -6,7 +6,7 @@ description: "Turn thrown errors into HTTP responses: HttpError statuses, safe 5
 
 ## Catch everything downstream [#catch-everything]
 
-`filter(onError?)` wraps the rest of the chain in a try/catch and turns anything thrown downstream into an HTTP response. Register it first, before any routes, so it forms the outermost onion layer and sees every error, including ones thrown by other middleware.
+`filter(onError?)` wraps the rest of the chain in a try/catch and turns anything thrown downstream into an HTTP response. Register it first on the router, before any routes, so it forms the outermost onion layer of that router and sees every error, including ones thrown by other middleware.
 
 ```ts
 import { RhythmRouter } from "@rhythmjs/router";
@@ -18,9 +18,11 @@ const router = new RhythmRouter().use(filter()).get("/users/:id", (ctx) => {
 // GET /users/1 => 404 {"success":false,"status":404,"message":"user not found"}
 ```
 
+Put `filter` on the router, not on the app. `mount(router)` wraps anything thrown inside a mounted router in a new error (`mounted router "name" failed`) with the original as its `cause`, so an app-level `filter()` never sees your `HttpError` and answers a generic 500. The middleware is also typed for the HTTP context, which a plain `new Rhythm()` does not declare.
+
 ## HttpError and the default mapping [#httperror]
 
-A thrown `HttpError(status, message, details?)` maps to its status with a JSON `FilterFailure` body; `details` is included only when defined, so simple errors stay small. Anything else thrown (a plain `Error`, a string, a rejected promise) maps to a generic 500 with the message `"Internal Server Error"`: the original message is *never* leaked to the client.
+A thrown `HttpError(status, message, details?)` maps to its status with a JSON `FilterFailure` body; `details` is included only when defined, so simple errors stay small. Anything else thrown (a plain `Error`, a string, a rejected promise) maps to a generic 500 with the message `"Internal Server Error"`: the original message is *never* leaked to the client, and the default mapping does not log it either; pass `onError` (below) to log.
 
 ```ts
 throw new HttpError(422, "cannot ship yet", { missing: ["address"] });
@@ -29,7 +31,7 @@ throw new HttpError(422, "cannot ship yet", { missing: ["address"] });
 
 ## Custom error mapping [#custom-mapping]
 
-Passing an `onError(error, ctx)` hook replaces the default mapping *entirely*: the hook is responsible for writing the response (or rethrowing to an outer layer). Use it to log, translate domain errors into statuses, or forward to an error tracker:
+Passing an `onError(error, ctx)` hook replaces the default mapping *entirely*: the hook is responsible for writing the response (or rethrowing). If it neither responds nor rethrows, nothing has been written and `toFetchHandler` answers `404`. Use it to log, translate domain errors into statuses, or forward to an error tracker:
 
 ```ts
 router.use(
@@ -39,7 +41,7 @@ router.use(
       ctx.json({ success: false, status: 404, message: "not found" }, 404);
       return;
     }
-    throw error; // let an outer filter or serve()'s error handler take it
+    throw error; // rethrow: mount wraps it, toFetchHandler rejects, errorToResponse maps it
   }),
 );
 ```
@@ -52,15 +54,11 @@ The modules compose freely on one router. `filter` goes first so it wraps everyt
 const router = new RhythmRouter()
   .use(filter())
   .use(intercept(PublicUser))
-  .post<Validated<"body", typeof createUser>>(
-    "/users",
-    validate("body", createUser),
-    async (ctx) => {
-      const user = await users.create(ctx.valid.body);
-      if (!user) throw new HttpError(409, "user already exists");
-      ctx.json(user);
-    },
-  );
+  .post("/users", validate("body", createUser), async (ctx) => {
+    const user = await users.create(ctx.valid.body);
+    if (!user) throw new HttpError(409, "user already exists");
+    ctx.json(user);
+  });
 ```
 
 See the [API reference](/middleware/api/) for every export on the three subpaths.

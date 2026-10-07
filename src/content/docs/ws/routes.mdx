@@ -1,0 +1,114 @@
+---
+title: "Routes and ws.data"
+lead: "Each route decides its connection's typed ws.data: the route params by default, or whatever upgrade(ctx) returns."
+description: "Declare WebSocket routes with .ws(): rou3 paths, the upgrade(ctx) hook, typed ws.data, rejecting handshakes, and handshake headers."
+---
+
+## Declaring routes [#declaring-routes]
+
+`.ws(path, handlers)` registers a `GET` upgrade endpoint and returns the instance, so calls chain. Paths use the router's rou3 patterns (`:param`, `*`, `**`), must start with `/` (a `TypeError` otherwise), and a static segment always beats a param segment regardless of registration order: `/rooms/lobby` wins over `/rooms/:id`. URL-encoded params are decoded; a malformed encoding makes the request pass through unmatched.
+
+```ts
+import { RhythmWs } from "@rhythmjs/ws";
+
+const ws = new RhythmWs()
+  .ws("/ws/rooms/lobby", { open: (peer) => void peer.send("welcome to the lobby") })
+  .ws("/ws/rooms/:id", { open: (peer) => void peer.send(`room ${peer.data.id}`) });
+```
+
+The handlers object carries Bun's `WebSocketHandler` members with Bun's exact signatures, all optional:
+
+<DefList>
+<Def sig="open(ws)" id="open">The connection opened.</Def>
+<Def sig="message(ws, message)" id="message">A message arrived; `message` is `string | Buffer`.</Def>
+<Def sig="drain(ws)" id="drain">The socket is writable again after backpressure.</Def>
+<Def sig="close(ws, code, reason)" id="close">The connection closed.</Def>
+<Def sig="ping(ws, data) / pong(ws, data)" id="ping">A ping or pong frame arrived; `data` is a `Buffer`.</Def>
+</DefList>
+
+Two more members run at upgrade time, before the socket exists: `upgrade` and `headers`, covered below.
+
+## The params default [#params-default]
+
+Without an `upgrade` hook, `ws.data` is the route params, typed from the path. `/rooms/:id` gives `peer.data.id` as a `string`, and a param that is not in the path is a type error:
+
+```ts
+new RhythmWs().ws("/ws/rooms/:id", {
+  open(peer) {
+    peer.subscribe(`room:${peer.data.id}`);
+  },
+});
+```
+
+## Computing ws.data with upgrade [#upgrade-hook]
+
+`upgrade(ctx)` runs once per handshake and returns this connection's `ws.data`: any object, sync or async. The returned type flows into every lifecycle member, so there is nothing to annotate. `ctx` is the full request context: `ctx.request`, `ctx.params` typed from the path, `ctx.server`, and everything earlier middleware derived onto it.
+
+```ts
+const ws = new RhythmWs().ws("/ws/rooms/:id", {
+  upgrade(ctx) {
+    const token = new URL(ctx.request.url).searchParams.get("name");
+    return { room: ctx.params.id, name: token ?? "guest" };
+  },
+  open(peer) {
+    peer.data.name; // string
+    // peer.data.id is a type error: params are not part of the data this hook returns
+  },
+});
+```
+
+Returning nothing falls back to the params, so a hook that only sometimes computes data keeps working. When you want the params as well, spread them in: `{ ...ctx.params, name }`.
+
+<Callout title="Return a fresh object per connection">
+
+Each connection finds its route's handlers by the identity of its `ws.data` object, which is how one `websocket` serves every `RhythmWs` in the process. `upgrade` must therefore return a new object every time. Returning a shared object throws a `TypeError`. The default params object, and any object literal, is already fresh.
+
+</Callout>
+
+## Rejecting a handshake [#rejecting]
+
+Refuse by writing the response, exactly as an HTTP handler would: `ctx.error(status, message?)`, or any `ctx.json()` / `ctx.text()` call. After `upgrade` returns, the pipeline checks whether a response was written and, if so, skips the upgrade and sends it. Throwing also refuses the handshake and goes through the app's normal error handling.
+
+```ts
+new RhythmWs().ws("/ws/rooms/:id", {
+  upgrade(ctx) {
+    const user = ctx.request.headers.get("x-user");
+    if (!user) return ctx.error(401);
+    if (!canJoin(user, ctx.params.id)) return ctx.error(403, "Not your room");
+    return { user, room: ctx.params.id };
+  },
+});
+```
+
+`ctx.error()` returns `void`, so `return ctx.error(401)` keeps `ws.data` inferred from the object you return: handlers still see `{ user: string; room: string }`. Write `return ctx.error(...)` rather than a bare `return;` after it, which would widen the data type to `object`.
+
+## Handshake headers and subprotocols [#handshake-headers]
+
+The optional `headers` member adds headers to the `101 Switching Protocols` response: a `HeadersInit`, or a function of the request context (async allowed) when the value depends on the connection. Subprotocol negotiation and upgrade-time cookies live here:
+
+```ts
+new RhythmWs().ws("/ws/feed", {
+  headers: (ctx) => ({
+    "sec-websocket-protocol": ctx.request.headers.get("sec-websocket-protocol")?.split(",")[0]?.trim() ?? "",
+  }),
+  open(peer) {
+    peer.send("ready");
+  },
+});
+// new WebSocket(url, ["json", "text"]) negotiates socket.protocol === "json"
+```
+
+The function runs after `upgrade`, and a response written there rejects the handshake just like in `upgrade`.
+
+## Mutable connection state [#mutable-state]
+
+`ws.data` is one plain object per connection and handlers share it, so it doubles as connection-scoped state. Declare the shape in the hook and mutate it later:
+
+```ts
+upgrade: () => ({ room: undefined as string | undefined }),
+message(peer, message) {
+  peer.data.room = String(message); // allowed: the field is typed as string | undefined
+},
+```
+
+The [rooms page](/ws/rooms/) builds its join-by-message pattern on exactly this.

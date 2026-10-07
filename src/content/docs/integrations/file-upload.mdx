@@ -37,9 +37,9 @@ export function createStorage(): S3Client {
 ```ts
 // src/app.controller.ts
 import { mkdir } from "node:fs/promises";
-import { multipart, type MultipartContext } from "@rhythmjs/http/multipart";
+import { multipart } from "@rhythmjs/http/multipart";
 import { RhythmRouter } from "@rhythmjs/router";
-import type { RhythmHttpContext } from "@rhythmjs/router/adapters/context";
+import type { RhythmHttpContext } from "@rhythmjs/router/context";
 import type { S3Client } from "bun";
 import type { appService } from "./app.service";
 
@@ -56,7 +56,7 @@ export const appController = new RhythmRouter<AppContext>()
   .get("/", (ctx) => {
     ctx.text(ctx.appService.getHello());
   })
-  .post<MultipartContext>("/avatar", limits, async (ctx) => {
+  .post("/avatar", limits, async (ctx) => {
     const file = ctx.form.file("avatar");
     if (!file) {
       ctx.error(400, "avatar missing");
@@ -82,7 +82,7 @@ export const appController = new RhythmRouter<AppContext>()
     ctx.response.headers.set("content-type", ctx.params.key.endsWith(".png") ? "image/png" : "image/jpeg");
     ctx.response.body = file;
   })
-  .post<MultipartContext>("/documents", limits, async (ctx) => {
+  .post("/documents", limits, async (ctx) => {
     const file = ctx.form.file("document");
     if (!file) {
       ctx.error(400, "document missing");
@@ -97,34 +97,21 @@ export const appController = new RhythmRouter<AppContext>()
 
 ## Put the client on the context [#module]
 
-The app module declares `s3` in its startup shape, and `main.ts` assigns the client once, before it serves.
+The app module decorates its startup context with the client, so the controller's `s3` is checked when it is mounted.
 
 ```ts
 // src/app.module.ts
-import type { S3Client } from "bun";
-import { Rhythm } from "@rhythmjs/rhythm";
-import type { RhythmHttpContext } from "@rhythmjs/router/adapters/context";
+import { Rhythm, decorate, mount } from "@rhythmjs/rhythm";
 import { appController } from "./app.controller";
 import { appService } from "./app.service";
-
-export const appModule = new Rhythm<RhythmHttpContext, { appService: typeof appService; s3: S3Client }>({
-  name: "app",
-  type: "module",
-})
-  .use(appController.middleware())
-  .use((ctx) => {
-    ctx.json({ success: false, status: 404, message: "Not Found" }, 404);
-  });
-
-appModule.context.appService = appService;
-```
-
-```ts
-// src/main.ts
 import { createStorage } from "./storage";
 
-appModule.context.s3 = createStorage();
+export const appModule = new Rhythm({ name: "app" })
+  .register(decorate(() => ({ appService, s3: createStorage() })))
+  .use(mount(appController));
 ```
+
+`main.ts` stays as the template's: `Bun.serve({ port, fetch: toFetchHandler(appModule) })`.
 
 ## Things to check
 

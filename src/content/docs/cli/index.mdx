@@ -5,55 +5,86 @@ lead: "Route arguments through the same middleware model, running on Bun."
 
 ## Define a command
 
-Command patterns are space-separated tokens. Named `:tokens` populate `ctx.args`; a trailing `:token?` is optional and a trailing `**` captures the remaining arguments into `ctx.args._`, joined by spaces. The first registered matching command wins, and unless it ends in an optional token or `**`, its token count must match the positional arguments exactly.
+`RhythmCli` is a pipeline, like `Rhythm` and `RhythmRouter`: it has request-time `use()` middleware and commands, but no startup phase. Register commands with `cmd(command, ...handlers)`. A command is space-separated words: literal words must match, and words starting with `:` are params captured into `ctx.params`. Matching uses the words before the first flag, so `deploy staging --force` matches `deploy :env`.
 
-A cli is a controller, not an app of its own: it compiles down to a single middleware via `middleware()`, and a `Rhythm` host app owns the lifecycle. `toCliHandler` from `@rhythmjs/cli/run` runs it on Bun.
+`toCliHandler` from `@rhythmjs/cli/run` runs a cli (or a `Rhythm` host that mounts one) on Bun and returns the exit code.
 
 ```ts
-import { Rhythm } from "@rhythmjs/rhythm";
 import { RhythmCli } from "@rhythmjs/cli";
 import { toCliHandler } from "@rhythmjs/cli/run";
-import type { RhythmCliContext } from "@rhythmjs/cli/context";
 
-const cli = new RhythmCli().command("deploy :environment", (ctx) => {
-  ctx.response.print(`Deploying to ${ctx.args.environment}`);
+const cli = new RhythmCli({ name: "tool" }).cmd("deploy :environment", (ctx) => {
+  ctx.log(`Deploying to ${ctx.params.environment}`);
 });
 
-const app = new Rhythm<RhythmCliContext>()
-  .use(cli.middleware())
-  .use((ctx) => {
-    ctx.response.exit(1).printError("Unknown command");
-  });
-
-process.exitCode = await toCliHandler(app)(process.argv.slice(2));
+process.exitCode = await toCliHandler(cli)(Bun.argv.slice(2));
 ```
 
-## Read flags and stdin
+Params are typed from the command string: `:name` is `string`, `:name?` is `string | undefined` (absent when not given), and reading a name that is not in the command is a compile error. `:name+`, `:name*` and `**:name` capture the remaining words as a `string[]`; a bare `*` or `**` lands in `params["0"]`. Order is required, then optional, then at most one catch-all; anything else throws when the command is registered. Values are URI-decoded.
 
-`ctx.flags` holds string or boolean values. `--verbose` is true when no value follows; `--target=prod` supplies a string. A following non-flag token becomes a value, so `--verbose deploy` consumes `deploy`.
+An unknown command is reported for you as `error: unknown command 'x'` with exit code 2 (or `no command given`). Register `cmd("", handler)` to handle the no-argument case yourself.
 
-`-abc` is a single flag named `abc`, not three short flags. `--` ends flag parsing. No schema validation or numeric coercion is performed.
+## Use it with a host app
 
-`ctx.stdin` is a readable byte stream when input is piped (`Bun.stdin.stream()`, Bun's native stdin), or null when stdin is a TTY.
-
-## Nest command groups
-
-`use()` takes only functions, so a nested cli mounts as `use(child.middleware())`. The compiled form is opaque (the mounting cli's prefix is *not* applied to it), so give the child its full prefix. Mounting compiles the child at that moment, so complete the child before mounting it.
+To run startup work around the cli, mount it into a `Rhythm` app. The host adds long-lived values with `register`, and `mount(cli)` widens the host's input so `toCliHandler` can still run it.
 
 ```ts
-const remote = new RhythmCli({ prefix: "remote" })
-  .command("add :name :url", (ctx) => {
-    ctx.response.print(`Added ${ctx.args.name}: ${ctx.args.url}`);
-  });
+import { Rhythm, decorate, mount } from "@rhythmjs/rhythm";
 
-const root = new RhythmCli().use(remote.middleware()); // matches "remote add origin https://…"
+const app = new Rhythm({ name: "tool" })
+  .register(decorate(async () => ({ config: await loadConfig() })))
+  .use(mount(cli));
+
+process.exitCode = await toCliHandler(app)(Bun.argv.slice(2));
 ```
 
-## Write output
+A cli that reads `ctx.config` declares it in its type, `new RhythmCli<{ config: Config }>()`, and the host supplies it. Errors thrown inside the mounted cli are wrapped as `mounted cli "tool" failed` with the original as `cause`.
 
-`print(line)`, `printError(line)`, and `exit(code)` are chainable. They buffer stdout, stderr, and the exit code. `toCliHandler` flushes stdout then stderr after the pipeline completes and returns the exit code (zero by default).
+## Read flags and positionals
 
-`exit()` sets a value; it does not terminate the process or stop middleware. Return without calling `next()` to stop downstream execution. Registration order is execution order: a `use()` middleware wraps only the commands registered after it.
+Nothing is added to the context unless you ask for it. `withParsedArgv()` from `@rhythmjs/cli/argv` adds `ctx.flags` and `ctx.positionals`.
+
+```ts
+import { withParsedArgv } from "@rhythmjs/cli/argv";
+
+const cli = new RhythmCli().use(withParsedArgv()).cmd("greet :name?", (ctx) => {
+  const message = `hello ${ctx.params.name ?? "world"}`;
+  ctx.log(ctx.flags.shout ? message.toUpperCase() : message);
+});
+```
+
+`ctx.flags` holds string or boolean values. `--verbose` is true when no value follows; `--target=prod` and `--target prod` supply a string. A following non-flag token becomes a value, so `--verbose deploy` consumes `deploy`. `-abc` is a single flag named `abc`, not three short flags. `--` ends flag parsing. No schema validation or numeric coercion is performed.
+
+## Group commands
+
+There is no prefix option: write the full words on each command. Group related commands in one cli by sharing the leading words, and mount several clis into a host.
+
+```ts
+const remote = new RhythmCli({ name: "remote" })
+  .cmd("remote add :name :url", (ctx) => ctx.log(`Added ${ctx.params.name}: ${ctx.params.url}`))
+  .cmd("remote remove :name", (ctx) => ctx.log(`Removed ${ctx.params.name}`));
+
+const app = new Rhythm().use(mount(cli)).use(mount(remote));
+```
+
+## Write output and set the exit code
+
+The context carries `log(...)` (stdout), `error(...)` (stderr) and `fail(message, code = 1)`, which prints `error: message` to stderr and sets the exit code. `ctx.exitCode` is also writable directly. `toCliHandler` returns the exit code (zero by default), and a thrown error becomes an error line with exit code 1.
+
+`fail()` sets a value; it does not terminate the process or stop middleware. Return without calling `next()` to stop downstream execution, as in this guard:
+
+```ts
+const cli = new RhythmCli().cmd(
+  "deploy :env",
+  (ctx, next) => {
+    if (!["staging", "production"].includes(ctx.params.env)) return ctx.fail(`unknown environment '${ctx.params.env}'`);
+    return next();
+  },
+  (ctx) => ctx.log(`deployed to ${ctx.params.env}`),
+);
+```
+
+`cli.use(middleware)` wraps every command of that cli and runs only when a command matched, so a guard never answers an unknown command. A `derive()` as `use()` argument, or as the first handler of one command, widens the context type. Pass `{ stdout, stderr }` as the second argument of `toCliHandler` to capture output, for example in tests.
 
 ## Add `--help`
 

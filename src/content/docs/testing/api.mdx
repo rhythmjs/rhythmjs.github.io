@@ -7,7 +7,9 @@ description: "Every export of the four subpaths of @rhythmjs/testing: /rhythm, /
 ## @rhythmjs/testing/rhythm [#rhythm-subpath]
 
 ```ts
-function mockModule<TExports extends object>(values: TExports): Rhythm<{}, TExports>;
+function mockModule<TExports extends object>(values: TExports): Rhythm<TExports>;
+
+function withMockContext(app: Mountable, values: object | undefined): Mountable;
 
 function runMiddleware<TContext extends object>(
   middleware: Middleware<TContext>,
@@ -16,17 +18,19 @@ function runMiddleware<TContext extends object>(
 ```
 
 <DefList>
-<Def sig="mockModule(values)" id="mockmodule">A Rhythm module (type `module`, name `mock`) whose startup `context` is `values`, copied verbatim. There is no dispose hook: a fake that needs cleanup is cleaned up by the test that created it.</Def>
-<Def sig="runMiddleware(middleware, ctx)" id="runmiddleware">Invokes the middleware with your context and a `next()` that records being called and resolves to the context.</Def>
+<Def sig="mockModule(values)" id="mockmodule">A Rhythm module named `mock` whose startup context is `values`, copied verbatim. Pull it into an app with `include(mockModule(values), pick)`. There is no dispose hook: a fake that needs cleanup is cleaned up by the test that created it.</Def>
+<Def sig="withMockContext(app, values)" id="withmockcontext">Wraps any mountable (app, router, cli, ws) so `values` are assigned onto every call's input. `Rhythm` merges input over its startup context, so mocks replace real startup values. `values` may be `undefined` (no-op). Typed as a plain `Mountable`, so cast the context it returns.</Def>
+<Def sig="runMiddleware(middleware, ctx)" id="runmiddleware">Invokes the middleware with your context and a stub `next()` that records being called and resolves immediately.</Def>
 <Def sig={"MiddlewareRun<TContext>"} id="middlewarerun">\{ ctx: TContext; nextCalled: boolean \}: the mutated context and whether the chain continued.</Def>
+<Def sig={"MockContext<TApp>"} id="mockcontext">The startup fields plus declared input an app accepts mocks for.</Def>
 </DefList>
 
 ## @rhythmjs/testing/router [#router-subpath]
 
 ```ts
-function createTestClient<TStartup extends object = {}>(
-  app: Rhythm<RhythmHttpContext, TStartup, …> | RhythmRouter,
-  options?: TestClientOptions<TStartup>,
+function createTestClient<TApp extends Mountable>(
+  app: TApp, // a Rhythm app or a RhythmRouter that accepts the HTTP context
+  options?: TestClientOptions<Mockable<TApp>>,
 ): TestClient;
 
 function runHttpMiddleware<TExtras extends object = {}>(
@@ -37,26 +41,36 @@ function runHttpMiddleware<TExtras extends object = {}>(
 ```
 
 <DefList>
-<Def sig="createTestClient(app, options?)" id="createtestclient">Accepts a Rhythm HTTP app or a bare `RhythmRouter` (mounted into a fresh app for you) and returns verb helpers over `toFetchHandler`. `options.baseUrl` resolves relative paths (default `http://localhost`). `options.context` is a `Partial` of the app's declared startup shape, assigned onto the app's `context` (it mutates the app and overrides values already there), so mocks replace real startup values. Apps declared as `Rhythm<RhythmHttpContext, { db: Db }>` typecheck.</Def>
+<Def sig="createTestClient(app, options?)" id="createtestclient">Accepts a Rhythm app or a bare `RhythmRouter` and returns verb helpers over `toFetchHandler`. `options.baseUrl` resolves relative paths (default `http://localhost`). `options.context` is a `Partial` of the app's startup context and declared input (minus the HTTP base fields), assigned onto every request's context, so mocks replace real startup values. It fails to type-check when the app needs input the client cannot provide.</Def>
 <Def sig="TestClient" id="testclient">`fetch(input, init?)` plus `get` / `head` / `post` / `put` / `patch` / `delete`, each `(path, options?) => Promise<Response>`. There is no `teardown()`: close any resource you created yourself in `afterAll`.</Def>
-<Def sig="TestRequestOptions" id="testrequestoptions">\{ headers?; body?; json? \}; `json` serializes the value and sets `content-type: application/json` unless you set one yourself. `TestRequestHeaders`, `TestRequestBody`, and `TestRequestInit` alias the corresponding fetch constructor parameter types.</Def>
-<Def sig="runHttpMiddleware(middleware, request?, extras?)" id="runhttpmiddleware">Builds a real HTTP context with `createHttpContext` from a path or `Request` (default `http://localhost/`), assigns `extras` onto it, runs the middleware, and returns `HttpMiddlewareRun`.</Def>
-<Def sig="HttpMiddlewareRun" id="httpmiddlewarerun">\{ ctx; nextCalled: boolean; response: Response \} - `response` is the context's response rendered with `toResponse`.</Def>
+<Def sig="TestRequestOptions" id="testrequestoptions">\{ headers?; body?; json? \}; `json` serializes the value and sets `content-type: application/json` unless you set one yourself, and takes precedence over `body`. `TestRequestHeaders`, `TestRequestBody`, and `TestRequestInit` alias the corresponding fetch constructor parameter types.</Def>
+<Def sig="runHttpMiddleware(middleware, request?, extras?)" id="runhttpmiddleware">Builds a real HTTP context with `createHttpContext` from a path or `Request` (default `http://localhost/`), assigns `extras` onto it, runs the middleware, and returns `HttpMiddlewareRun`. To test a router, pass `mount(router)`.</Def>
+<Def sig="HttpMiddlewareRun" id="httpmiddlewarerun">\{ ctx; nextCalled: boolean; response: Response \}: `response` is the context's response rendered with `toResponse`.</Def>
 </DefList>
 
 ## @rhythmjs/testing/cli [#cli-subpath]
 
 ```ts
-function createCliRunner<TStartup extends object = {}>(
-  app: Rhythm<RhythmCliContext, TStartup, …> | RhythmCli,
-  options?: CliRunnerOptions<TStartup>,
+function createCliRunner<TApp extends Mountable>(
+  app: TApp, // a Rhythm app that mounts a cli, or a RhythmCli
+  options?: CliRunnerOptions<Mockable<TApp>>,
 ): CliRunner;
+
+interface CliRunner {
+  run(argv: string | string[]): Promise<CliRunResult>;
+}
+
+interface CliRunResult {
+  stdout: string;
+  stderr: string;
+  exitCode: number;
+}
 ```
 
 <DefList>
-<Def sig="createCliRunner(app, options?)" id="createclirunner">Accepts a Rhythm CLI app or a bare `RhythmCli` (mounted for you). The runner parses flags exactly like the real entry point, via `parseArgv`. `options.context` is a `Partial` of the app's startup shape, assigned onto its `context` so mocks win over real values.</Def>
-<Def sig="CliRunner.run(argv, options?)" id="clirunner-run">`argv` is a command string (whitespace-split) or an argv array. `options.stdin` becomes a web `ReadableStream` on the context; omitted, `ctx.stdin` is null, matching a TTY. Resolves to `CliRunResult`.</Def>
-<Def sig="CliRunResult" id="clirunresult">\{ ctx; stdout: string\[\]; stderr: string\[\]; exitCode: number \} - copies of the response buffers, nothing written to real stdio.</Def>
+<Def sig="createCliRunner(app, options?)" id="createclirunner">Runs the app through `toCliHandler`, with output captured instead of written to real stdio. `options.context` is a `Partial` of the app's startup context and input (minus the cli base fields), assigned onto every run's context so mocks win over real values.</Def>
+<Def sig="CliRunner.run(argv)" id="clirunner-run">`argv` is a command string (trimmed and split on whitespace) or an argv array. Flags are parsed only when the cli uses `withParsedArgv()`. An unknown command exits with `2`, a thrown error with `1`, and `ctx.fail(message, code)` with your code.</Def>
+<Def sig="CliRunResult" id="clirunresult">\{ stdout: string; stderr: string; exitCode: number \}: the captured text, newlines included.</Def>
 </DefList>
 
 ## @rhythmjs/testing/ws [#ws-subpath]
@@ -69,15 +83,15 @@ function upgradeWs<Data extends object = Record<string, string>>(
 
 function mockWs<Data extends object = Record<string, string>>(data: Data): MockWs<Data>;
 
-function fireOpen(ws: RhythmWs, peer: MockWs): void | Promise<void>;
-function fireMessage(ws: RhythmWs, peer: MockWs, data: string | Uint8Array | object): void | Promise<void>;
-function fireClose(ws: RhythmWs, peer: MockWs, code = 1000, reason = ""): void | Promise<void>;
-function fireDrain(ws: RhythmWs, peer: MockWs): void | Promise<void>;
+function fireOpen(peer: MockWs): void | Promise<void>;
+function fireMessage(peer: MockWs, data: string | Uint8Array | object): void | Promise<void>;
+function fireClose(peer: MockWs, code = 1000, reason = ""): void | Promise<void>;
+function fireDrain(peer: MockWs): void | Promise<void>;
 ```
 
 <DefList>
-<Def sig="upgradeWs(ws, request)" id="upgradews">Drives `RhythmWs.upgrade` against a mock server whose `upgrade()` always accepts and records its options. A string becomes a request with the `upgrade: websocket` header implied. Guards, the route's `upgrade`, and `headers` all run for real.</Def>
-<Def sig={"WsUpgradeResult<Data>"} id="wsupgraderesult">\{ matched; upgraded; response; data; headers \} - `matched` is false when `upgrade()` returned null (not a websocket request, or no route); `response` carries a rejection; on success `data` is the exact `ws.data` object and `headers` whatever the route contributed to the 101.</Def>
+<Def sig="upgradeWs(ws, request)" id="upgradews">Mounts the `RhythmWs` in a fresh `Rhythm` app and runs the request through `toFetchHandler` with a recording server. A string becomes a request with the `upgrade: websocket` header implied. Middleware, the route's `upgrade` and `headers` all run for real.</Def>
+<Def sig={"WsUpgradeResult<Data>"} id="wsupgraderesult">\{ upgraded; response; data; headers; peer \}: `upgraded` is true when the route called `server.upgrade`; `response` is the rejection or unmatched response, `null` when accepted; `data` is the `ws.data` attached and `headers` what the route passed to the upgrade (both `null` when not upgraded); `peer` is a `MockWs` built on `data`, or `null`.</Def>
 <Def sig="mockWs(data)" id="mockws">A recording `ServerWebSocket` stand-in: `sent`, `published`, `topics`, `closed`, and `terminated` capture everything handlers do; `send`/`publish` return byte counts; `close`/`terminate` flip `readyState` to 3. `data`, `readyState`, `remoteAddress` (127.0.0.1), and `isSubscribed` round out the surface handlers touch.</Def>
-<Def sig="fireOpen / fireMessage / fireClose / fireDrain" id="fireopen">Dispatch through the instance's real `websocket` behavior, so routing by `ws.data` identity is exercised too. `fireMessage` passes strings through, wraps `Uint8Array` in a `Buffer`, and JSON-serializes any other object.</Def>
+<Def sig="fireOpen / fireMessage / fireClose / fireDrain" id="fireopen">Take only the peer and invoke the matching handler of the `websocket` object from `@rhythmjs/ws`, which dispatches through `ws.data` to the matched route. The peer must come from `upgradeWs`. `fireMessage` passes strings through, wraps `Uint8Array` in a `Buffer`, and JSON-serializes any other object. Always `await` them.</Def>
 </DefList>

@@ -1,76 +1,105 @@
 ---
 title: "Encapsulated modules"
-lead: "Make context boundaries explicit with registration and exports."
+lead: "Make context boundaries explicit with mount and include."
 ---
 
-## Register a child
+## Two ways to compose
 
-A child receives the parent context as its input. Its added top-level fields stay inside the child unless an export function returns them. The parent context must satisfy the child’s input type.
+A `Rhythm` module is a self-contained pipeline with its own startup phase. A host composes it one of two ways, depending on when it should run:
 
-```ts
-import { Rhythm } from "@rhythmjs/rhythm";
+<DefList>
+<Def sig="mount(module)" id="mount">Request time. The module runs on every call with a copy of the host's context. What it derives stays inside it, and the host's later middleware always runs afterwards.</Def>
+<Def sig="include(module, pick?)" id="include">Startup time. The module runs once, when registered, with the host's startup context as its input. `pick` copies chosen fields into the host's startup context, and the module's `stop()` becomes one of the host's cleanups.</Def>
+</DefList>
 
-const identity = new Rhythm<{ userId: string }, { source: string }>({ name: "identity" })
-  .use<{ user: { name: string } }>(async (_ctx, next) => {
-    await next({ user: { name: "Ada" } });
-  });
+## Mount a module
 
-const app = new Rhythm<{ userId: string }>()
-  .register(identity, (result) => ({ user: result.user }))
-  .use((ctx) => console.log(ctx.user.name));
-
-identity.context.source = "local";
-
-await app.run({ userId: "u1" });
-```
-
-## Export deliberately
-
-Without an export function, no child-added fields are merged back into the parent. Exported fields become part of the parent’s inferred context. The boundary is shallow: nested input objects remain shared references, so registration is not a deep clone.
-
-## Run in place
-
-A registered module is part of the request's chain, not a separate pass. If the module's chain calls `next()` past its last middleware, the parent carries on with whatever it registered next, and the exports are applied at that moment. If the chain ends without calling `next()`, the request ends there: the parent's later middleware does not run. That is how a module that mounts a controller answers its own requests, while a catch-all 404 registered after it only sees what no module handled.
+A mounted module may derive whatever it likes; none of it reaches the host. `mount` checks at compile time that the host can supply the module's input, and widens the host's own input when it cannot.
 
 ```ts
-const productsModule = new Rhythm<RhythmHttpContext, { productsService: ProductsService }>({
-  name: "products",
-  type: "module",
-}).use(productsController.middleware());
+import { Rhythm, derive, mount } from "@rhythmjs/rhythm";
 
-productsModule.context.productsService = createProductsService(); // answers /api/products/** and does not call next()
+const identity = new Rhythm<{}, { userId: string }>({ name: "identity" }).use(
+  derive((ctx) => ({ user: { id: ctx.userId, name: "Ada" } })),
+);
 
-const app = new Rhythm<RhythmHttpContext>()
-  .register(productsModule)
-  .use(() => {
-    throw new HttpError(404, "Route not found"); // runs only for requests no module answered
+const app = new Rhythm().use(mount(identity)).use((ctx) => {
+  console.log(ctx.userId); // typed: mount widened the host's input
+  console.log(ctx.user); // type error: derived fields do not leak out of a mount
+});
+
+await app.callback()({ userId: "u1" });
+```
+
+`mount(module)` widens the host's input automatically: the host above needs `{ userId: string }` from its caller even though it never declared it. Pass a condition to run the module only for some calls: `mount(module, (ctx: { userId: string }) => ctx.userId !== "")`.
+
+## Include a module
+
+Use `include` for modules that build long-lived values. Without `pick`, no fields cross back, so the parent only inherits the cleanup.
+
+```ts
+const database = new Rhythm({ name: "database", type: "service" }).register(
+  decorate(async () => ({ db: await createDb() })),
+  (ctx) => ctx.db.close(),
+);
+
+const app = new Rhythm()
+  .register(include(database, (child) => ({ db: child.db })))
+  .use((ctx) => ctx.db.run("select 1"));
+```
+
+The parent's startup context must satisfy the child's input type, so a module that needs `{ db }` can be included only after something has added it.
+
+## Mount always continues
+
+A mounted plugin is part of the host's chain, but not the end of it. After the plugin runs, `mount` always calls `next()`. A router that did not match leaves the context untouched, so a catch-all registered after it only sees what nothing answered; a router that did match has already written the response, so check `ctx.response` if a later middleware should act only on unmatched requests, as below.
+
+```ts
+const app = new Rhythm()
+  .use(mount(productsRouter))
+  .use(mount(usersRouter))
+  .use((ctx) => {
+    if (ctx.response.body === null) ctx.json({ message: "Not Found" }, 404);
   });
 ```
 
-## Inherit context, wrap errors
+An untouched response already becomes a plain `404 Not Found` in `toFetchHandler`, so a fallback like this is only needed for a custom body.
 
-A registered module inherits its parent's context, including the parent's startup values, and may add its own through `module.context`; those never reach the parent (see [Startup context](/rhythm/context/)). Errors thrown by a registered child during dispatch are wrapped with its type and name; the original error is available as `cause`. Errors thrown by the parent's later middleware are not wrapped: they are not the module's failure. Because the wrapped error no longer carries the status of an `HttpError`, give a module that throws `HttpError`s its own `filter()` at the top of its chain.
+## Wrapped errors
 
-## Mount controllers flat
+Errors thrown inside a mounted plugin are wrapped as `mounted <type> "<name>" failed` with the original error as `cause`. An included module that fails to start is wrapped as `included module "<name>" failed`. Errors thrown by the host's later middleware are not wrapped: they are not the plugin's failure. The `name` and `type` come from the plugin's options (`new RhythmRouter({ name: "users" })` gives `mounted router "users" failed`; with no name the label is `"anonymous"`).
 
-`RhythmRouter` and `RhythmCli` are standalone controllers, not `Rhythm` modules: they have no startup `context` or `register()`, and they cannot be passed to `register()` either; it composes `Rhythm` instances only. Mount them into a core module with `use(router.middleware())` or `use(cli.middleware())`, and nest controller into controller the same way. The mount is opaque, so a nested controller carries its own full prefix.
+Because the wrapped error no longer carries the status of an `HttpError`, put `filter()` on the router that throws it rather than on the host. `errorToResponse` also looks through the `cause` chain for a declared status.
+
+## Routers, ws, cron and clis are pipelines
+
+`RhythmRouter`, `RhythmWs`, `RhythmCron` and `RhythmCli` extend the same `Pipeline` base as `Rhythm`: each has `use()`, but none has a startup phase. Startup work belongs to the `Rhythm` host, and the host mounts them all the same way.
+
+```ts
+const app = new Rhythm()
+  .register(decorate(() => ({ db })))
+  .use(mount(router))
+  .use(mount(ws));
+
+app.register(startCron(cron)); // cron is started at startup instead of mounted
+```
+
+The host's startup values are on the context of everything mounted in it, which is how a controller typed `RhythmRouter<{ db: Db }>` receives `ctx.db`.
 
 ## Inspect the app [#inspect]
 
-Middleware is opaque, so tooling cannot ask a function what it is. Instead, a middleware can be tagged with the object it was built from using `withSource(fn, source)` from `@rhythmjs/rhythm/source`. `RhythmRouter#middleware()`, `RhythmCli#middleware()` and `Rhythm#middleware()` tag themselves; anything else, such as a future extension, can do the same.
-
-`use()` records the tag, and `register()` records the child module. `module.sources` then lists the tagged sources below a module in order, with each registered module replaced by its own sources, and `module.parent` points back up. A module reads these lazily, when it first needs them, so controllers mounted after it are still found.
+Middleware is opaque, so tooling cannot ask a function what it is. Instead, a middleware or register callback can be tagged with the object it was built from using `withSource(fn, source)`. `mount()` and `include()` tag themselves with the plugin they wrap, so `app.sources` lists the leaf plugins (routers, clis, anything tagged) below the app in order, with each `Rhythm` module expanded in place. `app.parent` is the pipeline a plugin was adopted by.
 
 ```ts
-const usersModule = new Rhythm<RhythmHttpContext>({ name: "users" }).use(usersController.middleware());
+const usersModule = new Rhythm({ name: "users" }).use(mount(usersRouter));
 
-const appModule = new Rhythm<RhythmHttpContext>({ name: "app" })
-  .register(usersModule)
-  .use(healthController.middleware());
+const appModule = new Rhythm({ name: "app" })
+  .use(mount(usersModule))
+  .use(mount(healthRouter));
 
-appModule.sources; // [usersController, healthController]
-usersModule.sources; // [usersController]
+appModule.sources; // [usersRouter, healthRouter]
+usersModule.sources; // [usersRouter]
 usersModule.parent; // appModule
 ```
 
-A module sees only its own scope: a module registered in `apiModule` inspects `apiModule` and below, never its siblings. This is how `openapiModule` documents one group of routes, or the whole app, depending on where it is registered. The [OpenAPI](/openapi/document/) page shows it in use.
+A pipeline sees only its own scope: a module mounted in `apiModule` inspects `apiModule` and below, never its siblings. This is how the OpenAPI and help modules find what to document. The [OpenAPI](/openapi/document/) page shows it in use.

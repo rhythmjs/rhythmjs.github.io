@@ -5,79 +5,79 @@ lead: "Create long-lived dependencies once, hand them to the app, and let Rhythm
 
 ## Two phases
 
-An app has a startup phase and a request phase. Rhythm only runs the request phase. Anything created at startup, such as a database connection, a client, or configuration, is created by your code before you serve, and handed to the app through its `context`. There is no setup step, no teardown step, and no dispose hook: you close what you opened.
+An app has a startup phase and a request phase. `register()` is the startup phase: it runs a callback once, immediately, against the app's shared startup context, and may name a cleanup to run when the app stops. `use()` is the request phase: it runs on every call. Anything long-lived, such as a database connection, a client, or configuration, belongs in `register()`.
 
-## Declare the shape, then assign
+## Add values with decorate
 
-`context` is a plain object on every `Rhythm` instance. Its type is the second type parameter, `Rhythm<TInput, TStartup>`. Assignments and reads are checked against it, and the same fields are typed on `ctx` in every middleware.
+`decorate(fn)` is the typed way to add fields at startup. The returned object is merged into the startup context, and its fields are typed for everything after it. Nothing is declared twice: the type is inferred from what you return.
 
 ```ts
-import { Rhythm } from "@rhythmjs/rhythm";
+import { Rhythm, decorate } from "@rhythmjs/rhythm";
 
-const app = new Rhythm<{ jobId: string }, { db: Db; logger: Logger }>().use((ctx) => {
-  ctx.logger.info(`job ${ctx.jobId}`);
-  return ctx.db.run(ctx.jobId);
-});
+const app = new Rhythm<{}, { jobId: string }>()
+  .register(
+    decorate(async () => ({ db: await createDb(), logger: createLogger() })),
+    (ctx) => ctx.db.close(), // cleanup: runs on stop()
+  )
+  .use((ctx) => {
+    ctx.logger.info(`job ${ctx.jobId}`);
+    return ctx.db.run(ctx.jobId);
+  });
 
-app.context.db = await createDb();
-app.context.logger = createLogger();
-
-app.context.db = 1; // type error: not a Db
-app.context.cache = cache; // type error: not in the declared shape
-
-await app.run({ jobId: "job-1" });
+await app.callback()({ jobId: "job-1" });
+await app.stop();
 ```
 
-TypeScript cannot infer a type from a later property assignment, so the shape is declared once on the instance. Everything after that is inferred.
+A callback that returns a promise is awaited: the first call waits for it, so you never serve a half-started app. A plain callback (not wrapped in `decorate`) works too when you only need a side effect. `decorate` receives the startup context so far, so a later `decorate` can build on an earlier one.
 
-<Callout title="Assign before you serve">
+<Callout title="Add fields only with decorate or derive">
 
-Values are read when a request runs, so assign them before the first request. Nothing checks that every declared key was assigned: a key you forget is `undefined` at runtime even though its type says otherwise.
+`app.context.x = ...` no longer exists, and neither does assigning to an unknown field. `decorate` adds startup fields and `derive` adds request fields; both are checked by the compiler.
 
 </Callout>
 
 ## Merge order
 
-Each run builds its context as `{ ...app.context, ...input }`, so a per-request input field wins over a startup value with the same name. The values are shared references, not copies. Mutating an object you stored on `context` is visible to the next run, which is what you want for a connection and a hazard for request-scoped state.
+Each call builds its context as the startup values merged with the caller's input, so an input field wins over a startup value with the same name. The values are shared references, not copies. Mutating an object you added with `decorate` is visible to the next call, which is what you want for a connection and a hazard for request-scoped state. A `derive` always works on the call's own copy.
 
-## Modules inherit, parents do not
+## Cleanup
 
-A registered module sees everything its parent has in its context, and can add values of its own through `module.context`. A module's values are visible inside that module and to modules it registers, never to its parent, and they shadow the parent's values only inside the module.
-
-`register()` checks at compile time that the parent can satisfy the module's input. A module declares what it needs in `TInput`; the parent supplies it from its input or its startup shape.
+`register(callback, cleanup)` takes the cleanup as its second argument. `stop()` runs the cleanups in reverse order of registration, so a dependency is closed after the things that use it. If several cleanups throw, `stop()` still runs all of them and rejects with an `AggregateError`.
 
 ```ts
-const notesModule = new Rhythm<{ db: Db }>({ name: "notes" })
-  .use(derive(({ db }: { db: Db }) => ({ notesService: createNotesService(db) })))
-  .use(notesController.middleware());
-
-const app = new Rhythm<{}, { db: Db }>().register(notesModule);
-app.context.db = await createDb();
-
-new Rhythm<{}>().register(notesModule); // type error: the parent has no `db`
-```
-
-Flat mounting with `use(child.middleware())` shares the parent's context object instead of copying it. A mounted child's startup values are merged into that shared context, so later parent middleware can see them. Use `register()` when you want the boundary.
-
-## Shut down yourself
-
-Because Rhythm does not own your resources, closing them is part of your shutdown code.
-
-```ts
-const db = await createDb();
-app.context.db = db;
-
-const server = Bun.serve({ port: 3000, fetch: toFetchHandler(app) });
+const app = new Rhythm().register(
+  decorate(() => ({ cache: createCache() })),
+  (ctx) => ctx.cache.close(),
+);
 
 process.on("SIGTERM", async () => {
   await server.stop();
-  await db.close();
+  await app.stop();
   process.exit(0);
 });
 ```
 
-<Callout title="Moving from provide()">
+`Rhythm` is `AsyncDisposable`, so `await using app = new Rhythm()...` calls `stop()` when the scope ends.
 
-`provide(factory, dispose)`, `setup()` and `teardown()` were removed. Create the value yourself, assign it to `app.context`, and call its close method on shutdown. Providers that depended on earlier providers through `deps` are now ordinary code: build the first value, pass it to the function that builds the second.
+## Share a module's values with include
+
+A module that builds its own dependencies can hand them to a parent with `include(module, pick)`. The child runs once, at registration, with the parent's startup context as its input. `pick` copies chosen fields into the parent's startup context, and the child's `stop()` becomes one of the parent's cleanups.
+
+```ts
+import { include } from "@rhythmjs/rhythm";
+
+const database = new Rhythm({ name: "database", type: "service" }).register(
+  decorate(async () => ({ db: await createDb() })),
+  (ctx) => ctx.db.close(),
+);
+
+const app = new Rhythm().register(include(database, (child) => ({ db: child.db })));
+```
+
+Without `pick`, nothing crosses back, which suits a module that only does startup work. `include` is how the config, health and Better Auth modules plug in. See [Encapsulated modules](/rhythm/modules/).
+
+<Callout title="Moving from app.context and provide()">
+
+`app.context.x = ...`, `provide(factory, dispose)`, `setup()` and `teardown()` are gone. Add the value with `register(decorate(...), cleanup)` and call `app.stop()` on shutdown. A value that depended on an earlier one is ordinary code: read it from `ctx` in the next `decorate`.
 
 </Callout>

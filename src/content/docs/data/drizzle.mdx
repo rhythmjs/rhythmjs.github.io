@@ -1,7 +1,7 @@
 ---
 title: "Drizzle on Bun's native SQL"
-lead: "The database is created at startup and closed on shutdown, the queries live in a service factory, and Drizzle talks to PostgreSQL through Bun.SQL — no driver package."
-description: "Wire Drizzle ORM into Rhythm on Bun's native SQL driver: the database on the startup context, a service factory, and drizzle-kit migrations."
+lead: "The database is created at startup and closed when the app stops, the queries live in a service factory, and Drizzle talks to PostgreSQL through Bun.SQL — no driver package."
+description: "Wire Drizzle ORM into Rhythm on Bun's native SQL driver: the database on the startup context with a cleanup, a service factory, and drizzle-kit migrations."
 ---
 
 ## Install
@@ -9,32 +9,26 @@ description: "Wire Drizzle ORM into Rhythm on Bun's native SQL driver: the datab
 Drizzle's `drizzle-orm/bun-sql` entry runs on Bun's built-in `SQL` class, so PostgreSQL needs no `pg` or `postgres.js` dependency — `drizzle-kit` is only a dev tool for generating and applying migrations. The wiring below follows the shared shape from the [overview](/data/).
 
 ```bash
-bun add drizzle-orm zod @rhythmjs/middleware
+bun add drizzle-orm zod @rhythmjs/rhythm @rhythmjs/router @rhythmjs/middleware
 bun add -d drizzle-kit
 ```
 
-## The database handle [#database-handle]
+## The database [#database-handle]
 
-The factory returns the drizzle instance under `db` and a `close()` that closes the raw `Bun.SQL` client. The client itself never leaves the closure, so the pool stays private and still gets closed on shutdown.
+`createDatabase` returns the drizzle instance over a `Bun.SQL` client. The raw client stays reachable as `db.$client`, which is what the app closes on shutdown.
 
 ```ts
 // src/database.ts
 import { SQL } from "bun";
-import { drizzle, type BunSQLDatabase } from "drizzle-orm/bun-sql";
+import { drizzle } from "drizzle-orm/bun-sql";
 import * as schema from "./notes/notes.table";
 
 const databaseUrl = process.env.DATABASE_URL ?? "postgres://postgres:postgres@localhost:5432/notes_drizzle";
 
-export type Database = BunSQLDatabase<typeof schema>;
+export type Database = ReturnType<typeof createDatabase>;
 
-export interface DatabaseHandle {
-  db: Database;
-  close(): Promise<void>;
-}
-
-export function createDatabase(): DatabaseHandle {
-  const client = new SQL(databaseUrl);
-  return { db: drizzle({ client, schema }), close: () => client.close() };
+export function createDatabase() {
+  return drizzle({ client: new SQL(databaseUrl), schema });
 }
 ```
 
@@ -94,26 +88,35 @@ export type NotesService = ReturnType<typeof createNotesService>;
 
 ## Wiring the module [#module-wiring]
 
-The app module declares `db` in its startup shape and chains a [`filter()`](/middleware/filter/) error boundary, the notes module, and a 404 fallback. The notes module takes `db` as input and derives `notesService` from it before mounting the controller. Handlers throw `HttpError` for missing notes; `validate("body", …)` guards the writes and `intercept(…)` enforces the response contract.
+The app module decorates `db` onto the startup context and closes the pool in the cleanup passed to `register`. It then derives `notesService` from it and mounts the controller. The controller is a `RhythmRouter` with full paths: `filter()` on the router renders thrown `HttpError`s, `validate("body", …)` guards the writes and `intercept(…)` enforces the response contract.
 
 ```ts
 // src/app.module.ts
-export const appModule = new Rhythm<RhythmHttpContext, { db: Database }>({ name: "app", type: "module" })
-  .use(filter())
-  .register(notesModule)
-  .use(() => {
-    throw new HttpError(404, "Route not found");
-  });
+export const appModule = new Rhythm({ name: "app" })
+  .register(
+    decorate(() => ({ db: createDatabase() })),
+    ({ db }) => db.$client.close(),
+  )
+  .use(derive(({ db }) => ({ notesService: createNotesService(db) })))
+  .use(mount(notesController));
 ```
 
 ```ts
-// src/notes/notes.module.ts
-export const notesModule = new Rhythm<NotesModuleInput>({ name: "notes", type: "module" })
-  .use(derive(({ db }: NotesModuleInput) => ({ notesService: createNotesService(db) })))
-  .use(notesController.middleware());
+// src/notes/notes.controller.ts
+export const notesController = new RhythmRouter<NotesContext>()
+  .use(filter())
+  .use(intercept(notesResponseSchema))
+  .get("/api/notes", async (ctx) => {
+    ctx.json(await ctx.notesService.list());
+  })
+  .get("/api/notes/:id", async (ctx) => {
+    const note = await ctx.notesService.get(ctx.params.id);
+    if (!note) throw new HttpError(404, "Note not found");
+    ctx.json(note);
+  });
 ```
 
-`src/main.ts` creates the database and assigns it with `appModule.context.db = database.db` before serving. On shutdown it stops the server and then calls `database.close()`, which closes the pool.
+`src/main.ts` serves with `Bun.serve({ port, fetch: toFetchHandler(appModule) })`. On shutdown it stops the server and then calls `appModule.stop()`, which runs the cleanup and closes the pool.
 
 ## Migrations
 

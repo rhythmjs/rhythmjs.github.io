@@ -10,7 +10,7 @@ description: "Every subpath of @rhythmjs/openapi: the request validators, doc-on
 function apiBody<TSchema extends StandardSchemaV1>(
   schema: TSchema,
   options?: ApiBodyOptions,
-): DeriveMiddleware<ValidationContext, Validated<"body", TSchema>>;
+): ExtensionMiddleware<ValidationContext, Validated<"body", TSchema>>;
 
 interface ApiBodyOptions {
   description?: string;
@@ -28,10 +28,10 @@ Documents the request body and validates it. Extraction follows `contentType`: J
 ## /query, /param, /header, /cookie [#parameter-subpaths]
 
 ```ts
-function apiQuery<TSchema>(schema, options?: { overrides? }): DeriveMiddleware<..., Validated<"query", TSchema>>;
-function apiParam<TSchema>(schema, options?: { overrides? }): DeriveMiddleware<..., Validated<"param", TSchema>>;
-function apiHeader<TSchema>(schema, options?: { overrides? }): DeriveMiddleware<..., Validated<"header", TSchema>>;
-function apiCookie<TSchema>(schema, options?: { overrides? }): DeriveMiddleware<..., Validated<"cookie", TSchema>>;
+function apiQuery<TSchema>(schema, options?: { overrides? }): ExtensionMiddleware<..., Validated<"query", TSchema>>;
+function apiParam<TSchema>(schema, options?: { overrides? }): ExtensionMiddleware<..., Validated<"param", TSchema>>;
+function apiHeader<TSchema>(schema, options?: { overrides? }): ExtensionMiddleware<..., Validated<"header", TSchema>>;
+function apiCookie<TSchema>(schema, options?: { overrides? }): ExtensionMiddleware<..., Validated<"cookie", TSchema>>;
 ```
 
 Each documents one parameter group (`in: query`, `path`, `header`, or `cookie`) and validates the corresponding request part: query params with repeated keys collected as arrays, router `ctx.params`, all request headers as a lowercase record, or parsed cookies. The generator expands the object schema's properties into individual OpenAPI parameters; required from the schema (path parameters are always required), with per-property `overrides` (`ParameterOverride`: description, required, deprecated, style, explode, example, and so on).
@@ -114,8 +114,10 @@ interface OpenAPIConfig {
 ## /generate [#generate-subpath]
 
 ```ts
+function documented<R extends object>(router: R): R & RouterSource;
+
 function generate(
-  router: RouterSource,
+  routers: RouterSource | readonly RouterSource[],
   config: OpenAPIConfig,
   options?: GenerateOptions,
 ): Promise<OpenAPIObject>;
@@ -129,16 +131,18 @@ interface RouterSource {
 
 interface GenerateOptions {
   openapi?: string; // document version string, default "3.1.2"
-  includeUndocumented?: boolean; // default true
+  includeUndocumented?: boolean; // default false
 }
 ```
 
-Walks the entries in order. A middleware entry carrying a fragment joins the *inherited* list applied to every route after it; each route merges inherited then own fragments. Paths convert `:param` to `{param}` and `*` to `{wildcard}`. Schemas resolve through the resolver, and emitted `$defs` are hoisted into `components.schemas`; identical definitions share a name, conflicting ones get numeric suffixes, and `$ref`s are rewritten to `#/components/schemas/…`. RhythmRouter satisfies `RouterSource` directly via its `entries` getter. `generate` also accepts an array of routers and merges their paths, keeping each router's inherited middleware to its own routes.
+`documented(router)` wraps `use()`, `get`, `post`, `put`, `patch` and `delete` on the router so it records them, and returns the same router (typed also as `RouterSource`). Call it right after construction; a router that is not wrapped, or wrapped after routes were added, is silently left out of the document. Wrapping twice is harmless.
+
+`generate` walks the entries in order. A middleware entry carrying a fragment joins the *inherited* list applied to every route after it; each route merges inherited then own fragments. Routes with no fragment of their own are dropped unless `includeUndocumented` is set. Paths convert `:param` to `{param}` and `*` to `{wildcard}`. Schemas resolve through the resolver, and emitted `$defs` are hoisted into `components.schemas`; identical definitions share a name, conflicting ones get numeric suffixes, and `$ref`s are rewritten to `#/components/schemas/…`. Given an array of routers it merges their paths, keeping each router's inherited middleware to its own routes. Only `get`, `post`, `put`, `patch` and `delete` operations are documented.
 
 ## /module [#module-subpath]
 
 ```ts
-const openapiModule: { forRoot(options: OpenapiOptions): Rhythm<RhythmHttpContext, RhythmHttpContext & { openapiService: OpenapiService }> };
+const openapiModule: { forRoot(options: OpenapiOptions): RhythmRouter & { openapiService: OpenapiService } };
 interface OpenapiOptions extends GenerateOptions {
   document: OpenAPIConfig;
   path?: string; // where the document is served, default "/openapi.json"
@@ -148,7 +152,7 @@ interface OpenapiService {
 }
 ```
 
-A kernel module in the spirit of NestJS's `SwaggerModule`. Added to an app with `register()` or `use(module.middleware())`, it learns that app from `module.parent`, reads the app's `sources` and generates one document from every router in it, including routers inside nested modules. Nothing is walked: `router.middleware()` tags itself as a source, `use()` records it, and `register()` links a module so its sources flow up to every ancestor (see [Inspect the app](/rhythm/modules/#inspect)). Each router's `use()` middleware stays scoped to that router. Generation is lazy, so routers mounted after the module are still found, and the result is cached; a failed generation is evicted. A module never added to an app fails on the first request. The module's context holds `openapiService` (assigned synchronously by `forRoot`), so `openapiService.document()` is available to the rest of the app once exported with `register(module, ({ openapiService }) => ({ openapiService }))`. It owns nothing to close. The module answers `GET` on `path` only (an exact match via `@rhythmjs/http/mount`) and leaves every other request to the app; reference pages live in `@rhythmjs/scalar` and `@rhythmjs/swagger`.
+A plain `RhythmRouter` (named `openapi`) with one `GET` route on `path`, added to an app with `.use(mount(module))`. It documents the app it is mounted in: on the first request it scans that app's sources, including nested routers and apps, for `documented()` routers and generates one document from all of them. Each router's `use()` middleware stays scoped to that router. Generation is lazy, so routers mounted after the module are still found, and the result is cached; a failed generation is evicted so the next request retries. A module never mounted in an app fails on the first request. `openapiService.document()` resolves to the same document in code. Only an exact `GET` on `path` is answered; `mount()` calls `next()` afterwards, so other requests fall through. Reference UIs live in `@rhythmjs/scalar` and `@rhythmjs/swagger`.
 
 ## /metadata [#metadata-subpath]
 

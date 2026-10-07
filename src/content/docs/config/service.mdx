@@ -6,16 +6,16 @@ description: "configModule.forRoot, deep-merged trees, aggregated ConfigError re
 
 ## Register the module
 
-`configModule.forRoot(...factories)` is async and returns a promise of a Rhythm module. Every factory runs once, when you `await` it at startup (not per run), and the outputs are deep-merged the outputs into one tree. Plain factories merge at the root; namespaced factories merge under their token; on conflicts, later factories win, with nested plain objects merged key by key (arrays and other values replace wholesale). The module carries `configService` on its startup context; export it to the parent with the `register` callback.
+`configModule.forRoot(...factories)` is async and returns a promise of a Rhythm module. Every factory runs once, when you `await` it at startup (not per run), and the outputs are deep-merged into one tree. Plain factories merge at the root; namespaced factories merge under their token; on conflicts, later factories win, with nested plain objects merged key by key (arrays and other values replace wholesale). The module carries `configService` on its startup context; `include` it into the app with a pick function that chooses what reaches the app's startup context.
 
 ```ts
-import { Rhythm } from "@rhythmjs/rhythm";
+import { Rhythm, include } from "@rhythmjs/rhythm";
 import { configModule } from "@rhythmjs/config";
 
 // every factory runs and validates here, once, before the app serves
-const app = new Rhythm().register(await configModule.forRoot(appConfig, databaseConfig), (m) => ({
-  configService: m.configService,
-}));
+const app = new Rhythm().register(
+  include(await configModule.forRoot(appConfig, databaseConfig), ({ configService }) => ({ configService })),
+);
 ```
 
 ## Aggregated failures
@@ -30,7 +30,7 @@ ConfigError: Invalid configuration:
 
 ## Read with the service
 
-The `configService` on the module's context is typed from the exact factories you passed. `get(path)` takes a dot path - `"database.port"`, resolved segment by segment; `value` is the whole merged tree. The optional second argument is a fallback applied with `??`, so it kicks in for `null` as well as `undefined` and missing paths. `getOrThrow(path)` throws a `ConfigError` naming the path when the value is null or missing; reach for it at startup for values the app cannot run without.
+`ctx.configService` is typed from the exact factories you passed. `get(path)` takes a dot path - `"database.port"`, resolved segment by segment; `value` is the whole merged tree. The optional second argument is a fallback applied with `??`, so it kicks in for `null` as well as `undefined` and missing paths. `getOrThrow(path)` throws a `ConfigError` naming the path when the value is null or missing; reach for it at startup for values the app cannot run without.
 
 ```ts
 const port = ctx.configService.get("database.port"); // number
@@ -50,17 +50,20 @@ ctx.configService.get("database.port", "3000"); // compile error: fallback must 
 
 ## Type-safe consumers
 
-Downstream modules declare what they expect with `ConfigContext<typeof load>`, where `load` is the `as const` tuple of factories the app registers; the module compiles against exactly the configuration shape the host provides. `ConfigType<typeof factory>` extracts one factory's output type for functions that take a config slice directly.
+Child routers and modules declare what they expect as their input with `ConfigContext<typeof load>`, where `load` is the `as const` tuple of factories the app registers. Mounting one is a compile error unless the host supplies a matching `configService`. Config is already built when `forRoot` resolves, so mount children with `mount(...)`; `include` is for modules that produce startup values. `ConfigType<typeof factory>` extracts one factory's output type for functions that take a config slice directly.
 
 ```ts
+import { Rhythm, mount } from "@rhythmjs/rhythm";
 import type { ConfigContext, ConfigType } from "@rhythmjs/config";
 
 const load = [appConfig, databaseConfig] as const;
 
-const apiModule = new Rhythm<ConfigContext<typeof load>>().use(async (ctx, next) => {
+const apiModule = new Rhythm<{}, ConfigContext<typeof load>>().use(async (ctx, next) => {
   const port: number = ctx.configService.get("database.port");
   await next();
 });
+
+// host: app.use(mount(apiModule))
 
 type DatabaseConfig = ConfigType<typeof databaseConfig>; // { host: string; port: number }
 ```

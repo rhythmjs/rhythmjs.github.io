@@ -1,7 +1,7 @@
 ---
 title: "Prisma on the startup context"
-lead: "One PrismaClient for the app's lifetime, created at startup and closed on shutdown — with Prisma's error codes translated to plain answers at the service boundary."
-description: "Wire Prisma into Rhythm: PrismaClient on the startup context, not-found error codes mapped at the service boundary, and deploy-style migrations."
+lead: "One PrismaClient for the app's lifetime, created at startup and disconnected when the app stops — with Prisma's error codes translated to plain answers at the service boundary."
+description: "Wire Prisma into Rhythm: PrismaClient in a database module, not-found error codes mapped at the service boundary, and deploy-style migrations."
 ---
 
 ## Install
@@ -9,7 +9,7 @@ description: "Wire Prisma into Rhythm: PrismaClient on the startup context, not-
 The generated client is a runtime dependency; the `prisma` CLI is a dev tool. The schema lives in `prisma/schema.prisma`, and the model maps to the same `notes` table the other recipes use.
 
 ```bash
-bun add @prisma/client zod @rhythmjs/middleware
+bun add @prisma/client zod @rhythmjs/rhythm @rhythmjs/router @rhythmjs/middleware
 bun add -d prisma
 ```
 
@@ -26,25 +26,21 @@ model Note {
 }
 ```
 
-## The database handle [#database-handle]
+## The database module [#database-handle]
 
-`PrismaClient` manages its own pool, so the handle is short: construct it at startup and expose `$disconnect()` as `close()`. Passing `datasourceUrl` keeps the runtime independent of the `.env` file the CLI reads.
+`PrismaClient` manages its own pool, so the module is short: `decorate` creates the client at startup and the cleanup calls `$disconnect()` when the app stops. Passing `datasourceUrl` keeps the runtime independent of the `.env` file the CLI reads.
 
 ```ts
 // src/database.ts
 import { PrismaClient } from "@prisma/client";
+import { Rhythm, decorate } from "@rhythmjs/rhythm";
 
 const databaseUrl = process.env.DATABASE_URL ?? "postgres://postgres:postgres@localhost:5432/notes_prisma";
 
-export interface Database {
-  prisma: PrismaClient;
-  close(): Promise<void>;
-}
-
-export function createDatabase(): Database {
-  const prisma = new PrismaClient({ datasourceUrl: databaseUrl });
-  return { prisma, close: () => prisma.$disconnect() };
-}
+export const databaseModule = new Rhythm({ name: "database" }).register(
+  decorate(() => ({ prisma: new PrismaClient({ datasourceUrl: databaseUrl }) })),
+  ({ prisma }) => prisma.$disconnect(),
+);
 ```
 
 ## Not-found at the boundary
@@ -85,24 +81,23 @@ export function createNotesService(prisma: PrismaClient) {
 
 ## Wiring the module [#module-wiring]
 
-Identical to every other recipe — only the context key changes. The app module declares `prisma` in its startup shape, `src/main.ts` assigns `appModule.context.prisma = database.prisma` before serving and calls `database.close()` on shutdown, and the notes module derives the service from it. The controller validates bodies with zod through `validate("body", …)` and checks responses with `intercept(…)`.
-
-```ts
-// src/app.module.ts
-export const appModule = new Rhythm<RhythmHttpContext, { prisma: PrismaClient }>({ name: "app", type: "module" })
-  .use(filter())
-  .register(notesModule)
-  .use(() => {
-    throw new HttpError(404, "Route not found");
-  });
-```
+The notes module includes the database module, picking out `prisma`, and decorates the service on top of it. The app module includes the notes module and mounts the router. `include` registers each child's `stop()` as cleanup, so `appModule.stop()` disconnects Prisma.
 
 ```ts
 // src/notes/notes.module.ts
-export const notesModule = new Rhythm<NotesModuleInput>({ name: "notes", type: "module" })
-  .use(derive(({ prisma }: NotesModuleInput) => ({ notesService: createNotesService(prisma) })))
-  .use(notesController.middleware());
+export const notesModule = new Rhythm({ name: "notes" })
+  .register(include(databaseModule, ({ prisma }) => ({ prisma })))
+  .register(decorate(({ prisma }) => ({ notesService: createNotesService(prisma) })));
 ```
+
+```ts
+// src/app.module.ts
+export const appModule = new Rhythm({ name: "app" })
+  .register(include(notesModule, ({ notesService }) => ({ notesService })))
+  .use(mount(notesController));
+```
+
+The controller is a `RhythmRouter` with full paths (`/api/notes`, `/api/notes/:id`). `filter()` on the router renders thrown `HttpError`s, `validate("body", …)` checks bodies with zod and `intercept(…)` checks responses. `src/main.ts` serves with `Bun.serve({ port, fetch: toFetchHandler(appModule) })` and calls `appModule.stop()` on shutdown.
 
 ## Migrations
 

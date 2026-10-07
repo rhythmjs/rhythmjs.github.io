@@ -17,37 +17,39 @@ bun add @rhythmjs/climax @rhythmjs/cli @rhythmjs/rhythm
 `commandHelp` is ordinary middleware that carries documentation and does nothing at runtime, so the command stays the single source of truth: what is documented is what runs. Put it before the handler.
 
 ```ts
-import { Rhythm } from "@rhythmjs/rhythm";
+import { Rhythm, mount } from "@rhythmjs/rhythm";
 import { RhythmCli } from "@rhythmjs/cli";
 import { toCliHandler } from "@rhythmjs/cli/run";
-import type { RhythmCliContext } from "@rhythmjs/cli/context";
 import { commandHelp } from "@rhythmjs/climax/help/command";
+import { documented } from "@rhythmjs/climax/help/documented";
 import { helpModule } from "@rhythmjs/climax/help/module";
 
-const cli = new RhythmCli().command(
+const cli = documented(new RhythmCli({ name: "app" })).cmd(
   "deploy :environment",
   commandHelp({
     summary: "Deploy the app",
     description: "Builds and ships the current commit.",
     examples: ["app deploy prod"],
   }),
-  (ctx) => {
-    ctx.response.print(`Deploying to ${ctx.args.environment}`);
-  },
+  (ctx) => ctx.log(`Deploying to ${ctx.params.environment}`),
 );
 
-const app = new Rhythm<RhythmCliContext>()
-  .register(helpModule.forRoot({ name: "app", description: "Example app" }))
-  .use(cli.middleware());
+const app = new Rhythm()
+  .use(helpModule.forRoot({ name: "app", description: "Example app" }))
+  .use(mount(cli));
 
-process.exitCode = await toCliHandler(app)(process.argv.slice(2));
+process.exitCode = await toCliHandler(app)(Bun.argv.slice(2));
 ```
+
+## Wrap the cli with documented() [#documented]
+
+A `RhythmCli` does not expose its commands, so `documented(cli)` (from `@rhythmjs/climax/help/documented`) records every `cmd()` and `use()` call on the cli and returns the same cli. Wrap every cli you want in help, including mounted children: a cli that is not wrapped contributes nothing, silently.
 
 ## Register the module first [#module]
 
-`helpModule` is never handed the cli. Like the OpenAPI module, it documents the app it is registered in by scanning that app's `sources`, and it follows nested clis. Registration order is execution order, and help answers without calling `next()`, so register it before the cli.
+`helpModule` is never handed the cli. Like the OpenAPI module, it documents the app it is used in by scanning that app's `sources`, and it follows documented clis mounted into it, recursively. Middleware runs in order, and help answers without calling `next()`, so add `helpModule.forRoot()` before `mount(cli)`.
 
-`name` is the program name shown in `Usage:` lines and `description` is printed above the index. Without a parent app the module throws a clear error instead of rendering an empty page.
+`name` is the program name shown in `Usage:` lines and `description` is printed above the index. Used outside an app, the module throws a clear error instead of rendering an empty page. When it answers help it prints through `ctx.log` and sets the exit code to 1 for an unknown topic.
 
 ## What it prints [#output]
 

@@ -16,44 +16,50 @@ export const createNoteSchema = z.object({
   title: z.string().trim().min(1, "title must be a non-empty string"),
   content: z.string().default(""),
 });
+export const updateNoteSchema = z.object({
+  title: z.string().trim().min(1, "title must be a non-empty string").optional(),
+  content: z.string().optional(),
+});
 export type CreateNoteInput = z.infer<typeof createNoteSchema>;
+export type UpdateNoteInput = z.infer<typeof updateNoteSchema>;
 ```
 
 ```ts
 import { validate } from "@rhythmjs/middleware/validate";
 
-notesController.post("/", validate("body", createNoteSchema), (ctx) => {
+notesController.post("/api/notes", validate("body", createNoteSchema), (ctx) => {
   // ctx.valid.body is CreateNoteInput — parsed, defaulted, typed
   ctx.json(ctx.notesService.create(ctx.valid.body), 201);
 });
 ```
 
+`validate` is typed like `derive()`: it widens the context for the handlers after it, so it must be the first handler of a route, and a route takes one such handler.
+
 ## Throw HTTP errors
 
-`filter()` is the error boundary: mount it first in the module, and any thrown `HttpError` becomes the matching JSON response while unexpected errors become a generic `500` — no stack traces or internals ever reach the client. Handlers then just throw:
+`filter()` is the error boundary: put it first on the router, and any thrown `HttpError` becomes the matching JSON response while unexpected errors become a generic `500` — no stack traces or internals ever reach the client. Handlers then just throw:
 
 ```ts
 import { HttpError, filter } from "@rhythmjs/middleware/filter";
 
-export const appModule = new Rhythm<RhythmHttpContext>({ name: "app", type: "module" })
-  .use(filter())                       // first: everything below is covered
-  .register(notesModule, (v) => v)
-  .use(() => {
-    throw new HttpError(404, "Route not found");   // the 404 tail, via the same path
+export const notesController = new RhythmRouter<NotesContext>({ name: "notes" })
+  .use(filter()) // first: every route below it is covered
+  .get("/api/notes/:id", (ctx) => {
+    const note = ctx.notesService.get(ctx.params.id);
+    if (!note) throw new HttpError(404, "Note not found");
+    ctx.json(note);
   });
 ```
 
-```ts
-.get("/:id", (ctx) => {
-  const note = ctx.notesService.get(ctx.params.id);
-  if (!note) throw new HttpError(404, "Note not found");
-  ctx.json(note);
-})
-```
+<Callout title="Filter on the router, not the app">
+
+`mount()` wraps anything thrown inside a mounted router as `mounted router "notes" failed`, with the original as its `cause`. A `filter()` on the *app* would therefore never see your `HttpError` and answer a generic `500`. Keep `filter()` and `intercept()` on the router they protect. Requests no router matched are still the plain `404` from `toFetchHandler`.
+
+</Callout>
 
 ## Validate the output
 
-`intercept(schema)` is the mirror image: it validates (and re-serializes) what your handlers return, so a stripping schema genuinely removes over-exposed fields before they leave the process. Put it on the controller and every route below it honors the response contract:
+`intercept(schema)` is the mirror image: it validates (and re-serializes) what your handlers return, so a stripping schema genuinely removes over-exposed fields before they leave the process. Put it on the controller and every route of it honors the response contract. Only successful responses with a body are touched, so errors and `204`s pass through:
 
 ```ts
 import { intercept } from "@rhythmjs/middleware/intercept";
@@ -65,35 +71,37 @@ export const noteSchema = z.object({
 });
 export const notesResponseSchema = z.union([noteSchema, z.array(noteSchema)]);
 
-export const notesController = new RhythmRouter<NotesContext>({ prefix: "/api/notes" })
+export const notesController = new RhythmRouter<NotesContext>({ name: "notes" })
+  .use(filter())
   .use(intercept(notesResponseSchema))
-  .get("/", (ctx) => { /* ... */ });
+  .get("/api/notes", (ctx) => { /* ... */ });
 ```
 
 ## The full shape
 
-Input validation, output interception, and the error filter compose into the standard controller shape you will keep for the rest of the tutorial:
+Error filter, output interception, and input validation compose into the standard controller shape you will keep for the rest of the tutorial:
 
 ```ts
-export const notesController = new RhythmRouter<NotesContext>({ prefix: "/api/notes" })
+export const notesController = new RhythmRouter<NotesContext>({ name: "notes" })
+  .use(filter())
   .use(intercept(notesResponseSchema))
-  .get("/", (ctx) => {
+  .get("/api/notes", (ctx) => {
     ctx.json(ctx.notesService.list());
   })
-  .get("/:id", (ctx) => {
+  .get("/api/notes/:id", (ctx) => {
     const note = ctx.notesService.get(ctx.params.id);
     if (!note) throw new HttpError(404, "Note not found");
     ctx.json(note);
   })
-  .post("/", validate("body", createNoteSchema), (ctx) => {
+  .post("/api/notes", validate("body", createNoteSchema), (ctx) => {
     ctx.json(ctx.notesService.create(ctx.valid.body), 201);
   })
-  .patch("/:id", validate("body", updateNoteSchema), (ctx) => {
+  .patch("/api/notes/:id", validate("body", updateNoteSchema), (ctx) => {
     const note = ctx.notesService.update(ctx.params.id, ctx.valid.body);
     if (!note) throw new HttpError(404, "Note not found");
     ctx.json(note);
   })
-  .delete("/:id", (ctx) => {
+  .delete("/api/notes/:id", (ctx) => {
     if (!ctx.notesService.remove(ctx.params.id)) throw new HttpError(404, "Note not found");
     ctx.response.status = 204;
   });
@@ -101,6 +109,6 @@ export const notesController = new RhythmRouter<NotesContext>({ prefix: "/api/no
 
 <Callout title="Cap the body first">
 
-In production put `bodyLimit(maxBytes)` from `@rhythmjs/http/body-limit` in front of anything that reads request bodies — it answers `413` the moment a body crosses the limit, without buffering more than the limit itself.
+In production put `bodyLimit(maxBytes)` from `@rhythmjs/http/body-limit` in front of anything that reads request bodies — it answers `413` the moment a body crosses the limit, without buffering more than the limit itself. Add it with `.use(bodyLimit(1_000_000))` on the app or on the router.
 
 </Callout>
