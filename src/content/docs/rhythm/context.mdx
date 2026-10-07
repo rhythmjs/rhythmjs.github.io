@@ -5,7 +5,7 @@ lead: "Create long-lived dependencies once, hand them to the app, and let Rhythm
 
 ## Two phases
 
-An app has a startup phase and a request phase. `register()` is the startup phase: it runs a callback once, immediately, against the app's shared startup context, and may name a cleanup to run when the app stops. `use()` is the request phase: it runs on every call. Anything long-lived, such as a database connection, a client, or configuration, belongs in `register()`.
+An app has a startup phase and a request phase. `register()` is the startup phase: it runs a callback once, in order, against the app's shared startup context, and may name a cleanup to run when the app stops. `use()` is the request phase: it runs on every call. Anything long-lived, such as a database connection, a client, or configuration, belongs in `register()`.
 
 ## Add values with decorate
 
