@@ -1,0 +1,52 @@
+---
+import SectionHead from "./section-head.astro";
+
+const columns = ["Bare Bun", "Rhythm", "Heavy frameworks"];
+const rows = [
+  { topic: "Speed", cells: ["Fastest possible", "Almost the same", "Pays for its abstractions"] },
+  { topic: "Structure", cells: ["Build it yourself", "Composable middleware and modules", "Imposed by the framework"] },
+  { topic: "Types", cells: ["Cast by hand", "Flow through the request", "Depends on decorators"] },
+  { topic: "Magic", cells: ["None", "None, everything explicit", "Decorators, DI, conventions"] },
+  { topic: "DX", cells: ["Lots of boilerplate", "A small, readable pipeline", "Powerful, heavy to learn"], score: [2, 5, 3] },
+];
+---
+
+<section class="compare">
+  <div class="landing-inner">
+    <SectionHead
+      id="comparison"
+      eyebrow="Comparison"
+      title="Comparison is the thief of joy"
+      lead="Pick the tool you enjoy building with. A few points of speed are a fair price for great DX, but fast and painful is never worth it."
+    />
+    <div class="compare-table-wrap">
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <td></td>
+            {columns.map((name, i) => <th scope="col" class={i === 1 ? "is-rhythm" : undefined}>{name}</th>)}
+          </tr>
+        </thead>
+        <tbody>
+          {
+            rows.map(({ topic, cells, score }) => (
+              <tr>
+                <th scope="row">{topic}</th>
+                {cells.map((cell, i) => (
+                  <td class={i === 1 ? "is-rhythm" : undefined}>
+                    {cell}
+                    {score && (
+                      <span class="score" role="img" aria-label={`${score[i]} out of 5`}>
+                        {[1, 2, 3, 4, 5].map((n) => <i class={n <= score[i] ? "on" : undefined} />)}
+                      </span>
+                    )}
+                  </td>
+                ))}
+              </tr>
+            ))
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>

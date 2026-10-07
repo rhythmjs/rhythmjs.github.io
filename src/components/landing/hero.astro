@@ -5,7 +5,9 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import Icon from "../icon.astro";
 
-const [before, after] = site.tagline.split("composable");
+const [, lead, code] = site.tagline.match(/^(.*?)\s+([\w.]+\(.*)$/) ?? [];
+const tokens = code?.split(/(\w+)/) ?? [];
+const dotAt = tokens.findIndex((t) => t.includes("."));
 const large = (variant: "default" | "secondary") => cn(buttonVariants({ variant, size: "lg" }), "h-10 px-4 text-sm");
 ---
 
@@ -18,14 +20,16 @@ const large = (variant: "default" | "secondary") => cn(buttonVariants({ variant,
         <Badge variant="secondary">v{site.version}</Badge>
       </div>
       <h1>
-        {after === undefined ? (
-          site.tagline
-        ) : (
+        {code ? (
           <Fragment>
-            {before}
-            <span class="text-primary">composable()</span>
-            {after}
+            {lead}
+            <br />
+            {tokens.map((token, i) => (
+              <span class={i <= dotAt ? "text-muted-foreground" : "text-primary"}>{token}</span>
+            ))}
           </Fragment>
+        ) : (
+          site.tagline
         )}
       </h1>
       <p class="hero-sub">
@@ -61,3 +65,4 @@ const large = (variant: "default" | "secondary") => cn(buttonVariants({ variant,
     </div>
   </div>
 </section>
+

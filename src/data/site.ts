@@ -1,7 +1,7 @@
 export const site = {
   name: "RhythmJS",
   title: "RhythmJS documentation",
-  tagline: "A small foundation for composable applications.",
+  tagline: "The backend framework with.use(composable);",
   description:
     "Documentation for RhythmJS: a minimal, type-safe composition kernel for TypeScript, and the packages built on it for Bun.",
   url: "https://rhythm.js.org",

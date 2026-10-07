@@ -89,8 +89,14 @@
   user-select: none;
 }
 
-.landing-section {
+.landing-section,
+.compare {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: calc(100dvh - var(--header-h));
   padding: clamp(3.5rem, 7vw, 6.5rem) var(--gutter);
+  background: linear-gradient(to right, transparent, color-mix(in oklab, var(--foreground) 22%, transparent) 20%, color-mix(in oklab, var(--foreground) 22%, transparent) 80%, transparent) top / 100% 1px no-repeat;
 }
 
 .landing-inner {
@@ -450,4 +456,156 @@
     left: auto;
     right: 100%;
   }
+}
+
+.pipeline {
+  position: relative;
+}
+
+.pipeline-status {
+  margin: 1.5rem 0 0;
+  min-height: 1.5em;
+  color: var(--muted-foreground);
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+.envelope,
+.pipeline-status[hidden] {
+  display: none;
+}
+
+.pin-track.is-pinned {
+  display: block;
+  height: 450dvh;
+  min-height: 0;
+  padding-block: 0;
+}
+
+.pin-track.is-pinned > .pin-stage {
+  position: sticky;
+  top: var(--header-h);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: calc(100dvh - var(--header-h));
+}
+
+.pipeline.is-scrub .envelope {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.65rem;
+  background: var(--foreground);
+  color: var(--background);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  white-space: nowrap;
+  will-change: transform;
+}
+
+.pipeline.is-scrub .envelope.is-response {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.pipeline.is-scrub .envelope-icon {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.pipeline.is-scrub .stage {
+  opacity: 0.4;
+  transition:
+    opacity 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+.pipeline.is-scrub .stage.is-done {
+  opacity: 0.85;
+}
+
+.pipeline.is-scrub .stage.is-active {
+  opacity: 1;
+  box-shadow: 0 0 0 2px var(--primary);
+}
+
+.compare-table-wrap {
+  max-width: 64rem;
+  margin-inline: auto;
+  overflow-x: auto;
+}
+
+.compare-table {
+  width: 100%;
+  min-width: 40rem;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+  text-align: left;
+}
+
+.compare-table th,
+.compare-table td {
+  padding: 1rem 1.25rem;
+  vertical-align: top;
+  background: linear-gradient(to right, color-mix(in oklab, var(--foreground) 14%, transparent) 0 100%) top / 100% 1px
+    no-repeat;
+}
+
+.compare-table thead th,
+.compare-table thead td {
+  background: none;
+  color: var(--muted-foreground);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.compare-table tbody th {
+  width: 9rem;
+  font-weight: 600;
+}
+
+.compare-table td {
+  color: var(--muted-foreground);
+}
+
+.compare-table .is-rhythm {
+  background-color: color-mix(in oklab, var(--primary) 10%, transparent);
+}
+
+.compare-table td.is-rhythm {
+  color: var(--foreground);
+  font-weight: 500;
+}
+
+.compare-table thead th.is-rhythm {
+  color: var(--primary);
+}
+
+.score {
+  display: flex;
+  gap: 0.25rem;
+  margin-top: 0.6rem;
+}
+
+.score i {
+  width: 0.625rem;
+  height: 0.625rem;
+  background: color-mix(in oklab, var(--foreground) 18%, transparent);
+}
+
+.score i.on {
+  background: color-mix(in oklab, var(--foreground) 55%, transparent);
+}
+
+.compare-table .is-rhythm .score i.on {
+  background: var(--primary);
 }
