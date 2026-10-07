@@ -1,7 +1,7 @@
 ---
 title: "Middleware and auth"
-lead: "Upgrades run through ordinary Rhythm middleware: reuse sessions, authentication and rate limits, and let the origin check stop cross-site hijacking."
-description: "Guard WebSocket handshakes with use(): sessions, authentication, rate limiting, middleware order, and the same-origin check."
+lead: "Upgrades run through ordinary Rhythm middleware: reuse sessions, your own guards and rate limits, and let the origin check stop cross-site hijacking."
+description: "Guard WebSocket handshakes with use(): sessions, guards, rate limiting, middleware order, and the same-origin check."
 ---
 
 ## use() over the handshake [#use]
@@ -27,7 +27,7 @@ The middleware runs over the handshake request, which carries cookies and header
 
 <DefList>
 <Def sig="@rhythmjs/http" id="http">`session()` and `cookies()` from `@rhythmjs/http/session` and `/cookies` are extension middleware; `.use(session())` and `ctx.session` is available in `upgrade` and `headers`.</Def>
-<Def sig="@rhythmjs/security" id="security">`attachUser` / `requireAuthentication` from `/authentication` and `requireRoles` from `/authorization` work as on a router. `rateLimit` works too (see below).</Def>
+<Def sig="@rhythmjs/security" id="security">`rateLimit` from `/rate-limit` works as on a router (see below). Guards you write yourself, like the ones in the [tutorial](/tutorial/security/), are plain `(ctx, next)` middleware and work the same way.</Def>
 <Def sig="@rhythmjs/better-auth" id="better-auth">`withSession()` and `requireSession()` apply with `.use(...)`, on an app that provides `ctx.auth` the way the [Better Auth integration](/integrations/better-auth/) sets up.</Def>
 </DefList>
 

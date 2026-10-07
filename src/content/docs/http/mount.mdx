@@ -53,7 +53,7 @@ const app = new Rhythm<{}, RhythmHttpContext>()
 
 ## Things to check
 
-- Router middleware such as `rateLimit()` or `requireAuthentication()` lives on a [`RhythmRouter`](/router/) and only runs for that router's routes, so it does not guard a mounted fetch handler. Protect those paths with the mounted library's own settings, or put app-level middleware before the mount.
+- Router middleware such as `rateLimit()` or an authentication guard lives on a [`RhythmRouter`](/router/) and only runs for that router's routes, so it does not guard a mounted fetch handler. Protect those paths with the mounted library's own settings, or put app-level middleware before the mount.
 - The handler reads `ctx.request`; if an earlier middleware already consumed the body, clone it first.
 
 The [Better Auth recipe](/integrations/better-auth/) mounts its handler this way, with CORS in front. The functions are described in the [API reference](/http/api/#mount).

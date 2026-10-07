@@ -1,90 +1,26 @@
 ---
-title: "Authentication & authorization"
-lead: "Resolve the user once, derive it onto the context, and guard what follows: predicates, roles, and permissions with honest 401/403 semantics."
-description: "Authentication and authorization middleware for Rhythm: attachUser, requireAuthentication, roles, and permissions."
+title: "Overview"
+lead: "Four independent middleware modules for the edge of your app: CORS, CSRF, rate limiting, and secure headers."
+description: "Security middleware for Rhythm: cors, csrf, rateLimit, and secureHeaders, and where each one goes."
 ---
 
 ## Install
 
-`@rhythmjs/security` ships six independent middleware modules, each on its own subpath export; there is no root barrel. This page covers `/authentication` and `/authorization`; [CORS & CSRF](/security/protection/) and [rate limiting & secure headers](/security/hardening/) have their own pages.
+`@rhythmjs/security` ships four independent middleware modules, each on its own subpath export; there is no root barrel: `/cors`, `/csrf`, `/rate-limit`, and `/secure-headers`. [CORS & CSRF](/security/protection/) and [rate limiting & secure headers](/security/hardening/) have their own pages.
 
 ```bash
 bun add @rhythmjs/security @rhythmjs/rhythm @rhythmjs/router
 ```
 
-All of it is ordinary middleware over the HTTP context from `@rhythmjs/router/context`. Edge concerns (`secureHeaders`, `cors`) go on the `Rhythm` app in front of `mount(router)`; request-gating concerns (`csrf`, `rateLimit`, `attachUser`, `requireAuthentication`, `requireRoles`, and the rest) go on a router or on individual routes. The samples below show routers; the app is always `new Rhythm().use(mount(router))` served with `Bun.serve({ fetch: toFetchHandler(app) })`.
+All of it is ordinary middleware over the HTTP context from `@rhythmjs/router/context`. Edge concerns (`secureHeaders`, `cors`) go on the `Rhythm` app in front of `mount(router)`; request-gating concerns (`csrf`, `rateLimit`) go on a router or on individual routes. The app is always `new Rhythm().use(mount(router))` served with `Bun.serve({ fetch: toFetchHandler(app) })`.
 
-## Attach the user
+## Where each piece goes [#placement]
 
-`attachUser(resolve)` runs your resolver once per request and derives `ctx.user` onto the context (`UserContext<TUser>`). The resolver receives the full `RhythmHttpContext`, may be async, and whatever it returns is normalized with `?? null`: returning `undefined` and returning `null` both mean anonymous. Identity stays in your hands: a session lookup, a token verification, a database call; the middleware only owns the plumbing.
+- **App level, before `mount(router)`: `secureHeaders()`, then `cors()`.** `secureHeaders` calls `next()` first and sets its headers on the way back out, so it covers every response. `cors` must be on the app so preflight requests are answered even for paths that only have a `GET` route.
+- **Router level, in this order: `csrf()`, then `rateLimit()`, then your own guards.** Cheap rejections first, then anything that costs more.
 
-```ts
-import { attachUser, getBearerToken } from "@rhythmjs/security/authentication";
+Nothing is added to the context itself: these modules only set response headers or answer with an error.
 
-const withUser = attachUser(async (ctx) => {
-  const token = getBearerToken(ctx.request);
-  return token === null ? null : await users.byToken(token);
-});
+## Identity is yours
 
-new RhythmRouter().use(withUser).get("/me", (ctx) => {
-  ctx.json(ctx.user); // TUser | null
-});
-```
-
-## Guard with requireAuthentication
-
-`requireAuthentication()` stops anonymous requests and narrows `ctx.user` to non-null for everything downstream. The rejection is configurable: by default it answers `401` (`status` and `message` override it); `redirectTo` answers a `302` to your login page instead; `challenge` sets a `WWW-Authenticate` header (for example `"Bearer"` or `"Basic realm=admin"`) alongside the 401.
-
-```ts
-import { attachUser, requireAuthentication } from "@rhythmjs/security/authentication";
-
-new RhythmRouter()
-  .use(attachUser((ctx) => sessionUser(ctx)))
-  .use(requireAuthentication<User>({ challenge: "Bearer" }))
-  .get("/me", (ctx) => ctx.json(ctx.user)); // ctx.user: User, narrowed, no null check
-```
-
-The `<User>` type argument names the narrowed user type; it is optional when the user type can be inferred from `attachUser`. `requireAuthentication` can also be a route's first handler: `router.get("/me", requireAuthentication<User>(), handler)`.
-
-Two companions cover the remaining flows: `isAuthenticated(ctx)` is the underlying type-guard predicate, usable in your own branches, and `redirectIfAuthenticated(to)` is the login-page inverse: an already-signed-in user is redirected away, everyone else falls through.
-
-## Parse Authorization headers
-
-Two parsers read the `Authorization` header without touching the context. `getBearerToken(request)` matches `Bearer ` case-insensitively, trims the token, and returns `null` for a missing header, a different scheme, or an empty token. `getBasicCredentials(request)` base64-decodes `Basic` credentials byte-safely (UTF-8 usernames and passwords survive), splits on the first `:`, and returns `{ username, password }`, or `null` for malformed input rather than throwing.
-
-```ts
-import { getBasicCredentials } from "@rhythmjs/security/authentication";
-
-const credentials = getBasicCredentials(ctx.request);
-// { username: "ada", password: "s3cret" } | null
-```
-
-## Authorize with predicates [#authorize-predicates]
-
-`@rhythmjs/security/authorization` builds on `ctx.user`. The primitive is `authorize(check)`: any sync or async predicate over the context; a refusal answers `403` (override with `status` / `message`) and the chain stops. It does not look for a user itself, so put `requireAuthentication()` before any check that reads `ctx.user`.
-
-```ts
-import { authorize } from "@rhythmjs/security/authorization";
-
-documentsRouter.use(
-  authorize(async (ctx) => (await loadDocument(ctx)).ownerId === ctx.user.id, {
-    message: "Not your document",
-  }),
-);
-```
-
-## Roles and permissions
-
-`requireRoles(required)` and `requirePermissions(required)` are the common cases packaged. They read `user.roles` and `user.permissions` by default; override with the `roles` / `permissions` extractor options when your user shape differs. The `match` defaults differ on purpose: roles match `"any"` (one qualifying role suffices), permissions match `"all"` (every listed permission is required).
-
-```ts
-import { requireRoles, requirePermissions } from "@rhythmjs/security/authorization";
-
-adminRouter.use(requireRoles(["admin", "ops"])); // any of the two
-reportsRouter.use(requirePermissions(["reports.read", "reports.export"])); // all of them
-legacyRouter.use(requireRoles(["editor"], { roles: (user) => user.groups }));
-```
-
-## 401 versus 403 [#status-semantics]
-
-The two modules split the status codes the way HTTP intends. Missing identity is `401`: `requireAuthentication` answers it, and so do `requireRoles` / `requirePermissions` when `ctx.user` is null: an anonymous request is never told it lacks a role. Present-but-insufficient identity is `403`: `authorize` refusals and failed role or permission checks. Rejections are written with the context's `ctx.error(status, message)`: a plain-text response with the status and message, not a thrown error, so a [`filter()`](/middleware/filter/) never sees them. Missing identity from `requireRoles` / `requirePermissions` is always `401`; `status` and `message` apply to the `403`.
+The package does not resolve users or check roles. Authentication and authorization are ordinary middleware you write with `derive` and `(ctx, next)` guards; the [tutorial](/tutorial/security/) builds both by hand. For sessions, OAuth, and `requireSession()`, use the [better-auth integration](/integrations/better-auth/).

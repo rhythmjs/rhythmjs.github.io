@@ -21,7 +21,7 @@ class RhythmWs<I extends object = {}, D extends object = {}> extends Pipeline<Us
 
 <DefList>
 <Def sig="new RhythmWs(options?)" id="constructor">Creates an instance. `options` are the pipeline options (`name` labels failure messages; `type` defaults to `"ws"`) plus `origin`.</Def>
-<Def sig="use(middleware)" id="use">Adds middleware over the HTTP context, the router's convention `(ctx, next)`. It runs only for upgrade requests that match one of the instance's routes, in registration order, after the origin check and before the route. Extension middleware (`derive`, `attachUser`, `session`, ...) widens the context for later `use()` calls and every route.</Def>
+<Def sig="use(middleware)" id="use">Adds middleware over the HTTP context, the router's convention `(ctx, next)`. It runs only for upgrade requests that match one of the instance's routes, in registration order, after the origin check and before the route. Extension middleware (`derive`, `session`, ...) widens the context for later `use()` calls and every route.</Def>
 <Def sig="ws(path, handlers)" id="ws">Registers a `GET` upgrade endpoint and returns the instance. `path` is a full rou3 pattern and must start with `/` (otherwise `TypeError`); a static segment beats a param segment. `handlers` must be an object (otherwise `TypeError`). `Data` defaults to the route params and is inferred from `upgrade`'s return value.</Def>
 </DefList>
 

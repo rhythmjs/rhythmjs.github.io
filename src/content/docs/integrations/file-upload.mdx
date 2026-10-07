@@ -116,6 +116,6 @@ export const appModule = new Rhythm({ name: "app" })
 ## Things to check
 
 - `file.type` and the filename come from the browser: allow only the types you expect, and never use the client's filename as a path.
-- Add [rate limiting](/security/hardening/) and [`requireAuthentication`](/security/) unless uploads are public.
+- Add [rate limiting](/security/hardening/) and an authentication guard (see the [tutorial](/tutorial/security/)) unless uploads are public.
 
 The full app, with tests, is [examples/file-upload](https://github.com/rhythmjs/examples/tree/main/examples/file-upload), built from the [template](https://github.com/rhythmjs/template).

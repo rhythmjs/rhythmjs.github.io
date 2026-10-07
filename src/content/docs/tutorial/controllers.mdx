@@ -6,7 +6,7 @@ description: "Routes, params, context helpers, and composing controllers."
 
 ## A real controller
 
-A controller is a `RhythmRouter`: a chain of routes with full paths. There is no prefix option, so each route spells out `/api/notes`. Start the notes feature with an in-memory list — the database arrives in step 8:
+A controller is a `RhythmRouter`: a chain of routes with full paths, so each route spells out `/api/notes`. Start the notes feature with an in-memory list — the database arrives in step 8:
 
 ```ts
 // src/notes/notes.controller.ts
@@ -41,7 +41,7 @@ export const notesController = new RhythmRouter({ name: "notes" })
   });
 ```
 
-Mount it in the app module next to the starter controller: `.use(mount(notesController))`. A static segment always beats a param segment when both match, and `ctx.params` is typed from the path — `:id` gives `ctx.params.id: string`, and reading a name the path does not declare is a compile error.
+Mount it in the app module next to the starter controller: `.use(mount(notesController))` (the modules step later wraps the controller and its service in a module of their own). A static segment always beats a param segment when both match, and `ctx.params` is typed from the path — `:id` gives `ctx.params.id: string`, and reading a name the path does not declare is a compile error.
 
 ## The context helpers
 
@@ -74,7 +74,7 @@ A router's middleware runs only when one of its own routes matches the method an
 
 ## Many controllers, one app
 
-An app is a stack of mounted controllers. `mount()` always continues with the next middleware once the router is done, and a request no router answered leaves the app untouched, which `toFetchHandler` turns into a plain `404`:
+An app is a stack of mounted controllers. `mount()` always continues with the next middleware once the router is done, and a request no router answered leaves the app untouched, which `toFetchHandler` turns into a plain `404` (`text/plain`):
 
 ```ts
 import { Rhythm, decorate, mount } from "@rhythmjs/rhythm";
@@ -84,5 +84,7 @@ export const appModule = new Rhythm({ name: "app" })
   .use(mount(appController))     // GET /
   .use(mount(notesController));  // /api/notes/*
 ```
+
+`mount(plugin, condition)` takes an optional second argument, a function of the context, and runs the plugin only when it returns true. `pathIs(pattern)` from `@rhythmjs/router/path` builds the common condition, for example `mount(someRouter, pathIs("/internal/**"))`; later pages use conditions to keep documentation out of production.
 
 Route patterns come from [rou3](https://github.com/h3js/rou3): `:param`, `:param?`, `*`, and `**` all work in any segment. See the [router docs](/router/) for matching details and static file serving.

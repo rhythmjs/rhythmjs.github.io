@@ -1,49 +1,85 @@
 ---
 title: "Modules"
-lead: "Split features into encapsulated modules and compose them into a tree."
-description: "Encapsulated features, include and mount, and the forRoot pattern."
+lead: "Self-contained feature modules: each owns its service and its controller, and the app composes them."
+description: "Feature and infrastructure modules, include and mount, and the forRoot pattern."
 ---
 
 ## Feature modules
 
-As features multiply, each one becomes its own module: a `Rhythm` instance with a `name` that owns its startup values. A module is the same kind of object as the app, just smaller. The notes feature now ships its service as one unit:
+As features multiply, each one becomes its own module: a `Rhythm` instance with a `name` that owns everything the feature needs, its service *and* its controller. A module is the same kind of object as the app, just smaller. The notes feature moves its wiring out of `app.module.ts`:
 
 ```ts
 // src/notes/notes.module.ts
-import { Rhythm, decorate } from "@rhythmjs/rhythm";
+import { Rhythm, decorate, mount } from "@rhythmjs/rhythm";
+import { notesController } from "./notes.controller";
 import { createNotesService } from "./notes.service";
 
-export const notesModule = new Rhythm({ name: "notes" }).register(
-  decorate(() => ({ notesService: createNotesService() })),
-);
+export const notesModule = new Rhythm({ name: "notes" })
+  .register(decorate(() => ({ notesService: createNotesService() })))
+  .use(mount(notesController));
 ```
 
-## Include and export
-
-`include(module, pick?)` runs a module once, at startup, and pulls the fields `pick` returns into the parent's startup context. Everything the module builds stays *encapsulated*: nothing leaks to the parent unless `pick` selects it. Registering also type-checks that the parent satisfies the child's input, and the module's own cleanups are registered with the parent, so `app.stop()` closes the whole tree. Explicit boundaries, not folder conventions:
+The app no longer knows what a notes service is. It mounts the module, one line per feature:
 
 ```ts
 // src/app.module.ts
 export const appModule = new Rhythm({ name: "app" })
   .register(decorate(() => ({ appService })))
-  .register(include(notesModule, ({ notesService }) => ({ notesService }))) // export the service
-  .register(include(auditModule))                                          // keep everything private
   .use(mount(appController))
-  .use(mount(notesController)); // ctx.notesService is typed here; auditModule's internals are not
+  .use(mount(notesModule));
 ```
 
-Because modules run eagerly, one that cannot construct its service throws while the app is being assembled — at startup, wrapped as `included module "notes" failed` with the original error as `cause` — never on the first request.
+The convention is one module per feature, and the module is *self-contained*: nothing about `notesService` leaks into the app's context, there is no per-request `derive` for services, and no wrapper around the router. Deleting the feature is deleting a folder and one line.
+
+## Infrastructure modules
+
+Some things are shared by several features: a database, a mail transport, a storage client. Those are *infrastructure modules*, a `Rhythm` instance created once and exported as a plain lowerCamelCase value. It registers its client with `decorate` and closes it with the cleanup, the second argument of `register`:
+
+```ts
+// src/cache/cache.module.ts, a stand-in; the next steps build the real database module
+export const cacheModule = new Rhythm({ name: "cache" }).register(
+  decorate(() => ({ cacheService })),
+  () => cacheService.clear(), // runs when the app that included the module stops
+);
+```
+
+A feature module that needs it `include`s it, which runs it once at startup and pulls the fields `pick` returns into the feature's startup context. Because `register` is sequential, the very next step already sees them:
+
+```ts
+export const notesModule = new Rhythm({ name: "notes" })
+  .register(include(cacheModule, ({ cacheService }) => ({ cacheService })))
+  .register(decorate(({ cacheService }) => ({ notesService: createNotesService(cacheService) })))
+  .use(mount(notesController));
+```
+
+Everything the included module builds stays *encapsulated*: nothing reaches the feature unless `pick` selects it, and registering type-checks that the feature satisfies the module's input. Modules start eagerly, when the app is assembled, not when a request needs them. One that cannot start fails with `included module "cache" failed` and the original error as `cause`; the registrations after it are skipped and the first request rejects with that error, so a half-built app never serves traffic.
 
 ## Include or mount
 
 Two functions compose pipelines, and the difference is *when* they run:
 
-- `include(module, pick?)` is **startup time**. The module runs once with the app's startup context and contributes startup values. Use it for providers: services, config, pools.
-- `mount(plugin)` is **request time**. The plugin runs on every request and whatever it derives stays sealed inside it. Use it for routers, and for modules that ship routes (the next step builds one).
+- `include(module, pick?)` is **startup time**. The module runs once with the startup context built so far and contributes startup values. It also registers the module's `stop()` as a cleanup of the parent. Use it for providers: services, config, pools.
+- `mount(plugin)` is **request time**. The plugin runs on every request and whatever it derives stays sealed inside it. Use it for routers, and for feature modules that ship routes.
+
+Two rules follow, and they decide how a tree is wired:
+
+1. **A module that mounts a controller is `mount`ed, never `include`d.** `include` runs a module's pipeline at startup, when there is no request, so its routes would never serve anything.
+2. **A mounted module does not register cleanups with its parent.** Only `include` does. So whoever hosts the feature also `include`s the infrastructure it uses, purely for lifecycle: one `appModule.stop()` then closes everything.
+
+```ts
+// src/app.module.ts
+export const appModule = new Rhythm({ name: "app" })
+  .register(include(cacheModule, ({ cacheService }) => ({ cacheService }))) // lifecycle: closed on stop()
+  .register(decorate(() => ({ appService })))
+  .use(mount(appController))
+  .use(mount(notesModule)); // the feature includes the cache for itself
+```
+
+Including the same module from several places is fine: it was built once, when it was declared, and its cleanup runs once.
 
 ## The forRoot pattern
 
-Reusable modules follow one naming convention: a `somethingModule.forRoot(options)` factory returning a configured `Rhythm` module. Every @rhythmjs package that exposes a service ships one, and your own shared modules should too. Here the module takes its dependencies as options instead of building them out of thin air:
+Infrastructure that depends on options is built by a function instead of a constant. The naming convention is a `somethingModule.forRoot(options)` factory returning a configured `Rhythm` module. Every @rhythmjs package that exposes a service ships one, and your own shared modules should too. The module takes its dependencies as options instead of building them out of thin air:
 
 ```ts
 export const cacheModule = {
@@ -55,17 +91,35 @@ export const cacheModule = {
 appModule.register(include(cacheModule.forRoot({ ttl: 300 }), ({ cacheService }) => ({ cacheService })));
 ```
 
+Use a constant (`databaseModule`) when there is nothing to configure per use, and `forRoot` when the options come from the composition root. A feature that includes a `forRoot` module needs the *same* configured instance as the app, so build it once and export it.
+
 ## The app as a tree
 
-The finished shape is a tree of modules with the app at the root — startup values flow in where you `include` them, exports flow only where you pick, and every request runs the flattened onion top to bottom:
+The finished shape is a tree of modules with the app at the root. Infrastructure is included for lifecycle and by the features that use it, features are mounted, and every request runs the flattened onion top to bottom. This is the layout the rest of the tutorial builds:
+
+```text
+src/
+  main.ts                    Bun.serve over toFetchHandler(appModule), graceful shutdown
+  app.module.ts              appModule: edge stack, include(infra), mount(feature modules)
+  app.controller.ts          the starter route
+  config/                    typed settings, settingsModule             (step 7)
+  database/                  databaseModule, the Drizzle client         (step 8)
+  notes/
+    notes.module.ts          notesModule: include(databaseModule), service, mount(controller)
+    notes.controller.ts      routes, validation, auth, OpenAPI
+    notes.service.ts         createNotesService(db)
+    notes.table.ts           notes.schema.ts
+  auth/                      authService, authenticate, sessions        (step 9)
+  health.ts                  health service                             (step 11)
+  mailer/                    mailerModule.forRoot(...)                  (next step)
+```
 
 ```text
 appModule
-├─ configModule.forRoot(...)     // step 7
-├─ notesModule                   // service (step 8: forRoot(db))
-├─ mailerModule.forRoot(...)     // your own — next step
-├─ openapiModule / scalarModule  // step 12
-└─ notesController, health, ...  // mounted routers
+├─ settingsModule              included: settings on the startup context
+├─ databaseModule              included: pool, closed on stop()
+├─ edge stack, health, docs    middleware and mounted routers
+└─ notesModule                 mounted: includes databaseModule, owns notesService + controller
 ```
 
-Read [Encapsulated modules](/rhythm/modules/) for the full semantics — what is hidden, what `pick` sees, and how module errors propagate. The next step turns this pattern around: instead of consuming ready-made modules, you author your own.
+Read [Encapsulated modules](/rhythm/modules/) for the full semantics: what is hidden, what `pick` sees, and how module errors propagate. The next step turns this pattern around: instead of consuming ready-made modules, you author your own.

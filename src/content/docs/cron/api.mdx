@@ -1,50 +1,51 @@
 ---
 title: "API reference"
-lead: "Every export of @rhythmjs/cron: the RhythmCron class, startCron, and the types around them."
-description: "Every export of @rhythmjs/cron: RhythmCron, startCron, CronContext, CronSchedule, and RhythmCronOptions."
+lead: "Every export of @rhythmjs/cron: RhythmCron, startCron, and the types around them."
+description: "Every export of @rhythmjs/cron: the RhythmCron pipeline, its options and methods, CronContext, CronJobInfo, CronSchedule, CronHandler, and startCron."
 ---
 
 ## class RhythmCron [#rhythmcron-class]
 
 ```ts
-new RhythmCron<I extends object = {}>(options?: RhythmCronOptions);
+import { RhythmCron } from "@rhythmjs/cron";
 
-use(middleware): this;
-cron(name: string, schedule: CronSchedule, ...handlers: CronHandler<I>[]): this;
-get jobs(): readonly CronJobInfo[];
-get running(): boolean;
-next(name: string, from?: Date | number): Date | null;
-run(name: string, input?: I): Promise<CronContext<I>>;
-start(input?: I): this;
-stop(): this;
-[Symbol.dispose](): void;
+class RhythmCron<I extends object = {}, D extends object = {}> extends Pipeline<CronContext<I & D>> {
+  constructor(options?: RhythmCronOptions);
+
+  use(middleware: Middleware | ExtensionMiddleware): this | RhythmCron<I, D & U>;
+  cron(name: string, schedule: CronSchedule, ...handlers: CronHandler<I & D>[]): this;
+
+  readonly jobs: readonly CronJobInfo[];
+  readonly running: boolean;
+
+  start(input?: I): this;
+  stop(): this;
+  run(name: string, input?: I): Promise<CronContext<I & D>>;
+  next(name: string, from?: Date | number): Date | null;
+  [Symbol.dispose](): void;
+}
 ```
+
+`RhythmCron` is a `Pipeline` from `@rhythmjs/rhythm`. `I` is the context the jobs need from the app and `D` what its middleware derived; the input argument is required when `I` has required fields.
 
 <DefList>
-<Def sig="use(middleware)" id="use">Wraps every job's run. An extension middleware widens the context for all jobs.</Def>
-<Def sig="cron(name, schedule, ...handlers)" id="cron">Registers a job. The first handler may be an extension middleware. Throws `TypeError` for a duplicate name, an invalid expression or time zone, or a schedule that never fires.</Def>
-<Def sig="jobs" id="jobs">The registered jobs as `{ name, schedule, tz }`.</Def>
+<Def sig="new RhythmCron(options?)" id="constructor">Creates an instance. See [options](#options).</Def>
+<Def sig="use(middleware)" id="use">Adds middleware that wraps every run of every job, in registration order, with `(ctx, next)`. Extension middleware (`derive`, ...) widens the context for later `use()` calls and every job.</Def>
+<Def sig="cron(name, schedule, ...handlers)" id="cron">Registers a job and returns the instance. Throws a `TypeError` for a duplicate name, an invalid expression or time zone, or a schedule that never fires. The first handler may be extension middleware that widens the context for the rest.</Def>
+<Def sig="jobs" id="jobs">`CronJobInfo` for every registered job, in registration order.</Def>
 <Def sig="running" id="running">`true` while jobs are scheduled.</Def>
-<Def sig="next(name, from?)" id="next">The next fire time after `from` (default now), or `null`. Throws `RangeError` for an unknown name.</Def>
-<Def sig="run(name, input?)" id="run">Runs the job now through the full chain and resolves with the context. Errors reject and bypass `onError`. Throws `RangeError` for an unknown name.</Def>
-<Def sig="start(input?)" id="start">Schedules every job with `input` as the startup context. No-op while running.</Def>
-<Def sig="stop()" id="stop">Cancels every scheduled job. Safe to call repeatedly.</Def>
-<Def sig="[Symbol.dispose]()" id="dispose">Calls `stop()`, for `using`.</Def>
+<Def sig="start(input?)" id="start">Schedules every job with `Bun.cron`, using `input` as the context of each run. No-op if already running.</Def>
+<Def sig="stop()" id="stop">Cancels every scheduled job. The instance can be started again.</Def>
+<Def sig="run(name, input?)" id="run">Runs a job's pipeline now: the instance's middleware, then the handlers. Uses the started input when `input` is omitted. Resolves with the run's context; errors reject instead of going to `onError`. Throws a `RangeError` for an unknown name.</Def>
+<Def sig="next(name, from?)" id="next">The next fire time after `from` (default now) in the job's time zone, or `null` if it never fires. Throws a `RangeError` for an unknown name.</Def>
+<Def sig="[Symbol.dispose]()" id="dispose">Same as `stop()`, so `using` works.</Def>
+<Def sig="callback()" id="callback">Calls `start(input)` and resolves with the input, so the instance can be used wherever a `Mountable` is expected. Prefer `startCron`.</Def>
 </DefList>
 
-## startCron [#startcron]
+## Options [#options]
 
 ```ts
-function startCron<I extends object>(cron: RhythmCron<I>): RegisterCallback;
-```
-
-A register callback: `app.register(startCron(cron))` starts the jobs with the app's startup context and registers a cleanup that stops them on `app.stop()`.
-
-## RhythmCronOptions [#options]
-
-```ts
-interface RhythmCronOptions {
-  name?: string;
+interface RhythmCronOptions extends PipelineOptions {
   tz?: string;
   onError?(error: unknown, ctx: CronContext<any>): void;
   unref?: boolean;
@@ -52,28 +53,43 @@ interface RhythmCronOptions {
 ```
 
 <DefList>
-<Def sig="name" id="option-name">Pipeline name, shown in diagnostics.</Def>
-<Def sig="tz" id="option-tz">Default IANA time zone for jobs without their own.</Def>
-<Def sig="onError" id="option-on-error">Called when a scheduled run throws. Default: `console.error`.</Def>
-<Def sig="unref" id="option-unref">Do not keep the process alive for scheduled jobs.</Def>
+<Def sig="tz" id="option-tz">IANA time zone for every schedule that does not set its own. Default: the system's.</Def>
+<Def sig="onError(error, ctx)" id="option-onerror">Called when a scheduled run fails. Default: `console.error('cron job "name" failed', error)`. The job stays scheduled.</Def>
+<Def sig="unref" id="option-unref">Let the process exit while jobs are scheduled. Default `false`.</Def>
+<Def sig="name, type" id="option-pipeline">Pipeline options: `name` labels failure messages; `type` defaults to `"cron"`.</Def>
 </DefList>
 
 ## Types [#types]
 
 ```ts
-type CronSchedule = string | { schedule: string; tz?: string };
-
-type CronContext<I extends object> = I & {
-  readonly job: CronJobInfo & { readonly firedAt: Date };
-};
-
 interface CronJobInfo {
   readonly name: string;
   readonly schedule: string;
   readonly tz: string | undefined;
 }
 
-type CronHandler<I extends object> = (ctx: CronContext<I>, next: Next) => unknown | Promise<unknown>;
+type CronContext<T extends object> = T & {
+  readonly job: CronJobInfo & { readonly firedAt: Date };
+};
+
+type CronSchedule = Bun.CronWithAutocomplete | { schedule: Bun.CronWithAutocomplete; tz?: string };
+
+type CronHandler<T extends object> = (ctx: CronContext<T>, next: Next) => unknown | Promise<unknown>;
 ```
 
-`CronSchedule` strings are five-field expressions or nicknames (`@hourly`, `@daily`, `@weekly`, `@monthly`, `@yearly`).
+<DefList>
+<Def sig="CronJobInfo" id="cronjobinfo">What `jobs` reports for each job. `tz` is the job's resolved zone, undefined for the system's.</Def>
+<Def sig="CronContext<T>" id="croncontext">The app's context `T` plus `job`: the job's info and `firedAt`, the time of this run.</Def>
+<Def sig="CronSchedule" id="cronschedule">A 5-field expression or nickname, or an object giving that job its own `tz`.</Def>
+<Def sig="CronHandler<T>" id="cronhandler">A job handler, `(ctx, next)`. `CronHandlers<T>` is a non-empty tuple of them.</Def>
+</DefList>
+
+## startCron [#startcron]
+
+```ts
+import { startCron } from "@rhythmjs/cron";
+
+function startCron<I extends object, T extends object>(cron: RhythmCron<I, any>): RegisterCallback<T>;
+```
+
+Returns a register callback for `app.register(startCron(cron))`. It starts the jobs with the app's startup context and registers a cleanup that stops them on `app.stop()`. The startup context `T` must satisfy `I`, otherwise the call is a compile error.

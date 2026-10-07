@@ -148,7 +148,7 @@ console.log(`listening on ${server.url}`);
 
 ## Things to check
 
-- Every request costs money: add [`bodyLimit`](/http/bodies/), [`requireAuthentication`](/security/) and [rate limiting](/security/hardening/) before exposing the endpoint.
+- Every request costs money: add [`bodyLimit`](/http/bodies/), an [authentication guard](/tutorial/security/) and [rate limiting](/security/hardening/) before exposing the endpoint.
 - Tests stub `modelService.create`, so they need no API key or network.
 
 The full app, with tests, is [examples/ai-sdk](https://github.com/rhythmjs/examples/tree/main/examples/ai-sdk), built from the [template](https://github.com/rhythmjs/template).

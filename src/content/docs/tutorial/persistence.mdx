@@ -6,24 +6,36 @@ description: "A real database in the startup context, from pool to CRUD."
 
 ## The database as a startup resource
 
-A database is the canonical startup resource: open the pool once, add the query handle to the startup context, and give the app the cleanup that closes it. This example uses [Drizzle on Bun's native SQL driver](/data/drizzle/); the [data recipes](/data/) cover Prisma, MikroORM, and MongoDB with the same shape. The pool is opened with the validated settings from step 7:
+A database is the canonical *infrastructure module*: open the pool once, add the query handle to the startup context, and give the module the cleanup that closes it. This example uses [Drizzle on Bun's native SQL driver](/data/drizzle/); the [data recipes](/data/) cover Prisma, MikroORM, and MongoDB with the same shape. The factory is plain code:
 
 ```ts
-// src/database.ts
+// src/database/database.ts
 import { SQL } from "bun";
 import { drizzle } from "drizzle-orm/bun-sql";
-import { databaseConfig } from "./config/database.config";
-import * as schema from "./notes/notes.table";
+import * as schema from "../notes/notes.table";
 
 export function createDatabase(url: string, max: number) {
-  const client = new SQL({ url, max });
-  return { db: drizzle({ client, schema }), close: () => client.close() };
+  return drizzle({ client: new SQL({ url, max }), schema });
 }
 
-export type Database = ReturnType<typeof createDatabase>["db"];
+export type Database = ReturnType<typeof createDatabase>;
+```
+
+The module opens the pool with the validated settings from step 7, registers it, and owns closing it. It is created once and exported as a plain instance:
+
+```ts
+// src/database/database.module.ts
+import { decorate, Rhythm } from "@rhythmjs/rhythm";
+import { databaseConfig } from "../config/database.config";
+import { createDatabase } from "./database";
 
 const { url, poolSize } = await databaseConfig(); // throws on malformed config
 export const database = createDatabase(url, poolSize);
+
+export const databaseModule = new Rhythm({ name: "database" }).register(
+  decorate(() => ({ db: database })),
+  () => database.$client.close(), // whoever opened the pool closes it, when the app stops
+);
 ```
 
 ## Schema and service
@@ -48,7 +60,7 @@ export type Note = typeof notes.$inferSelect;
 ```ts
 // src/notes/notes.service.ts
 import { desc, eq } from "drizzle-orm";
-import type { Database } from "../database";
+import type { Database } from "../database/database";
 import { notes, type Note } from "./notes.table";
 import type { CreateNoteInput, UpdateNoteInput } from "./notes.schema";
 
@@ -97,31 +109,31 @@ export type NotesService = ReturnType<typeof createNotesService>;
 
 ## Wire it together
 
-The startup now reads as a dependency graph: config first, then the pool (consuming config), then the service (consuming the pool), then the controller (consuming the service). The notes module from step 4 becomes a `forRoot` that takes the pool, and the app registers the pool together with the cleanup that closes it:
+The notes module from step 4 now includes the database module, builds its service from `db`, and still mounts its own controller. Because `register` is sequential, the `decorate` after the `include` already sees `db` (this relies on `@rhythmjs/rhythm` 0.0.21 or newer, where a registration waits for every earlier one):
 
 ```ts
 // src/notes/notes.module.ts
-import { Rhythm, decorate } from "@rhythmjs/rhythm";
-import type { Database } from "../database";
+import { decorate, include, mount, Rhythm } from "@rhythmjs/rhythm";
+import { databaseModule } from "../database/database.module";
+import { notesController } from "./notes.controller";
 import { createNotesService } from "./notes.service";
 
-export const notesModule = {
-  forRoot(db: Database) {
-    return new Rhythm({ name: "notes" }).register(decorate(() => ({ notesService: createNotesService(db) })));
-  },
-};
+export const notesModule = new Rhythm({ name: "notes" })
+  .register(include(databaseModule, ({ db }) => ({ db })))
+  .register(decorate(({ db }) => ({ notesService: createNotesService(db) })))
+  .use(mount(notesController));
 ```
+
+The app includes the same database module too. That is for lifecycle: a mounted module does not register cleanups with its parent, so without this line `appModule.stop()` would not close the pool. The pool exists once, however many modules include it, and is closed once:
 
 ```ts
 // src/app.module.ts
 export const appModule = new Rhythm({ name: "app" })
-  .register(include(await configModule.forRoot(...configs), ({ configService }) => ({ configService })))
-  .register(
-    decorate(() => ({ db: database.db })),
-    () => database.close(), // whoever opened the pool closes it, when the app stops
-  )
-  .register(include(notesModule.forRoot(database.db), ({ notesService }) => ({ notesService })))
-  .use(mount(notesController));
+  .register(include(settingsModule, ({ configService }) => ({ configService })))
+  .register(include(databaseModule, ({ db }) => ({ db }))) // lifecycle: closed on appModule.stop()
+  .register(decorate(() => ({ appService })))
+  .use(mount(appController))
+  .use(mount(notesModule));
 ```
 
 ```ts
@@ -136,7 +148,7 @@ process.on("SIGTERM", async () => {
 });
 ```
 
-`mount(notesController)` is type-checked: the app's startup context must satisfy the controller's `{ notesService }`, so dropping the `include` is a compile error, not a 3 a.m. surprise. The next steps replace the hand-written `SIGTERM` handler with `gracefulShutdown`.
+The notes module is self-contained: it declares the infrastructure it needs, and the app does not build `notesService` at all. Dropping the module's `include` is a compile error, because the `decorate` after it would have no `db` to read. The next steps replace the hand-written `SIGTERM` handler with `gracefulShutdown`.
 
 For local development, run Postgres from a compose file bound to loopback only — never publish a dev database on all interfaces:
 

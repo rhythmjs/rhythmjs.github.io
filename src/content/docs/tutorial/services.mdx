@@ -58,9 +58,9 @@ export const appModule = new Rhythm({ name: "app" })
   .use(mount(notesController));
 ```
 
-Nothing is declared twice: the app's type grows with each `decorate`, and a step can read only what an earlier step added. A later `register(decorate(({ notesService }) => ...))` sees the service above it, which is how `statsService` would be built from `notesService`.
+Nothing is declared twice: the app's type grows with each `decorate`, and a step can read only what an earlier step added. A later `register(decorate(({ notesService }) => ...))` sees the service above it, which is how a `statsService` would be built from `notesService`.
 
-The controller declares what it needs in its context type and reads it off `ctx` — the type-level equivalent of constructor injection. `mount()` checks that the app can supply it, so forgetting the `decorate` is a compile error:
+The controller declares what it needs in its context type and reads it off `ctx` — the type-level equivalent of constructor injection. If the app never supplies it, the app no longer type-checks where it is served: `toFetchHandler(appModule)` in `main.ts` rejects an app whose context lacks `notesService`, so forgetting the `decorate` is a compile error, not a runtime surprise:
 
 ```ts
 // src/notes/notes.controller.ts
@@ -77,15 +77,32 @@ export const notesController = new RhythmRouter<NotesContext>({ name: "notes" })
 
 The in-memory `Map` and routes of the previous step move into the service; the controller only translates between HTTP and service calls.
 
+## Registration is sequential
+
+`register` callbacks run in the order you write them, and a callback waits for every earlier one to finish, including async ones. A step that loads something asynchronous can therefore be followed by a step that depends on it, with no manual awaiting and no `undefined` surprises:
+
+```ts
+export const appModule = new Rhythm({ name: "app" })
+  .register(decorate(async () => ({ seed: (await Bun.file("seed.json").json()) as Note[] })))
+  .register(
+    decorate(({ seed }) => ({
+      notesService: createNotesService(new Map(seed.map((note) => [note.id, note]))),
+    })),
+  )
+  .use(mount(notesController));
+```
+
+The same holds for `include(...)` of an async module, which the next pages use constantly. If a registration fails, the later ones are skipped and the first request rejects with the original error, so a half-built app never serves traffic.
+
 ## Closing resources
 
-Whoever creates a resource closes it, and `register` takes a second argument for exactly that: a cleanup that runs when the app is stopped, in reverse order of registration. A service that holds something open exposes `close()`:
+Whoever creates a resource closes it, and `register` takes a second argument for exactly that: a cleanup that runs when the app is stopped, in reverse order of registration. It receives the startup context, so it can reach what the registration added. A service that holds something open exposes `close()`:
 
 ```ts
 const database = createDatabase(url);
 
 export const appModule = new Rhythm({ name: "app" }).register(
-  decorate(() => ({ db: database.db })),
+  decorate(() => ({ db: database })),
   () => database.close(), // runs on appModule.stop()
 );
 

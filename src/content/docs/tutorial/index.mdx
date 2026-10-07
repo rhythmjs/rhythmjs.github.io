@@ -5,9 +5,9 @@ lead: "Scaffold a Rhythm application and serve your first controller on Bun."
 
 ## What you will build
 
-This tutorial builds one application, step by step: a notes API with validated input, a real database, authentication, a live WebSocket feed, scheduled jobs, generated OpenAPI docs, and tests. Each page adds one layer and explains the primitive behind it, so by the end you have seen everything the framework can do — and every line came from these pages.
+This tutorial builds one application, step by step: a notes API with validated input, a real database, authentication, generated OpenAPI docs, and tests. Each page adds one layer and explains the primitive behind it, so by the end you have seen everything the framework can do — and every line came from these pages.
 
-You need [Bun](https://bun.sh) ≥ 1.2. Everything runs on Bun's native APIs — `Bun.serve`, native WebSockets, `Bun.cron` — with no adapter layers.
+You need [Bun](https://bun.sh) ≥ 1.2. Everything runs on Bun's native APIs — `Bun.serve` — with no adapter layers.
 
 ## Scaffold the project
 
@@ -72,7 +72,7 @@ export const appModule = new Rhythm({ name: "app" })
   .use(mount(appController));
 ```
 
-And `main.ts` turns the module into a fetch handler for `Bun.serve`:
+And `main.ts` turns the module into a fetch handler and hands it straight to `Bun.serve`. Passing the handler itself (not a wrapper) matters: it receives Bun's server on every call and exposes it to handlers as `ctx.server`, for things like the client address:
 
 ```ts
 // src/main.ts
@@ -99,7 +99,7 @@ HTTP/1.1 404 Not Found
 Not Found
 ```
 
-That is the whole mental model: startup values are added once with `decorate()`, middleware runs per request in onion order, and the request context carries both through the pipeline. A request no router touches falls out the end as a plain `404`. Every page that follows only adds routers, middleware, and startup values to this skeleton.
+That is the whole mental model: startup values are added once with `decorate()`, middleware runs per request in onion order, and the request context carries both through the pipeline. A request no router touches falls out the end as a plain `404`. Every page that follows only adds routers, middleware, and startup values to this skeleton. The app stays this small for the first three pages; the [modules](/tutorial/modules/) page then reorganizes it into self-contained feature modules, the layout the rest of the tutorial grows.
 
 <Callout title="Dev server binding">
 

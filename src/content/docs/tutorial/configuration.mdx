@@ -20,18 +20,26 @@ export const appConfig = defineConfig(
 ```
 
 ```ts
-// src/app.module.ts
+// src/config/settings.module.ts
 import { configModule } from "@rhythmjs/config";
-import { include } from "@rhythmjs/rhythm";
+import { configs } from ".";
 
-export const appModule = new Rhythm({ name: "app" })
-  .register(include(await configModule.forRoot(appConfig), ({ configService }) => ({ configService })))
-  .register(decorate(() => ({ appService })))
-  .use(mount(appController))
-  .use(mount(notesController));
+export const settingsModule = await configModule.forRoot(...configs); // validated once, at import
 ```
 
-A router that declares `AppConfigContext` (from `src/config/index.ts` below) as its context type can now call `ctx.configService.get("port")` — the path and the value are typed, and `mount()` refuses an app that does not supply it. Bun loads `.env` files natively, and factories read `process.env` themselves; there is no dotenv layer.
+```ts
+// src/app.module.ts
+import { include } from "@rhythmjs/rhythm";
+import { settingsModule } from "./config/settings.module";
+
+export const appModule = new Rhythm({ name: "app" })
+  .register(include(settingsModule, ({ configService }) => ({ configService })))
+  .register(decorate(() => ({ appService })))
+  .use(mount(appController))
+  .use(mount(notesModule));
+```
+
+`settingsModule` is an infrastructure module in the sense of the [modules](/tutorial/modules/) step: one instance, created once and exported. Anything that includes it gets a typed `configService` on its startup context, and `include` is sequential, so the next `register` can already read it. A feature that needs settings includes `settingsModule` itself, like it includes any other infrastructure, and a router that declares `AppConfigContext` (from `src/config/index.ts` below) as its context type can then call `ctx.configService.get("port")`: the path and the value are typed, and the app that serves it is rejected by `toFetchHandler` when nothing supplies it. Bun loads `.env` files natively, and factories read `process.env` themselves; there is no dotenv layer.
 
 ## Namespaces with registerAs
 
@@ -55,7 +63,7 @@ export const databaseConfig = registerAs(
 );
 ```
 
-Collect the factories in one place and register them all:
+Collect the factories in one place; `settingsModule` registers them all:
 
 ```ts
 // src/config/index.ts
@@ -68,9 +76,7 @@ export type AppConfigContext = ConfigContext<typeof configs>; // what configServ
 ```
 
 ```ts
-.register(include(await configModule.forRoot(...configs), ({ configService }) => ({ configService })))
-
-// later, anywhere on the context:
+// anywhere settingsModule was included:
 ctx.configService.get("database.url");            // string (validated URL)
 ctx.configService.get("database.poolSize");       // number, defaulted
 ctx.configService.getOrThrow("port");             // throws if missing
@@ -78,7 +84,7 @@ ctx.configService.getOrThrow("port");             // throws if missing
 
 ## Config at startup
 
-Startup is ordinary top-level code, so wiring that needs validated settings just reads them first. Config factories are callable directly, and a failure throws before anything else is built:
+Code that runs outside the pipeline, like `main.ts` or an infrastructure module's top level, is ordinary top-level code, so it just reads settings first. Config factories are callable directly, and a failure throws before anything else is built:
 
 ```ts
 // src/main.ts
@@ -88,7 +94,7 @@ const { port } = await appConfig();
 const server = Bun.serve({ port, fetch: toFetchHandler(appModule) });
 ```
 
-The next step uses the same call to open the database with the validated `database.url`.
+The next step uses the same call to open the database with the validated `database.url`, in the database module.
 
 <Callout title="Secrets in error messages">
 

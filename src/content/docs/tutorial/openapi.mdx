@@ -9,6 +9,7 @@ description: "Describe routes inline and serve a generated spec with a reference
 OpenAPI metadata is middleware too: annotations sit on the route they describe, and the schema middleware doubles as runtime validation — `apiBody` and friends validate exactly like `validate()` while also feeding the generated document. One rule first: a router is documented only if you wrap it with `documented()` right after constructing it, before any `use()` or route call. Routers that are not wrapped are silently left out of the document.
 
 ```ts
+// src/notes/notes.controller.ts
 import { documented } from "@rhythmjs/openapi/generate";
 import { apiOperation } from "@rhythmjs/openapi/operation";
 import { apiTags } from "@rhythmjs/openapi/tags";
@@ -19,7 +20,7 @@ export const notesController = documented(new RhythmRouter<NotesContext>({ name:
   .use(filter())
   .use(intercept(notesResponseSchema))
   .use(apiTags("notes")) // router-level fragments apply to every route registered after
-  /* ...authentication from step 9... */
+  /* ...authenticate and requireUser from step 9... */
   .post(
     "/api/notes",
     apiBody(createNoteSchema), // documents AND validates; ctx.valid.body — replaces validate()
@@ -35,7 +36,7 @@ export const notesController = documented(new RhythmRouter<NotesContext>({ name:
 
 ## Serve the document
 
-`openapiModule.forRoot()` returns a plain router that finds the `documented()` routers mounted in the same app, generates the spec from their annotations on the first request, and serves it as JSON. `scalarModule` renders a browsable UI over it. Both are added with `mount()`, before the routers they document:
+`openapiModule.forRoot()` returns a plain router that finds the `documented()` routers mounted in the same app, generates the spec from their annotations on the first request, and serves it as JSON. Routers inside a mounted feature module count too, so `notesModule` needs no change. `scalarModule` renders a browsable UI over it. Both are added with `mount()`, before the routers they document:
 
 ```ts
 import { openapiModule } from "@rhythmjs/openapi/module";
@@ -51,24 +52,27 @@ export const appModule = new Rhythm<{}, RhythmHttpContext>({ name: "app" })
   /* ...startup, edge stack... */
   .use(mount(openapiModule.forRoot({ document })))            // GET /openapi.json
   .use(mount(scalarModule.forRoot({ pageTitle: "Notes API" }))) // GET /docs
-  .use(mount(notesController));
+  .use(mount(appController))
+  .use(mount(notesModule))
+  /* ...the final 404 guard */
 ```
 
 The generated document is also available in code as `openapiModule.forRoot({ document }).openapiService.document()` — useful to write the spec to disk in a build script.
 
 ## Document security
 
-`apiBearerAuth()`, `apiBasicAuth()`, `apiKeyAuth()`, and `apiOAuth2()` record a route's security requirements in the spec. They are *documentation only* — they never enforce anything. Enforcement stays with the security middleware from step 9, so a protected router carries both; the scheme name (`bearer`) must match a key in `securitySchemes`:
+`apiBearerAuth()`, `apiBasicAuth()`, `apiKeyAuth()`, and `apiOAuth2()` record a route's security requirements in the spec. They are *documentation only* — they never enforce anything. Enforcement stays with the guards you wrote in step 9, so a protected router carries both; the scheme name (`bearer`) must match a key in `securitySchemes`:
 
 ```ts
 import { apiBearerAuth } from "@rhythmjs/openapi/security";
 
+// src/notes/notes.controller.ts
 export const notesController = documented(new RhythmRouter<NotesContext>({ name: "notes" }))
   /* ... */
   .use(authenticate)
-  .use(requireAuthentication<User>()) // enforces it
-  .use(apiBearerAuth())               // documents the requirement for every route after this point
-  .delete("/api/notes/:id", requireRoles(["admin"]), async (ctx) => { /* ... */ });
+  .use(requireUser)     // enforces it
+  .use(apiBearerAuth()) // documents the requirement for every route after this point
+  .delete("/api/notes/:id", requireRole("admin"), async (ctx) => { /* ... */ });
 ```
 
 <Callout title="Docs in production">

@@ -54,8 +54,15 @@ const denied = await runHttpMiddleware(guard, "/private");
 expect(denied.nextCalled).toBe(false);
 expect(denied.response.status).toBe(401);
 
+const requireRole =
+  (role: string): Middleware<RhythmHttpContext & { user: { roles: string[] } | null }> =>
+  async (ctx, next) => {
+    if (!ctx.user?.roles.includes(role)) return void ctx.error(403);
+    await next();
+  };
+
 const { response } = await runHttpMiddleware(
-  requireRoles("admin"),
+  requireRole("admin"),
   "/admin",
   { user: { roles: ["viewer"] } }, // extras: context from upstream middleware
 );

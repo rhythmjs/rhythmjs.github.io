@@ -97,4 +97,4 @@ function listOrders() {
 }
 ```
 
-The surface: `get`/`set`/`has`/`delete` over string or symbol keys, `context()` for the live request context (`contextOrNull()` to probe), `isActive()`, and `RequestScope.run(context, fn)` to open a scope manually in tests or jobs. Calls outside an active scope throw a descriptive `RequestScopeError`. Augment the empty `RequestScopeStore` interface to type your keys ecosystem-wide.
+The surface: `get`/`set`/`has`/`delete` over string or symbol keys, `context()` for the live request context (`contextOrNull()` to probe), `isActive()`, and `RequestScope.run(context, fn)` to open a scope manually in tests or scripts. Calls outside an active scope throw a descriptive `RequestScopeError`. Augment the empty `RequestScopeStore` interface to type your keys ecosystem-wide.

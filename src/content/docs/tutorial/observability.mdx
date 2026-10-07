@@ -32,7 +32,7 @@ The health service separates liveness (the process is up) from readiness (its de
 // src/health.ts
 import { createHealthService } from "@rhythmjs/observability/health";
 import { sql } from "drizzle-orm";
-import { database } from "./database";
+import { database } from "./database/database.module";
 
 export const healthService = createHealthService({
   indicators: [
@@ -41,7 +41,7 @@ export const healthService = createHealthService({
       critical: true,
       timeout: 2_000,
       check: async () => {
-        await database.db.execute(sql`select 1`);
+        await database.execute(sql`select 1`);
         return { status: "up" };
       },
     },
@@ -53,7 +53,7 @@ export const healthService = createHealthService({
 // src/app.module.ts
 import { healthRoutes } from "@rhythmjs/observability/health";
 
-appModule.use(mount(healthRoutes(healthService))); // GET /health/live, GET /health/ready
+appModule.use(mount(healthRoutes(healthService))); // GET /health/live, GET /health/ready; mount it before the 404 guard
 ```
 
 `healthRoutes` is a router with full paths (`/health/live`, `/health/ready`); move them with `healthRoutes(service, { path: "/internal" })`. If you only want the service on the context — for a handler of your own — `register(include(healthModule.forRoot({ indicators }), ({ healthService }) => ({ healthService })))` does the registration for you, but the routes and the shutdown hook need the instance itself, which is why this app builds it directly.
@@ -103,11 +103,5 @@ gracefulShutdown({
 
 console.log(`listening on ${server.url}`);
 ```
-
-<Callout title="Keep your other wiring">
-
-If you followed the [WebSockets](/tutorial/websockets/) and [scheduled jobs](/tutorial/background-jobs/) steps, keep their pieces in this file and module too: the `websocket` option on `Bun.serve`, and `startCron` registered on the app, whose jobs are then stopped by the same `appModule.stop()`.
-
-</Callout>
 
 With that, deploys are boring: the balancer sees `/health/ready` go down, traffic drains, in-flight requests finish, the pool closes last, because the app's cleanups say so. Which leaves exactly one thing to prove — that all of it works.

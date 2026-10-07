@@ -1,6 +1,6 @@
 ---
 title: "Security"
-lead: "Harden the edge, then decide who is calling and what they may do."
+lead: "Harden the edge, then decide who is calling and what they may do, with middleware you write yourself."
 description: "Headers, CORS, CSRF, rate limits, and authenticated routes."
 ---
 
@@ -21,10 +21,17 @@ export const appModule = new Rhythm<{}, RhythmHttpContext>({ name: "app" })
   .use(cors({ origin: ["https://app.example.com"] })) // exact-match allowlist, never "*" with credentials
   .use(csrf())                                        // origin-checks unsafe form posts
   .use(rateLimit({ limit: 100, windowMs: 60_000 }))
-  .use(mount(notesController));
+  .use(mount(appController))
+  .use(mount(notesModule))
+  .use((ctx) => {
+    // mounted routers always continue, so answer only when nothing wrote a response
+    if (ctx.response.status === 200 && ctx.response.body === null) ctx.error(404);
+  });
 ```
 
 `secureHeaders` covers every response, including ones other middleware produced, and `cors` lives on the app rather than a router so a preflight `OPTIONS` request is answered even for a path that only has a `GET` route.
+
+The last `use` is new and deliberate. `toFetchHandler` answers its plain `404` only when the response is completely untouched, headers included. Once `secureHeaders` or `cors` has set a header on every response, a request no router matched is no longer untouched and would come back as an empty `200`. The guard sits after every mount and answers `404` when no router wrote a body. Keep it last whenever app-level middleware sets headers.
 
 `rateLimit` identifies clients by `request.ip`, which Bun does not set, so assign it where you hold Bun's server — in `main.ts`:
 
@@ -48,7 +55,7 @@ Set `rateLimit({ trustProxy: true })` (or the hop count you operate). Without it
 
 ## Who is calling
 
-Authentication is strategy-agnostic plumbing: `attachUser(fn)` resolves whatever credentials you use into `ctx.user` (or `null`), and helpers read the standard headers for you. It is a `derive()` step, so it goes on the router whose routes need the user:
+Authentication is ordinary middleware, so you write it with the primitives you already know. The per-request question "who is this?" is a job for `derive()`: it resolves whatever credentials you use into `ctx.user` (or `null`) and types it for every step after it. First the placeholder service it calls:
 
 ```ts
 // src/auth/auth.service.ts
@@ -61,52 +68,98 @@ export const authService = {
   async verify(token: string): Promise<User | null> {
     return token === process.env.API_TOKEN ? { id: "1", roles: ["admin"] } : null; // swap in your real check
   },
+  async login(input: { email: string; password: string }): Promise<User | null> {
+    return input.password === process.env.ADMIN_PASSWORD ? { id: input.email, roles: ["admin"] } : null; // likewise
+  },
 };
 ```
 
 ```ts
-import { attachUser, getBearerToken } from "@rhythmjs/security/authentication";
-import { authService, type User } from "../auth/auth.service";
+// src/auth/authenticate.ts
+import { derive } from "@rhythmjs/rhythm";
+import { authService, type User } from "./auth.service";
 
-const authenticate = attachUser<User>(async (ctx) => {
-  const token = getBearerToken(ctx.request); // Authorization: Bearer <token>
-  return token === null ? null : authService.verify(token); // null on bad tokens
+export const authenticate = derive(async (ctx: { request: Request }) => {
+  const token = /^Bearer (.+)$/i.exec(ctx.request.headers.get("authorization") ?? "")?.[1]; // Authorization: Bearer <token>
+  const user: User | null = token ? await authService.verify(token) : null; // null on a missing or bad token
+  return { user };
 });
 ```
 
+`authenticate` only identifies; it never rejects. Anonymous requests carry `ctx.user === null`, and deciding what that means is the job of the guards below. Because it is a derive-style step it goes on the router whose routes need the user, with `.use(authenticate)`. (A route accepts one such handler as its first handler, and `validate` takes that slot.)
+
 ## Who may do what
 
-Authorization composes on the router: attach the user once, then require it — and require roles or permissions on the routes that need them. Unauthenticated requests get `401`, authenticated-but-forbidden get `403`. Middleware on a router runs only for that router's routes, so nothing here touches `/health` or the docs:
+Authorization is two small guards, plain `(ctx, next)` middleware that answer without calling `next()` when the request is refused. Unauthenticated requests get `401`, authenticated-but-forbidden get `403`:
 
 ```ts
-import { requireAuthentication } from "@rhythmjs/security/authentication";
-import { requireRoles } from "@rhythmjs/security/authorization";
+// src/auth/guards.ts
+import type { Next } from "@rhythmjs/rhythm/types";
+import type { RhythmHttpContext } from "@rhythmjs/router/context";
+import type { User } from "./auth.service";
+
+type AuthedContext = RhythmHttpContext & { user: User | null };
+
+export const requireUser = (ctx: AuthedContext, next: Next) => {
+  if (!ctx.user) return ctx.error(401, "Sign in first");
+  return next();
+};
+
+export const requireRole = (role: string) => (ctx: AuthedContext, next: Next) => {
+  if (!ctx.user) return ctx.error(401, "Sign in first");
+  if (!ctx.user.roles.includes(role)) return ctx.error(403, "Forbidden");
+  return next();
+};
+```
+
+Compose them on the router: attach the user once, require it, and require a role on the routes that need one. Middleware on a router runs only for that router's routes, so nothing here touches `/health` or the docs:
+
+```ts
+// src/notes/notes.controller.ts
+import { authenticate } from "../auth/authenticate";
+import { requireRole, requireUser } from "../auth/guards";
 
 export const notesController = new RhythmRouter<NotesContext>({ name: "notes" })
   .use(filter())
   .use(intercept(notesResponseSchema))
   .use(authenticate)                      // ctx.user: User | null
-  .use(requireAuthentication<User>())     // 401 unless signed in; ctx.user: User from here on
+  .use(requireUser)                       // 401 unless signed in
   .get("/api/notes", async (ctx) => {
     ctx.json(await ctx.notesService.list());
   })
   .post("/api/notes", validate("body", createNoteSchema), async (ctx) => {
     ctx.json(await ctx.notesService.create(ctx.valid.body), 201);
   })
-  .delete("/api/notes/:id", requireRoles(["admin"]), async (ctx) => {
+  .delete("/api/notes/:id", requireRole("admin"), async (ctx) => {
     if (!(await ctx.notesService.remove(ctx.params.id))) throw new HttpError(404, "Note not found");
     ctx.response.status = 204;
   });
 ```
 
-`requireAuthentication()` is a derive-style step, so it sits on the router rather than as a second extension in a route's handler list (a route accepts one extension handler, and `validate` takes that slot). To keep part of the API public, put the public routes on another router.
+The module needs no change: `notesModule` mounts this controller, so the protection travels with the feature.
+
+The guards are plain middleware, so they can sit anywhere in a handler list, even after `validate`. `authenticate` is the only derive-style step, which is why it lives on the router. To keep part of the API public, put the public routes on another router. A guard does not narrow `ctx.user`'s type, which stays `User | null` downstream.
+
+<Callout title="Sessions, OAuth, and more">
+
+This is deliberately small: one token, one check. For full sessions, social login, and `requireSession()`, use the [better-auth integration](/integrations/better-auth/) instead of growing your own.
+
+</Callout>
 
 ## Sessions and cookies
 
 For cookie-based apps, `@rhythmjs/http/session` puts a typed session on the context, backed by a pluggable store — always `HttpOnly` and `SameSite=Lax`; set `secure: true` in production:
 
 ```ts
+// src/auth/session.controller.ts
 import { session } from "@rhythmjs/http/session";
+import { filter, HttpError } from "@rhythmjs/middleware/filter";
+import { validate } from "@rhythmjs/middleware/validate";
+import { RhythmRouter } from "@rhythmjs/router";
+import { z } from "zod";
+import { authService } from "./auth.service";
+
+const loginSchema = z.object({ email: z.string(), password: z.string() });
 
 export const sessionController = new RhythmRouter({ name: "session" })
   .use(filter())
@@ -122,5 +175,7 @@ export const sessionController = new RhythmRouter({ name: "session" })
     ctx.response.status = 204;
   });
 ```
+
+Mount it on the app next to the notes module, before the final guard: `.use(mount(sessionController))`. `authService` has a `login` next to `verify`; both are placeholders for your real credential check.
 
 The [hardening guide](/security/hardening/) covers the rest of the surface: per-route rate limits, header tuning, and the CSRF model's caveats for non-form clients.

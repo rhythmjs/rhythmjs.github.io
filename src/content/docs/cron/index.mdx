@@ -1,58 +1,72 @@
 ---
 title: "Scheduled jobs"
-lead: "Named cron jobs on Bun's native scheduler, as a Rhythm pipeline: middleware around every run, started and stopped with the app."
-description: "Install @rhythmjs/cron, declare named jobs on RhythmCron, and start them with the app using startCron."
+lead: "A pipeline of named jobs on Bun's own cron: Rhythm middleware around every run, started and stopped with the app, and no scheduler of our own."
+description: "Install @rhythmjs/cron, declare named jobs with RhythmCron, and start them with the app using startCron."
 ---
 
 ## Install the package
 
-`@rhythmjs/cron` runs scheduled work for Rhythm on Bun. It is a thin pipeline over Bun's own `Bun.cron`: jobs are named, handlers are ordinary `(ctx, next)` middleware, and the package adds no scheduler of its own. Like the router and WebSockets, `RhythmCron` is a `Pipeline`, so everything you know about middleware and context applies. The [Schedules & handlers](/cron/jobs/) page covers declaring jobs; [Lifecycle & errors](/cron/lifecycle/) covers starting, stopping, and failures.
+`@rhythmjs/cron` adds scheduled work to a Rhythm app. It is built on [`Bun.cron`](https://bun.com/docs/api/cron) and nothing else: expressions are parsed and fired by Bun, which also guarantees that a job never overlaps itself. What the package adds is the Rhythm shape around that: named jobs, the same `use()` middleware and `(ctx, next)` handlers as `RhythmRouter` and `RhythmWs`, and a start and stop that follow the app's lifecycle.
+
+`@rhythmjs/rhythm` is a peer dependency (0.0.20 or newer), and Bun 1.4 or newer is required.
 
 ```bash
 bun add @rhythmjs/cron @rhythmjs/rhythm
 ```
 
-## A minimal app [#minimal-app]
+## A first app [#first-app]
 
-`new RhythmCron<{ db: Db }>()` declares the startup context the handlers receive. `.cron(name, schedule, ...handlers)` registers a job, and `startCron(cron)` registers the whole set with the app, so jobs start with the app's startup context and stop on `app.stop()`.
+`new RhythmCron<{ db: Db }>()` declares the context the jobs need from the app. `.cron(name, schedule, handler)` adds a job, and `.use(middleware)` wraps every run of every job:
 
 ```ts
 import { Rhythm, decorate } from "@rhythmjs/rhythm";
 import { RhythmCron, startCron } from "@rhythmjs/cron";
 
 const cron = new RhythmCron<{ db: Db }>({ tz: "UTC" })
+  .use(async (ctx, next) => {
+    const started = performance.now();
+    await next();
+    console.log(`${ctx.job.name} took ${Math.round(performance.now() - started)}ms`);
+  })
   .cron("cleanup", "0 3 * * *", async (ctx) => {
     await ctx.db.deleteExpiredSessions();
   })
-  .cron("digest", "@hourly", (ctx) => {
-    console.log(`${ctx.job.name} fired at ${ctx.job.firedAt.toISOString()}`);
+  .cron("report", { schedule: "30 9 * * MON-FRI", tz: "America/New_York" }, async (ctx) => {
+    await sendReport(ctx.db);
   });
 
-const app = new Rhythm()
-  .register(decorate(() => ({ db })))
-  .register(startCron(cron));
+const app = new Rhythm().register(decorate(() => ({ db: openDb() }))).register(startCron(cron));
 
-await app.callback()();
-// ... on shutdown:
-await app.stop();
+await app.callback()(); // jobs are scheduled
+// await app.stop();    // and cancelled with the app
 ```
+
+Each handler receives `ctx`: whatever the app supplied (here `db`) plus `ctx.job`, which says which job fired and when. The schedule syntax, time zones and handlers are covered in [Schedules & handlers](/cron/jobs/).
 
 ## How it sits with Rhythm [#with-rhythm]
 
-`startCron(cron)` is a register callback. It starts the jobs with the app's startup context (`db` above, so the handlers' `ctx` carries it) and registers a cleanup that stops them when `app.stop()` runs. Order matters only in that `decorate` must come first, so the context exists when `startCron` runs.
+`RhythmCron` is a `Pipeline`, like the router and the WebSocket plugin, but it is not mounted per request: jobs have no request. Instead it is started once, at startup, through `startCron`:
 
-Because the host app is the same Rhythm app that serves HTTP, one process can do both: pass `toFetchHandler(app)` to `Bun.serve` and register `startCron(cron)` on the same app. Nothing is mounted; cron work does not flow through requests.
+```ts
+app.register(startCron(cron));
+```
 
-<Callout title="In-process only">
+`startCron(cron)` is a register callback. It starts every job with the app's startup context as their input and registers a cleanup that stops them, so `app.stop()` cancels the schedules. The jobs read that context when they fire, so dependencies added by later `register()` calls are visible to them. The app must provide the context the jobs declared (`{ db: Db }` above); a missing field is a compile error at `startCron`, not a surprise at 3 a.m.
 
-Jobs run inside your process on Bun's timers. They are not durable, runs missed while the process is down are not replayed, and every replica fires every job. See [durability and replicas](/cron/lifecycle/#durability).
+<Callout title="Middleware wraps every run">
+
+`cron.use(middleware)` runs around each job's handlers on every fire, with the same `(ctx, next)` shape as router middleware. Use it for timing, logging, tracing or [locking](/cron/lifecycle/#replicas). Extension middleware such as `derive(...)` widens the context the jobs see.
 
 </Callout>
 
-## What to read next [#next]
+Cron can live next to HTTP in one app. Register `startCron(cron)` for the schedules and mount the router for requests; a route can also trigger a job by hand with [`cron.run`](/cron/lifecycle/#run).
+
+## Where to go next [#next]
 
 <DefList>
-<Def sig="Schedules & handlers" id="jobs-page">[Expressions, nicknames, time zones, handlers, extension middleware, and registration-time validation.](/cron/jobs/)</Def>
-<Def sig="Lifecycle & errors" id="lifecycle-page">[start, stop, run, next, Disposable, onError, and testing without waiting.](/cron/lifecycle/)</Def>
-<Def sig="API reference" id="api-page">[Every export and signature.](/cron/api/)</Def>
+<Def sig="Schedules & handlers" id="jobs-page">[Declaring jobs](/cron/jobs/): expressions and nicknames, time zones, handlers and derive-style middleware, validation at registration, and names.</Def>
+<Def sig="Lifecycle & errors" id="lifecycle-page">[Running them](/cron/lifecycle/): `startCron`, `start` and `stop`, errors and `onError`, durability, replicas, and testing without waiting.</Def>
+<Def sig="API reference" id="api-page">[Every export](/cron/api/): `RhythmCron`, its options and methods, the context types, and `startCron`.</Def>
 </DefList>
+
+The package source and examples live in the [cron repository](https://github.com/rhythmjs/cron).
